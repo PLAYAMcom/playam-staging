@@ -1,0 +1,426 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PLAYAM Staging Admin — MFA</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:#0b0714;color:#f7f2ff;font:15px system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:1100px;margin:auto;padding:24px}
+.brand{color:#e7a8ff;font-weight:800;letter-spacing:2px}
+.panel,.metric{background:#171022;border:1px solid #352344;border-radius:16px;padding:18px}
+.panel{margin-top:18px}
+h1{font-size:clamp(26px,5vw,40px);margin:8px 0}
+h2{font-size:18px;margin:0 0 14px}
+.muted{color:#b9adc5}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.metric small{color:#b9adc5}
+.metric strong{display:block;font-size:27px;margin-top:8px;overflow-wrap:anywhere}
+input,button,select,textarea{font:inherit;border-radius:10px;padding:12px;border:1px solid #59436b}
+input,select,textarea{width:100%;margin:6px 0 12px;background:#0e0a16;color:white}
+textarea{min-height:90px;resize:vertical}
+button{background:#a83de0;color:white;font-weight:700;cursor:pointer;border:0;margin:3px}
+button.secondary{background:#352344}
+button.danger{background:#a83255}
+#app{display:none}
+.status{margin-top:12px;color:#ffb9cf;white-space:pre-wrap}
+.section{margin-top:24px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#d9c8e8}
+.report{background:#100b19;border:1px solid #49345b;border-radius:12px;padding:15px;margin:12px 0}
+.report p{overflow-wrap:anywhere}
+.report small{color:#b9adc5}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:520px){main{padding:16px}}
+</style>
+</head>
+<body>
+<main>
+<div class="brand">PLAYAM</div>
+<h1>Staging admin dashboard</h1>
+<p class="muted">STAGING ONLY · Never use production accounts or production data here.</p>
+<p class="muted">Private administration overview. Sign in with an authorised PLAYAM administrator account.</p>
+
+<section id="login" class="panel">
+<h2>Administrator sign in</h2>
+<label>Email</label>
+<input id="email" type="email" autocomplete="username" placeholder="Admin email">
+<label>Password</label>
+<input id="password" type="password" autocomplete="current-password" placeholder="Password">
+<button id="signIn">Sign in</button>
+<div id="loginStatus" class="status" role="status"></div>
+</section>
+
+<section id="mfaPanel" class="panel" style="display:none">
+ <h2>Administrator multi-factor verification</h2>
+ <p id="mfaMessage" class="muted" role="status">Complete your second factor to continue.</p>
+ <div id="mfaQr" style="display:none;margin:12px 0"></div>
+ <label for="mfaCode">Authenticator code</label>
+ <input id="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Enter current 6-digit code">
+ <button id="verifyMfa">Verify and continue</button>
+ <button id="cancelMfa" class="secondary">Sign out</button>
+ <div id="mfaStatus" class="status" role="status"></div>
+</section>
+
+<section id="app">
+<div class="panel">
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+<span id="welcome" class="muted">Administrator</span>
+<div>
+<button id="refresh">Refresh</button>
+<button id="logout" class="secondary">Log out</button>
+</div>
+</div>
+<div id="status" class="status" role="status"></div>
+</div>
+
+<div class="section">
+<h2>Users & games</h2>
+<div class="grid" id="usersGames"></div>
+</div>
+
+<div class="section">
+<h2>Creator applications & moderation</h2>
+<div class="grid" id="moderation"></div>
+</div>
+
+<div class="section">
+<h2>LIVE & gifts</h2>
+<div class="grid" id="live"></div>
+</div>
+
+<div class="section">
+<h2>Payments & earnings</h2>
+<div class="grid" id="finance"></div>
+</div>
+
+<div class="panel">
+<h2>Player report moderation</h2>
+<p class="muted">Review reports submitted by players. Every moderation decision requires a reason and is recorded in the admin audit log.</p>
+
+<label for="reportFilter">Filter reports</label>
+<select id="reportFilter">
+<option value="">All reports</option>
+<option value="open">Open</option>
+<option value="reviewing">Reviewing</option>
+<option value="resolved">Resolved</option>
+<option value="dismissed">Dismissed</option>
+</select>
+<button id="loadReports">Load reports</button>
+<div id="reportStatus" class="status" role="status"></div>
+<div id="reports"></div>
+</div>
+
+<div class="panel">
+<h2>Detailed status data</h2>
+<pre id="details">Waiting for authorised sign-in.</pre>
+</div>
+
+<p class="muted">Purchases are stored-value liabilities, not platform revenue. Ad earnings are estimates and shown separately. Administrative actions are protected by server-side authorisation and audit logging.</p>
+</section>
+</main>
+
+<script>
+// STAGING ONLY: insert the PLAYAM-Staging Project URL and publishable key here.
+// Never paste a service-role key. This page intentionally contains no production credentials.
+const SUPABASE_URL='https://pwnjrdedeoxbmtfywhkk.supabase.co';
+const SUPABASE_KEY='sb_publishable_6zZlj2moK_zv9lAA_0xdzA_nBDueD50';
+const stagingConfigReady=SUPABASE_URL.startsWith('https://') && SUPABASE_URL.endsWith('.supabase.co') && !SUPABASE_URL.includes('__') && SUPABASE_KEY.startsWith('sb_publishable_') && !SUPABASE_KEY.includes('__');
+if(!stagingConfigReady){
+ document.body.insertAdjacentHTML('afterbegin','<div style="position:sticky;top:0;z-index:9999;background:#5b3510;color:#fff;padding:14px;text-align:center;font-weight:700">STAGING CONFIGURATION REQUIRED — this page is disabled until the PLAYAM-Staging Project URL and publishable key are configured.</div>');
+ throw new Error('PLAYAM Staging configuration is missing. No Supabase connection was created.');
+}
+const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+const num=v=>Number(v||0).toLocaleString();
+const moneyKobo=v=>'₦'+(Number(v||0)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+
+function escapeHTML(value){
+ return String(value??'').replace(/[&<>"']/g,char=>({
+ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+ }[char]));
+}
+
+function cards(target,items){
+ $(target).innerHTML=items.map(([label,value])=>
+ '<div class="metric"><small>'+escapeHTML(label)+'</small><strong>'+escapeHTML(value)+'</strong></div>'
+ ).join('');
+}
+
+async function loadOverview(){
+ $('status').textContent='Loading secure administrator overview…';
+ const {data,error}=await client.rpc('get_playam_admin_overview');
+
+ if(error){
+  $('status').textContent=error.message;
+  $('details').textContent='Access denied or overview unavailable.';
+  return;
+ }
+
+ const d=data||{};
+ const u=d.users||{},g=d.games||{},c=d.creator_applications||{};
+ const m=d.moderation||{},l=d.live||{},p=d.purchases||{};
+ const w=d.withdrawals||{},r=d.platform_revenue||{},a=d.advertising||{};
+
+ cards('usersGames',[
+  ['Registered accounts',num(u.registered_accounts)],
+  ['Player profiles',num(u.player_profiles)],
+  ['Online players',num(u.online_players)],
+  ['Total rooms',num(g.total_rooms)]
+ ]);
+
+ cards('moderation',[
+  ['Creator applications',num(c.total)],
+  ['Player reports',num(m.total_reports)],
+  ['Creator application statuses',JSON.stringify(c.statuses||{})],
+  ['Report statuses',JSON.stringify(m.statuses||{})]
+ ]);
+
+ cards('live',[
+  ['LIVE sessions',num(l.total_sessions)],
+  ['Completed gift transactions',num(l.completed_gift_transactions)],
+  ['LIVE session statuses',JSON.stringify(l.statuses||{})]
+ ]);
+
+ const paid=p.paid_amounts_by_currency||{};
+ const ads=a.estimated_earnings_by_currency||{};
+
+ cards('finance',[
+  ['Net platform gift revenue',moneyKobo(r.net_revenue_kobo)],
+  ['Pending creator withdrawals',num((w.statuses||{}).requested||0)],
+  ['Pending withdrawal amount',moneyKobo(w.pending_amount_kobo)],
+  ['Paid purchases by currency',JSON.stringify(paid)],
+  ['Estimated ad earnings',JSON.stringify(ads)]
+ ]);
+
+ $('details').textContent=JSON.stringify(d,null,2);
+ $('status').textContent='Overview loaded. Last generated: '+(d.generated_at||'time unavailable');
+}
+
+async function loadReports(){
+ $('reportStatus').textContent='Loading player reports…';
+ $('reports').innerHTML='';
+
+ const status=$('reportFilter').value||null;
+
+ const {data,error}=await client.rpc('admin_list_player_reports',{
+  p_status:status,
+  p_limit:50
+ });
+
+ if(error){
+  $('reportStatus').textContent='Could not load reports: '+error.message;
+  return;
+ }
+
+ const reports=Array.isArray(data)?data:[];
+ $('reportStatus').textContent=reports.length
+  ? reports.length+' report(s) loaded.'
+  : 'No reports found for this filter.';
+
+ if(!reports.length)return;
+
+ $('reports').innerHTML=reports.map(report=>{
+  const id=escapeHTML(report.report_id);
+  const reason=escapeHTML(report.reason);
+  const details=escapeHTML(report.details||'No additional details provided.');
+  const reporter=escapeHTML(report.reporter_nickname||'Unknown player');
+  const reported=escapeHTML(report.reported_nickname||'Unknown player');
+  const state=escapeHTML(report.status);
+  const date=escapeHTML(report.created_at||'');
+  const disabled=['resolved','dismissed'].includes(report.status);
+
+  return `
+   <article class="report">
+    <small>Report ID: ${id}</small>
+    <p><strong>Reported player:</strong> ${reported}</p>
+    <p><strong>Reported by:</strong> ${reporter}</p>
+    <p><strong>Reason:</strong> ${reason}</p>
+    <p><strong>Details:</strong> ${details}</p>
+    <p><strong>Status:</strong> ${state}</p>
+    <small>Submitted: ${date}</small>
+    ${disabled?'':`
+     <label for="reason-${id}">Admin decision reason</label>
+     <textarea id="reason-${id}" minlength="5" maxlength="1000" placeholder="Explain your moderation decision (at least 5 characters)"></textarea>
+     <div class="actions">
+      <button class="secondary" data-report="${id}" data-action="reviewing">Mark reviewing</button>
+      <button data-report="${id}" data-action="resolved">Resolve</button>
+      <button class="danger" data-report="${id}" data-action="dismissed">Dismiss</button>
+     </div>
+    `}
+   </article>
+  `;
+ }).join('');
+}
+
+async function reviewReport(reportId,newStatus){
+ const reasonInput=$('reason-'+reportId);
+ const reason=reasonInput?reasonInput.value.trim():'';
+
+ if(reason.length<5||reason.length>1000){
+  alert('Please enter a reason between 5 and 1000 characters.');
+  return;
+ }
+
+ const actionName={
+  reviewing:'mark this report as reviewing',
+  resolved:'resolve this report',
+  dismissed:'dismiss this report'
+ }[newStatus];
+
+ if(!confirm('Are you sure you want to '+actionName+'? This action will be recorded.'))return;
+
+ $('reportStatus').textContent='Saving moderation decision…';
+
+ const {error}=await client.rpc('admin_review_player_report',{
+  p_report_id:reportId,
+  p_new_status:newStatus,
+  p_reason:reason
+ });
+
+ if(error){
+  $('reportStatus').textContent='Moderation action failed: '+error.message;
+  return;
+ }
+
+ $('reportStatus').textContent='Moderation decision saved.';
+ await loadReports();
+ await loadOverview();
+}
+
+$('reports').addEventListener('click',async event=>{
+ const button=event.target.closest('button[data-report]');
+ if(!button)return;
+ await reviewReport(button.dataset.report,button.dataset.action);
+});
+
+let mfaFactorId=null;
+let mfaChallengeId=null;
+let mfaBusy=false;
+let mfaPrepared=false;
+let dashboardLoaded=false;
+
+function mfaStatus(message){$('mfaStatus').textContent=message||'';}
+
+async function prepareMfa(){
+ if(mfaBusy||mfaPrepared)return;
+ mfaBusy=true;mfaPrepared=true;
+ $('mfaPanel').style.display='block';
+ $('mfaMessage').textContent='Checking administrator MFA enrolment…';
+ $('mfaQr').style.display='none';
+ $('mfaQr').innerHTML='';
+ $('mfaCode').value='';
+ mfaStatus('');
+ try{
+  const {data,error}=await client.auth.mfa.listFactors();
+  if(error)throw error;
+  const verified=(data?.totp||[]).find(f=>f.status==='verified');
+  if(verified){
+   mfaFactorId=verified.id;
+   const challenge=await client.auth.mfa.challenge({factorId:mfaFactorId});
+   if(challenge.error)throw challenge.error;
+   mfaChallengeId=challenge.data.id;
+   $('mfaMessage').textContent='Enter the current code from your registered authenticator app.';
+  }else{
+   const enrolled=await client.auth.mfa.enroll({factorType:'totp',friendlyName:'PLAYAM administrator authenticator'});
+   if(enrolled.error)throw enrolled.error;
+   mfaFactorId=enrolled.data.id;
+   const totp=enrolled.data.totp||{};
+   $('mfaQr').innerHTML='';
+   if(totp.qr_code){
+    const img=document.createElement('img');
+    img.alt='Authenticator enrolment QR code';
+    img.src=totp.qr_code;
+    img.style.maxWidth='220px';img.style.width='100%';img.style.background='white';img.style.padding='10px';img.style.borderRadius='10px';
+    $('mfaQr').appendChild(img);
+   }
+   if(totp.secret){
+    const p=document.createElement('p');p.className='muted';p.textContent='Manual setup key: '+totp.secret;
+    $('mfaQr').appendChild(p);
+   }
+   $('mfaQr').style.display='block';
+   const challenge=await client.auth.mfa.challenge({factorId:mfaFactorId});
+   if(challenge.error)throw challenge.error;
+   mfaChallengeId=challenge.data.id;
+   $('mfaMessage').textContent='Set up an authenticator app with the QR code, then enter its current code to activate mandatory administrator MFA.';
+  }
+ }catch(error){mfaStatus('MFA setup could not continue: '+(error.message||'Unknown error'));}
+ finally{mfaBusy=false;}
+}
+
+async function verifyAdminMfa(){
+ const code=$('mfaCode').value.replace(/\s/g,'');
+ if(!/^\d{6,8}$/.test(code)){mfaStatus('Enter the current 6–8 digit authenticator code.');return;}
+ if(!mfaFactorId||!mfaChallengeId){mfaStatus('MFA challenge is missing. Please sign out and sign in again.');return;}
+ $('verifyMfa').disabled=true;mfaStatus('Verifying second factor…');
+ try{
+  const result=await client.auth.mfa.verify({factorId:mfaFactorId,challengeId:mfaChallengeId,code});
+  if(result.error)throw result.error;
+  const assurance=await client.auth.mfa.getAuthenticatorAssuranceLevel();
+  if(assurance.error)throw assurance.error;
+  if(assurance.data.currentLevel!=='aal2')throw new Error('The session has not reached AAL2. Try a fresh authenticator code.');
+  $('mfaPanel').style.display='none';
+  $('app').style.display='block';
+  const {data:{session}}=await client.auth.getSession();
+  $('welcome').textContent='MFA verified · '+(session?.user?.email||'administrator');
+  dashboardLoaded=false;
+  await loadOverview();await loadReports();dashboardLoaded=true;
+ }catch(error){mfaStatus('Verification failed: '+(error.message||'Unknown error'));}
+ finally{$('verifyMfa').disabled=false;}
+}
+
+async function showSession(){
+ const {data:{session}}=await client.auth.getSession();
+ if(!session){
+  $('login').style.display='block';$('mfaPanel').style.display='none';$('app').style.display='none';
+  dashboardLoaded=false;mfaPrepared=false;mfaFactorId=null;mfaChallengeId=null;return;
+ }
+ const assurance=await client.auth.mfa.getAuthenticatorAssuranceLevel();
+ if(assurance.error){$('login').style.display='none';$('app').style.display='none';$('mfaPanel').style.display='block';mfaStatus(assurance.error.message);return;}
+ if(assurance.data.currentLevel==='aal2'){
+  $('login').style.display='none';$('mfaPanel').style.display='none';$('app').style.display='block';
+  $('welcome').textContent='MFA verified · '+(session.user.email||'administrator');
+  if(!dashboardLoaded){await loadOverview();await loadReports();dashboardLoaded=true;}
+  return;
+ }
+ $('login').style.display='none';$('app').style.display='none';
+ await prepareMfa();
+}
+
+$('verifyMfa').onclick=verifyAdminMfa;
+$('mfaCode').addEventListener('keydown',event=>{if(event.key==='Enter')verifyAdminMfa();});
+$('cancelMfa').onclick=async()=>{await client.auth.signOut();await showSession();};
+
+$('signIn').onclick=async()=>{
+ $('loginStatus').textContent='Signing in…';
+ const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
+ $('loginStatus').textContent=error?error.message:'';
+ if(!error)await showSession();
+};
+
+$('refresh').onclick=async()=>{
+ await loadOverview();
+ await loadReports();
+};
+
+$('loadReports').onclick=loadReports;
+$('reportFilter').onchange=loadReports;
+
+$('logout').onclick=async()=>{
+ await client.auth.signOut();
+ $('loginStatus').textContent='Signed out.';
+ await showSession();
+};
+
+client.auth.onAuthStateChange((event)=>{
+ if(event==='SIGNED_OUT'){dashboardLoaded=false;setTimeout(showSession,0);}
+ else if(event==='SIGNED_IN'||event==='MFA_CHALLENGE_VERIFIED'||event==='TOKEN_REFRESHED'){setTimeout(showSession,0);}
+});
+
+showSession();
+</script>
+</body>
+</html>
