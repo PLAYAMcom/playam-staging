@@ -48,7 +48,12 @@ def download_bounded(storage, object_key: str, destination: Path):
     if not signed_url:
         raise RuntimeError("source_download_url_unavailable")
     from urllib.parse import urljoin
-    signed_url = urljoin(URL.rstrip("/") + "/", signed_url)
+    if signed_url.startswith(("https://", "http://")):
+        pass
+    elif signed_url.startswith("/storage/v1/"):
+        signed_url = urljoin(URL.rstrip("/") + "/", signed_url.lstrip("/"))
+    else:
+        signed_url = urljoin(URL.rstrip("/") + "/storage/v1/", signed_url.lstrip("/"))
     total = 0
     with httpx.stream("GET", signed_url, follow_redirects=True,
                       timeout=httpx.Timeout(60.0, read=120.0)) as response:
