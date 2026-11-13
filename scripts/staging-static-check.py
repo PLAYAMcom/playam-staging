@@ -13,18 +13,30 @@ if not APP.exists():
 source = APP.read_text(encoding="utf-8")
 PUBLISHED_APP = Path("site/game.html")
 ADMIN_APP = Path("site/admin-playam-staging.html")
+LANDING_PAGE = Path("site/index.html")
 if not PUBLISHED_APP.exists():
     raise SystemExit("FAIL: published Staging game page is missing")
 if PUBLISHED_APP.read_text(encoding="utf-8") != source:
     raise SystemExit("FAIL: published game page is not identical to the reviewed root app")
 if not ADMIN_APP.exists():
     raise SystemExit("FAIL: existing Staging admin dashboard is missing")
+if not LANDING_PAGE.exists():
+    raise SystemExit("FAIL: Staging landing page is missing")
+landing_source = LANDING_PAGE.read_text(encoding="utf-8")
+for link in ('href="game.html"', 'href="admin-playam-staging.html"'):
+    if link not in landing_source:
+        raise SystemExit("FAIL: Staging landing page is missing a required link: " + link)
 admin_source = ADMIN_APP.read_text(encoding="utf-8")
 if "pwnjrdedeoxbmtfywhkk" not in admin_source or "erjxmesxmmmaxivvmbsi" in admin_source:
     raise SystemExit("FAIL: admin dashboard is not isolated to Staging")
 for marker in ("mfa.verify", "get_playam_admin_overview", "admin_list_player_reports", "admin_review_player_report"):
     if marker not in admin_source:
         raise SystemExit("FAIL: admin dashboard is missing a required protected workflow: " + marker)
+for page_name, page_source in (("game", source), ("admin", admin_source)):
+    if "erjxmesxmmmaxivvmbsi" in page_source:
+        raise SystemExit("FAIL: Production project reference found in Staging " + page_name + " page")
+    if re.search(r"service_role|sb_secret_[A-Za-z0-9_-]+|sk_(live|test)_[A-Za-z0-9]+", page_source, re.I):
+        raise SystemExit("FAIL: server-only credential marker found in Staging " + page_name + " page")
 
 required = [
     "pwnjrdedeoxbmtfywhkk",
