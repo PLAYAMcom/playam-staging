@@ -1,10 +1,13 @@
-name: Deploy PLAYAM staging dashboard to GitHub Pages
+name: Deploy PLAYAM Staging to GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
+      - "index.html"
       - "site/**"
+      - "scripts/staging-static-check.py"
+      - ".github/workflows/staging-static-check.yml"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
@@ -24,9 +27,19 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Check out Staging repository
         uses: actions/checkout@v4
-      - name: Upload site artifact
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify game and admin pages
+        run: python3 scripts/staging-static-check.py
+      - name: Upload Staging website
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./site
