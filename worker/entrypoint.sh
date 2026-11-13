@@ -12,7 +12,7 @@ freshclam --stdout || exit 1
 # configuration under /run, which is an explicitly writable, size-limited tmpfs.
 cat > /run/clamav/clamd.conf <<'CLAMD_CONFIG'
 DatabaseDirectory /var/lib/clamav
-PidFile /tmp/clamav/clamd.pid
+PidFile /dev/null
 User clamav
 TCPSocket 3310
 TCPAddr 127.0.0.1
