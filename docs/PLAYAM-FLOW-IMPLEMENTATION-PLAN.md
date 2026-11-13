@@ -1,6 +1,6 @@
 # PLAYAM Flow — implementation blueprint (Staging)
 
-**Status:** product/technical plan only. No Flow database schema or feed backend is implemented yet.
+**Status:** Flow schema foundation created in Staging (nine RLS-protected tables, deny-by-default); media storage, app APIs, feed UI and monetisation engine are not implemented yet.
 **Environment:** Staging repository only. Do not apply this plan to Production without explicit approval.
 
 ## Product promise
