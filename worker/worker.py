@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 import time
 import uuid
-from pathlib import Path
+from pathlib import Path\nfrom datetime import datetime, timezone
 
 import clamd
 from supabase import create_client
@@ -59,7 +59,7 @@ def scan(path: Path):
     scanner.ping()
     with path.open("rb") as media:
         result = scanner.instream(media)
-    if not result or result.get("stream", (None, "ERROR"))[0] != "stream":
+    if not result or result.get("stream", (None, "ERROR"))[0] not in ("OK", "FOUND"):
         raise RuntimeError("scanner_unavailable")
     status, signature = result["stream"]
     if status == "FOUND":
@@ -87,7 +87,7 @@ def process(job):
         source_hash = sha256(source)
         scan(source)
         duration = inspect_video(source)
-        supabase.table("flow_media_processing_jobs").update({"status": "transcoding", "updated_at": "now()"}).eq("id", job_id).eq("locked_by", WORKER_ID).execute()
+        supabase.table("flow_media_processing_jobs").update({"status": "transcoding", "updated_at": datetime.now(timezone.utc).isoformat()}).eq("id", job_id).eq("locked_by", WORKER_ID).execute()
         supabase.table("flow_post_assets").update({"processing_status": "processing"}).eq("id", asset_id).execute()
         run(["ffmpeg", "-nostdin", "-y", "-i", str(source), "-t", str(MAX_SECONDS),
              "-map", "0:v:0", "-map", "0:a:0?", "-vf", "scale='min(1080,iw)':-2",
