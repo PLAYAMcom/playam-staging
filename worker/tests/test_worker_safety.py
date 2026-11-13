@@ -146,5 +146,13 @@ class WorkerSafetyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             worker.LeaseHeartbeat("job-id", "worker-id-123", interval=0)
 
+    def test_lease_heartbeat_fails_closed_on_rpc_exception(self):
+        client = Mock()
+        client.rpc.return_value.execute.side_effect = TimeoutError("database timeout")
+        with patch.object(worker, "supabase", client):
+            heartbeat = worker.LeaseHeartbeat("job-id", "worker-id-123", interval=30)
+            with self.assertRaises(worker.LeaseLostError):
+                heartbeat._renew()
+
 if __name__ == "__main__":
     unittest.main()
