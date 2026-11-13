@@ -3,6 +3,7 @@ import os
 import socket
 import subprocess
 import tempfile
+import threading
 import time
 import uuid
 
@@ -19,13 +20,69 @@ BUCKET = "flow-media-staging"
 MAX_BYTES = int(os.getenv("MAX_SOURCE_BYTES", str(100 * 1024 * 1024)))
 MAX_SECONDS = int(os.getenv("MAX_VIDEO_SECONDS", "180"))
 POLL_SECONDS = float(os.getenv("POLL_SECONDS", "4"))
+LEASE_HEARTBEAT_SECONDS = int(os.getenv("LEASE_HEARTBEAT_SECONDS", "300"))
 WORKER_ID = os.getenv("WORKER_ID", "playam-flow") + "-" + str(uuid.uuid4())
+OUTPUT_WORKER_TOKEN = uuid.uuid4().hex
 supabase = create_client(URL, SERVICE_KEY)
 
 
 class PermanentMediaError(Exception):
     """Input is unsafe or invalid and must not be retried."""
 
+
+class LeaseLostError(Exception):
+    """The worker can no longer prove ownership of its processing lease."""
+
+
+class LeaseHeartbeat:
+    def __init__(self, job_id: str, worker_id: str, interval: int = LEASE_HEARTBEAT_SECONDS):
+        if interval < 15:
+            raise ValueError("lease heartbeat interval must be at least 15 seconds")
+        self.job_id = job_id
+        self.worker_id = worker_id
+        self.interval = interval
+        self._stop = threading.Event()
+        self._lost = threading.Event()
+        self._thread = threading.Thread(target=self._run, name="flow-lease-heartbeat", daemon=True)
+
+    def _renew(self):
+        try:
+            response = supabase.rpc("flow_renew_media_job_lease_v1", {
+                "p_job_id": self.job_id,
+                "p_worker_id": self.worker_id,
+            }).execute()
+        except Exception as exc:
+            raise LeaseLostError("worker lease renewal could not be confirmed") from exc
+        if not isinstance(response.data, dict) or response.data.get("ok") is not True:
+            raise LeaseLostError("worker lease renewal was not confirmed")
+
+    def _run(self):
+        while not self._stop.wait(self.interval):
+            try:
+                self._renew()
+            except Exception:
+                self._lost.set()
+                return
+
+    def check(self):
+        if self._lost.is_set():
+            raise LeaseLostError("worker lease was lost or could not be renewed")
+
+    def stop(self):
+        self._stop.set()
+        if self._thread.is_alive() and threading.current_thread() is not self._thread:
+            self._thread.join(timeout=3)
+
+    def __enter__(self):
+        self._renew()
+        self._thread.start()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.stop()
+        if self._lost.is_set():
+            raise LeaseLostError("worker lease was lost or could not be renewed")
+        return False
 
 
 def sha256(path: Path) -> str:
@@ -88,6 +145,44 @@ def upload_file(storage, object_key: str, path: Path, content_type: str):
             "upsert": "true",
         })
 
+
+def upload_processed_pair(storage, video_key: str, thumbnail_key: str, video_path: Path, thumbnail_path: Path):
+    """Upload video and thumbnail atomically enough for retry safety.
+
+    If the second upload fails, remove only the first object created by this attempt.
+    """
+    uploaded = []
+    try:
+        upload_file(storage, video_key, video_path, "video/mp4")
+        uploaded.append(video_key)
+        upload_file(storage, thumbnail_key, thumbnail_path, "image/jpeg")
+        uploaded.append(thumbnail_key)
+    except Exception:
+        cleanup_processed_objects(storage, uploaded)
+        raise
+
+def cleanup_processed_objects(storage, object_keys):
+    """Retry cleanup for this worker's uniquely namespaced partial uploads.
+
+    Returns True only when storage confirms removal. A failure is logged with
+    the exact private object keys so an operator can reconcile it safely.
+    """
+    keys = [key for key in object_keys if key]
+    if not keys:
+        return True
+    last_error = None
+    for attempt in range(3):
+        try:
+            storage.remove(keys)
+            return True
+        except Exception as exc:
+            last_error = exc
+            if attempt < 2:
+                time.sleep(2 ** attempt)
+    print("processed object cleanup requires reconciliation",
+          ",".join(keys), type(last_error).__name__, flush=True)
+    return False
+
 def inspect_video(path: Path):
     if not path.is_file() or path.stat().st_size < 1024 or path.stat().st_size > MAX_BYTES:
         raise PermanentMediaError("source_size_invalid")
@@ -139,45 +234,64 @@ def process(job):
         raise PermanentMediaError("source_location_invalid")
     if not source_key.startswith(job["creator_auth_user_id"] + "/") or ".." in source_key.split("/"):
         raise PermanentMediaError("source_location_invalid")
-    with tempfile.TemporaryDirectory(prefix="playam-flow-") as temp:
-        root = Path(temp)
-        source = root / "source.media"
-        output = root / "playback.mp4"
-        thumb = root / "thumbnail.jpg"
-        storage = supabase.storage.from_(source_bucket)
-        download_bounded(storage, source_key, source)
-        source_hash = sha256(source)
-        scan(source)
-        duration = inspect_video(source)
-        supabase.table("flow_media_processing_jobs").update({"status": "transcoding", "updated_at": datetime.now(timezone.utc).isoformat()}).eq("id", job_id).eq("locked_by", WORKER_ID).execute()
-        supabase.table("flow_post_assets").update({"processing_status": "processing"}).eq("id", asset_id).execute()
-        run(["ffmpeg", "-nostdin", "-y", "-i", str(source), "-t", str(MAX_SECONDS),
-             "-map", "0:v:0", "-map", "0:a:0?", "-vf", "scale='min(1080,iw)':-2",
-             "-c:v", "libx264", "-preset", "veryfast", "-crf", "25",
-             "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
-             "-movflags", "+faststart", str(output)], timeout=1200)
-        if not output.exists() or output.stat().st_size < 1024:
-            raise RuntimeError("transcode_output_invalid")
-        supabase.table("flow_media_processing_jobs").update({"status": "thumbnailing", "updated_at": "now()"}).eq("id", job_id).eq("locked_by", WORKER_ID).execute()
-        run(["ffmpeg", "-nostdin", "-y", "-ss", str(min(1.0, duration / 4)),
-             "-i", str(output), "-frames:v", "1", "-vf", "scale='min(640,iw)':-2",
-             "-q:v", "4", str(thumb)], timeout=60)
-        if not thumb.exists() or thumb.stat().st_size < 512:
-            raise RuntimeError("thumbnail_output_invalid")
-        prefix = f"processed/{job['creator_auth_user_id']}/{asset_id}"
-        video_key, thumb_key = f"{prefix}/playback.mp4", f"{prefix}/thumbnail.jpg"
-        storage = supabase.storage.from_(BUCKET)
-        upload_file(storage, video_key, output, "video/mp4")
-        upload_file(storage, thumb_key, thumb, "image/jpeg")
-        output_hash = sha256(output)
-        result = supabase.rpc("flow_complete_media_job_v1", {
-            "p_job_id": job_id, "p_worker_id": WORKER_ID,
-            "p_output_bucket": BUCKET, "p_output_object_key": video_key,
-            "p_thumbnail_object_key": thumb_key,
-            "p_source_sha256": source_hash, "p_output_sha256": output_hash
-        }).execute()
-        if not result.data:
-            raise RuntimeError("completion_not_confirmed")
+
+    with LeaseHeartbeat(job_id, WORKER_ID) as lease:
+        with tempfile.TemporaryDirectory(prefix="playam-flow-") as temp:
+            root = Path(temp)
+            source = root / "source.media"
+            output = root / "playback.mp4"
+            thumb = root / "thumbnail.jpg"
+            storage = supabase.storage.from_(source_bucket)
+            download_bounded(storage, source_key, source)
+            lease.check()
+            source_hash = sha256(source)
+            scan(source)
+            lease.check()
+            duration = inspect_video(source)
+            lease.check()
+            supabase.table("flow_media_processing_jobs").update({
+                "status": "transcoding",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }).eq("id", job_id).eq("locked_by", WORKER_ID).execute()
+            supabase.table("flow_post_assets").update({
+                "processing_status": "processing"
+            }).eq("id", asset_id).execute()
+            run(["ffmpeg", "-nostdin", "-y", "-i", str(source), "-t", str(MAX_SECONDS),
+                 "-map", "0:v:0", "-map", "0:a:0?", "-vf", "scale='min(1080,iw)':-2",
+                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "25",
+                 "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
+                 "-movflags", "+faststart", str(output)], timeout=1200)
+            lease.check()
+            if not output.exists() or output.stat().st_size < 1024:
+                raise RuntimeError("transcode_output_invalid")
+            supabase.table("flow_media_processing_jobs").update({
+                "status": "thumbnailing",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }).eq("id", job_id).eq("locked_by", WORKER_ID).execute()
+            run(["ffmpeg", "-nostdin", "-y", "-ss", str(min(1.0, duration / 4)),
+                 "-i", str(output), "-frames:v", "1", "-vf", "scale='min(640,iw)':-2",
+                 "-q:v", "4", str(thumb)], timeout=60)
+            lease.check()
+            if not thumb.exists() or thumb.stat().st_size < 512:
+                raise RuntimeError("thumbnail_output_invalid")
+            # Each attempt has an isolated prefix so cleanup cannot delete another worker's output.
+            prefix = f"processed/{job['creator_auth_user_id']}/{asset_id}/{job_id}/{OUTPUT_WORKER_TOKEN}"
+            video_key, thumb_key = f"{prefix}/playback.mp4", f"{prefix}/thumbnail.jpg"
+            storage = supabase.storage.from_(BUCKET)
+            upload_processed_pair(storage, video_key, thumb_key, output, thumb)
+            lease.check()
+            output_hash = sha256(output)
+            # Stop heartbeats before terminal RPC; it checks the last lease expiry.
+            lease.check()
+            lease.stop()
+            result = supabase.rpc("flow_complete_media_job_v1", {
+                "p_job_id": job_id, "p_worker_id": WORKER_ID,
+                "p_output_bucket": BUCKET, "p_output_object_key": video_key,
+                "p_thumbnail_object_key": thumb_key,
+                "p_source_sha256": source_hash, "p_output_sha256": output_hash
+            }).execute()
+            if not result.data:
+                raise RuntimeError("completion_not_confirmed")
 
 
 def main():
@@ -191,6 +305,9 @@ def main():
             try:
                 process(claimed)
                 print("completed media job", claimed["job_id"], flush=True)
+            except LeaseLostError as exc:
+                # Do not call the failure RPC: another worker may now own this job.
+                print("worker lease lost; leaving job for safe recovery", claimed["job_id"], type(exc).__name__, flush=True)
             except PermanentMediaError as exc:
                 code = str(exc)[:80]
                 rejected = True

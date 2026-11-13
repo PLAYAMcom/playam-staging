@@ -122,5 +122,70 @@ class WorkerSafetyTests(unittest.TestCase):
                     worker.scan(source)
 
 
+    def test_lease_heartbeat_renews_only_when_database_confirms(self):
+        response = SimpleNamespace(data={"ok": True, "locked_at": "2026-11-13T18:00:00Z"})
+        client = Mock()
+        client.rpc.return_value.execute.return_value = response
+        with patch.object(worker, "supabase", client):
+            heartbeat = worker.LeaseHeartbeat("job-id", "worker-id-123", interval=30)
+            heartbeat._renew()
+        client.rpc.assert_called_once_with("flow_renew_media_job_lease_v1", {
+            "p_job_id": "job-id", "p_worker_id": "worker-id-123"
+        })
+
+    def test_lease_heartbeat_fails_closed_when_renewal_is_not_confirmed(self):
+        response = SimpleNamespace(data={"ok": False})
+        client = Mock()
+        client.rpc.return_value.execute.return_value = response
+        with patch.object(worker, "supabase", client):
+            heartbeat = worker.LeaseHeartbeat("job-id", "worker-id-123", interval=30)
+            with self.assertRaises(worker.LeaseLostError):
+                heartbeat._renew()
+
+    def test_lease_heartbeat_rejects_nonpositive_interval(self):
+        with self.assertRaises(ValueError):
+            worker.LeaseHeartbeat("job-id", "worker-id-123", interval=0)
+
+    def test_lease_heartbeat_fails_closed_on_rpc_exception(self):
+        client = Mock()
+        client.rpc.return_value.execute.side_effect = TimeoutError("database timeout")
+        with patch.object(worker, "supabase", client):
+            heartbeat = worker.LeaseHeartbeat("job-id", "worker-id-123", interval=30)
+            with self.assertRaises(worker.LeaseLostError):
+                heartbeat._renew()
+
+    def test_partial_second_upload_failure_removes_first_attempt_object(self):
+        storage = Mock()
+        storage.upload.side_effect = [None, RuntimeError("thumbnail upload failed")]
+        with tempfile.TemporaryDirectory() as tmp:
+            video = Path(tmp) / "video.mp4"
+            thumb = Path(tmp) / "thumbnail.jpg"
+            video.write_bytes(b"video")
+            thumb.write_bytes(b"thumbnail")
+            with self.assertRaisesRegex(RuntimeError, "thumbnail upload failed"):
+                worker.upload_processed_pair(storage, "processed/u/a/job/worker/playback.mp4",
+                                             "processed/u/a/job/worker/thumbnail.jpg", video, thumb)
+        storage.remove.assert_called_once_with(["processed/u/a/job/worker/playback.mp4"])
+
+    def test_cleanup_failure_does_not_mask_original_upload_error(self):
+        storage = Mock()
+        storage.upload.side_effect = [None, RuntimeError("upload failed")]
+        storage.remove.side_effect = OSError("storage cleanup unavailable")
+        with tempfile.TemporaryDirectory() as tmp:
+            video = Path(tmp) / "video.mp4"
+            thumb = Path(tmp) / "thumbnail.jpg"
+            video.write_bytes(b"video")
+            thumb.write_bytes(b"thumbnail")
+            with patch.object(worker.time, "sleep"):
+                with self.assertRaisesRegex(RuntimeError, "upload failed"):
+                    worker.upload_processed_pair(storage, "processed/u/a/job/worker/playback.mp4",
+                                                 "processed/u/a/job/worker/thumbnail.jpg", video, thumb)
+        self.assertEqual(storage.remove.call_count, 3)
+
+    def test_cleanup_ignores_empty_object_list(self):
+        storage = Mock()
+        worker.cleanup_processed_objects(storage, [])
+        storage.remove.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()
