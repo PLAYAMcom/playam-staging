@@ -154,5 +154,36 @@ class WorkerSafetyTests(unittest.TestCase):
             with self.assertRaises(worker.LeaseLostError):
                 heartbeat._renew()
 
+    def test_partial_second_upload_failure_removes_first_attempt_object(self):
+        storage = Mock()
+        storage.upload.side_effect = [None, RuntimeError("thumbnail upload failed")]
+        with tempfile.TemporaryDirectory() as tmp:
+            video = Path(tmp) / "video.mp4"
+            thumb = Path(tmp) / "thumbnail.jpg"
+            video.write_bytes(b"video")
+            thumb.write_bytes(b"thumbnail")
+            with self.assertRaisesRegex(RuntimeError, "thumbnail upload failed"):
+                worker.upload_processed_pair(storage, "processed/u/a/job/worker/playback.mp4",
+                                             "processed/u/a/job/worker/thumbnail.jpg", video, thumb)
+        storage.remove.assert_called_once_with(["processed/u/a/job/worker/playback.mp4"])
+
+    def test_cleanup_failure_does_not_mask_original_upload_error(self):
+        storage = Mock()
+        storage.upload.side_effect = [None, RuntimeError("upload failed")]
+        storage.remove.side_effect = OSError("storage cleanup unavailable")
+        with tempfile.TemporaryDirectory() as tmp:
+            video = Path(tmp) / "video.mp4"
+            thumb = Path(tmp) / "thumbnail.jpg"
+            video.write_bytes(b"video")
+            thumb.write_bytes(b"thumbnail")
+            with self.assertRaisesRegex(RuntimeError, "upload failed"):
+                worker.upload_processed_pair(storage, "processed/u/a/job/worker/playback.mp4",
+                                             "processed/u/a/job/worker/thumbnail.jpg", video, thumb)
+
+    def test_cleanup_ignores_empty_object_list(self):
+        storage = Mock()
+        worker.cleanup_processed_objects(storage, [])
+        storage.remove.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()
