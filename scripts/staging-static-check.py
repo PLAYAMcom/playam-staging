@@ -13,6 +13,7 @@ if not APP.exists():
 source = APP.read_text(encoding="utf-8")
 PUBLISHED_APP = Path("site/game.html")
 ADMIN_APP = Path("site/admin-playam-staging.html")
+FLOW_APP = Path("site/flow.html")
 LANDING_PAGE = Path("site/index.html")
 if not PUBLISHED_APP.exists():
     raise SystemExit("FAIL: published Staging game page is missing")
@@ -20,6 +21,8 @@ if PUBLISHED_APP.read_text(encoding="utf-8") != source:
     raise SystemExit("FAIL: published game page is not identical to the reviewed root app")
 if not ADMIN_APP.exists():
     raise SystemExit("FAIL: existing Staging admin dashboard is missing")
+if not FLOW_APP.exists():
+    raise SystemExit("FAIL: PLAYAM Flow Staging interface is missing")
 if not LANDING_PAGE.exists():
     raise SystemExit("FAIL: Staging landing page is missing")
 landing_source = LANDING_PAGE.read_text(encoding="utf-8")
@@ -32,7 +35,12 @@ if "pwnjrdedeoxbmtfywhkk" not in admin_source or "erjxmesxmmmaxivvmbsi" in admin
 for marker in ("mfa.verify", "get_playam_admin_overview", "admin_list_player_reports", "admin_review_player_report"):
     if marker not in admin_source:
         raise SystemExit("FAIL: admin dashboard is missing a required protected workflow: " + marker)
-for page_name, page_source in (("game", source), ("admin", admin_source)):
+flow_source = FLOW_APP.read_text(encoding="utf-8")
+if "pwnjrdedeoxbmtfywhkk" not in flow_source or "erjxmesxmmmaxivvmbsi" in flow_source:
+    raise SystemExit("FAIL: Flow interface is not isolated to Staging")
+if re.search(r"service_role|sb_secret_[A-Za-z0-9_-]+|sk_(live|test)_[A-Za-z0-9]+", flow_source, re.I):
+    raise SystemExit("FAIL: server-only credential marker found in Flow interface")
+for page_name, page_source in (("game", source), ("admin", admin_source), ("flow", flow_source)):
     if "erjxmesxmmmaxivvmbsi" in page_source:
         raise SystemExit("FAIL: Production project reference found in Staging " + page_name + " page")
     if re.search(r"service_role|sb_secret_[A-Za-z0-9_-]+|sk_(live|test)_[A-Za-z0-9]+", page_source, re.I):
