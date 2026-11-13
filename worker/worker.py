@@ -162,15 +162,26 @@ def upload_processed_pair(storage, video_key: str, thumbnail_key: str, video_pat
         raise
 
 def cleanup_processed_objects(storage, object_keys):
-    """Best-effort cleanup for this worker's uniquely namespaced partial uploads."""
+    """Retry cleanup for this worker's uniquely namespaced partial uploads.
+
+    Returns True only when storage confirms removal. A failure is logged with
+    the exact private object keys so an operator can reconcile it safely.
+    """
     keys = [key for key in object_keys if key]
     if not keys:
-        return
-    try:
-        storage.remove(keys)
-    except Exception as exc:
-        # Preserve the original processing/upload error; orphan cleanup can be retried.
-        print("processed object cleanup failed", len(keys), type(exc).__name__, flush=True)
+        return True
+    last_error = None
+    for attempt in range(3):
+        try:
+            storage.remove(keys)
+            return True
+        except Exception as exc:
+            last_error = exc
+            if attempt < 2:
+                time.sleep(2 ** attempt)
+    print("processed object cleanup requires reconciliation",
+          ",".join(keys), type(last_error).__name__, flush=True)
+    return False
 
 def inspect_video(path: Path):
     if not path.is_file() or path.stat().st_size < 1024 or path.stat().st_size > MAX_BYTES:
