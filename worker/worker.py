@@ -61,17 +61,17 @@ def download_bounded(storage, object_key: str, destination: Path):
             except ValueError as exc:
                 if str(exc) == "source_size_invalid":
                     raise
-                raise ValueError("source_size_invalid") from exc
+                raise PermanentMediaError("source_size_invalid") from exc
         with destination.open("wb") as target:
             for chunk in response.iter_bytes(chunk_size=1024 * 1024):
                 if not chunk:
                     continue
                 total += len(chunk)
                 if total > MAX_BYTES:
-                    raise ValueError("source_size_invalid")
+                    raise PermanentMediaError("source_size_invalid")
                 target.write(chunk)
     if total < 1024:
-        raise ValueError("source_size_invalid")
+        raise PermanentMediaError("source_size_invalid")
     return total
 
 
@@ -85,7 +85,7 @@ def upload_file(storage, object_key: str, path: Path, content_type: str):
 
 def inspect_video(path: Path):
     if not path.is_file() or path.stat().st_size < 1024 or path.stat().st_size > MAX_BYTES:
-        raise ValueError("source_size_invalid")
+        raise PermanentMediaError("source_size_invalid")
     result = run(["ffprobe", "-v", "error", "-show_entries",
                   "format=duration,format_name:stream=codec_type,codec_name,width,height",
                   "-of", "json", str(path)], timeout=30)
