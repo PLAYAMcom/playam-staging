@@ -20,6 +20,7 @@ required = [
     "start_playam_game",
     "submit_playam_answer",
     "advance_playam_round",
+    "has_playam_submitted",
     "list_room_report_targets",
     "submit_player_report",
 ]
