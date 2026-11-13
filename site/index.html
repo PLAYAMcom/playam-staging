@@ -3,10 +3,34 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="0; url=admin-playam-staging.html">
-  <title>PLAYAM Staging Admin</title>
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#0b0714">
+  <title>PLAYAM Staging</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#0b0714;color:#f7f2ff;font:16px system-ui,-apple-system,Segoe UI,sans-serif}
+    main{width:min(100%,720px)}
+    .brand{color:#e7a8ff;font-weight:800;letter-spacing:3px}
+    h1{font-size:clamp(32px,7vw,54px);margin:10px 0}
+    p{color:#c7b8d3;line-height:1.6}
+    .links{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:28px}
+    a{display:block;padding:22px;border:1px solid #49345b;border-radius:16px;background:#171022;color:#fff;text-decoration:none}
+    a:hover{border-color:#d18af4;background:#20142e}
+    a strong{display:block;font-size:20px;margin-bottom:8px}
+    small{color:#b9adc5}
+    footer{margin-top:26px;color:#8f819c;font-size:13px}
+  </style>
 </head>
 <body>
-  <p>Opening the <a href="admin-playam-staging.html">PLAYAM staging admin dashboard</a>…</p>
+  <main>
+    <div class="brand">PLAYAM · STAGING</div>
+    <h1>Choose your workspace</h1>
+    <p>This is the isolated PLAYAM test environment. Use test accounts only. Production players, purchases and payouts are not part of this site.</p>
+    <div class="links">
+      <a href="game.html"><strong>🎮 Play the games</strong><small>Friendship Court and the four Starter game modes.</small></a>
+      <a href="admin-playam-staging.html"><strong>🛡️ Admin dashboard</strong><small>Private moderation tools. Administrator MFA is required.</small></a>
+    </div>
+    <footer>Staging only · Not the Production PLAYAM website</footer>
+  </main>
 </body>
 </html>
