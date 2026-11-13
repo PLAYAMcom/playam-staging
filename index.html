@@ -527,7 +527,13 @@ async function loadGame(){
  if(room.status==="finished"||room.game_status==="finished"){stopGameRefresh();showResults();return}
  const {data:round,error:roundError}=await supabaseClient.from("game_rounds").select("*,questions(id,text,question_type,option_a,option_b)").eq("room_id",room.id).eq("round_number",room.current_round).single();
  if(roundError||!round){document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="Preparing the next round...";return}
- if(currentRoundId!==round.id){currentRoundId=round.id;answerSubmitted=false;selectedVotePlayerId="";roundAdvanceRequestedFor="";document.getElementById("answerInput").value=""}
+ if(currentRoundId!==round.id){
+  currentRoundId=round.id;answerSubmitted=false;selectedVotePlayerId="";roundAdvanceRequestedFor="";
+  document.getElementById("answerInput").value="";
+  const {data:alreadySubmitted,error:submissionCheckError}=await supabaseClient.rpc("has_playam_submitted",{p_code:currentRoomCode});
+  if(submissionCheckError){showMessage("Could not check your round status: "+submissionCheckError.message);return}
+  answerSubmitted=alreadySubmitted===true;
+ }
  document.getElementById("gameName").innerText=getGameTitle(room.game);
  document.getElementById("gameRoundNumber").innerText="Round "+room.current_round+" of "+room.rounds;
  document.getElementById("questionBox").innerText=round.questions.text;
