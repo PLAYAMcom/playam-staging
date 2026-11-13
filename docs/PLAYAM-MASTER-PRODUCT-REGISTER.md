@@ -58,6 +58,7 @@ Do not drop, rename, merge or replace a catalogue title without the user's expli
 - `flow-save-draft` creates private draft records; uploaded asset remains quarantined.
 - `flow-social` supports approved public feed retrieval, likes/unlikes, comments and follow/unfollow through server-side service access.
 - `flow-admin-moderation` requires authenticated session, aal2 MFA and active `super_admin` role; approval is blocked unless asset status is `ready`. No media scanning/transcoding worker currently exists, so approval should remain blocked until that pipeline is built.
+- `flow-view-events` records authenticated playback starts and finishes. It uses a server timestamp, excludes creator self-views, and allows one qualified view per signed-in viewer/post/day. The server calculates elapsed wall-clock time and applies a minimum threshold (up to 10 seconds, or 80% of known short-video duration). This is an initial anti-abuse gate, not complete bot/fraud protection; it does not prove continuous attention or actual playback time.
 - Staging Flow page: `site/flow.html`; upload screen is wired to upload-ticket and draft functions; feed/social and moderation panels have been added.
 - No posts/assets exist yet; no real end-to-end upload, playback, like/comment/follow or moderation test has been performed.
 - The nine Flow tables remain RLS-enabled with no direct client policies/grants; keep that deny-by-default stance until narrowly scoped access is justified. All app table access is intended through authenticated server functions.
