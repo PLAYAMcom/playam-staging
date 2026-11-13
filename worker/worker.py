@@ -78,12 +78,21 @@ def update_job(job_id, **values):
 def process(job):
     job_id, asset_id = job["job_id"], job["asset_id"]
     source_bucket, source_key = job["source_bucket"], job["source_object_key"]
+    # Never allow a queued job to make the service worker read outside the
+    # dedicated private Staging bucket or another creator's storage prefix.
+    if source_bucket != BUCKET or not isinstance(source_key, str):
+        raise ValueError("source_location_invalid")
+    if not source_key.startswith(job["creator_auth_user_id"] + "/") or ".." in source_key.split("/"):
+        raise ValueError("source_location_invalid")
     with tempfile.TemporaryDirectory(prefix="playam-flow-") as temp:
         root = Path(temp)
         source = root / "source.media"
         output = root / "playback.mp4"
         thumb = root / "thumbnail.jpg"
         data = supabase.storage.from_(source_bucket).download(source_key)
+        # Enforce the size limit before writing to disk or invoking scanners.
+        if not isinstance(data, (bytes, bytearray)) or len(data) < 1024 or len(data) > MAX_BYTES:
+            raise ValueError("source_size_invalid")
         source.write_bytes(data)
         source_hash = sha256(source)
         scan(source)
