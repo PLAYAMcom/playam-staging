@@ -18,6 +18,7 @@ Nine Flow tables exist: posts, post assets, likes, comments, follows, view event
 - `flow-social`: approved public feed retrieval, likes/unlikes, comments and follows/unfollows, via server-side access.
 - `flow-admin-moderation`: requires a valid authenticated user, aal2 MFA and active `super_admin` role; lists pending drafts and records review decisions. Approval is blocked unless media asset processing status is `ready`.
 - `flow-view-events`: records authenticated playback start/finish, excludes self-views, and permits one qualified event per viewer/post/day. Qualification is based on server elapsed time (up to 10 seconds, or 80% of known short-video duration). This is a baseline anti-abuse check, not proof of continuous attention or complete fraud prevention.
+- `flow-creator-stats`: returns the signed-in creator’s follower count, qualified views in the last 30 days, published video count, likes, comments and current eligibility gate status. It does not grant monetisation or earnings.
 
 ## Interface
 - `site/flow.html` has Staging sign-in, upload/caption UI, feed, creator space and admin review panel.
@@ -30,14 +31,14 @@ Nine Flow tables exist: posts, post assets, likes, comments, follows, view event
 - There are currently zero Flow posts and zero assets.
 - No scanner, malware/content inspection or transcoding worker exists. Assets remain quarantined; public approval cannot succeed until a trusted processing pipeline marks assets ready.
 - No end-to-end test with signed-in Staging users has been completed. No video upload/playback, feed, like, comment, follow or moderation action is claimed tested.
-- Basic qualified-view event recording is implemented, but advanced anti-fraud/device risk analysis, continuous playback verification, creator analytics evaluator and monetisation eligibility thresholds are not implemented.
+- Basic qualified-view event recording and read-only creator analytics are implemented, but advanced anti-fraud/device risk analysis, continuous playback verification, automated eligibility evaluator and monetisation eligibility thresholds are not implemented.
 - No creator earnings or payouts were issued.
 - Older Flow UI and schema commits may not yet have successful GitHub Actions / Pages deployment confirmation. Check the latest commit status before treating the hosted page as updated.
 
 ## Required next steps
 1. Build secure media scanning/transcoding and thumbnail pipeline; only trusted worker can set asset `processing_status=ready`.
 2. Strengthen view qualification with anti-bot/device risk checks, playback continuity validation and abuse monitoring; current implementation is only a first baseline.
-3. Add profile/creator stats endpoints and creator dashboard.
+3. Extend creator analytics with watch-time quality, share counts, trend charts and fraud signals.
 4. Decide and document exact follower + qualified-view thresholds before enabling monetisation; require good standing and original-content checks.
 5. Test upload, private draft, processing, moderation, publication, playback, likes, comments, follows and role/MFA denial using separate Staging accounts.
 6. Reconcile the direct-applied SQL schema into version-controlled migrations before any reset or promotion.
