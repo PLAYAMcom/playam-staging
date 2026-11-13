@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090914"><title>PLAYAM Flow · Staging</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:dark;--bg:#090914;--panel:#17172b;--line:#383653;--pink:#ed4cbd;--purple:#9b5cff;--muted:#aaaac5}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:white;font:15px Arial,sans-serif}header{position:sticky;top:0;background:#101020ee;border-bottom:1px solid var(--line);padding:16px;display:flex;justify-content:space-between;align-items:center;z-index:2}.brand{font-weight:900;letter-spacing:2px;font-size:22px;background:linear-gradient(90deg,#b17aff,#ff55c8);color:transparent;background-clip:text}main{max-width:850px;margin:auto;padding:22px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.tabs button,button{border:1px solid var(--line);border-radius:12px;padding:12px 16px;background:#24243c;color:white;font-weight:bold;cursor:pointer}.tabs button.active,.primary{background:linear-gradient(100deg,var(--purple),var(--pink));border:0}.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;margin:14px 0}.muted{color:var(--muted);line-height:1.55}.hidden{display:none!important}input,textarea{width:100%;background:#0e0e1c;color:white;border:1px solid var(--line);border-radius:10px;padding:13px;margin:8px 0 14px}input[type=file]{padding:10px}label{display:block;font-weight:bold;margin-top:12px}.bar{height:7px;background:#333;border-radius:10px;overflow:hidden}.bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--purple),var(--pink))}#status{white-space:pre-wrap;color:#e9b6ff;margin-top:14px}.feedempty{text-align:center;padding:40px 15px}.feedempty .emoji{font-size:48px}footer{color:#777;margin:30px 0;text-align:center;font-size:12px}
+</style></head><body>
+<header><div class="brand">PLAYAM FLOW</div><a href="index.html" style="color:#d9b5ff">← PLAYAM</a></header>
+<main>
+<h1>Your video community</h1><p class="muted">Create videos, find creators and grow your audience. This is the Staging preview; public publishing and feed interactions are still being connected.</p>
+<div id="auth" class="panel"><h2>Sign in to PLAYAM</h2><p class="muted">Use your existing Staging test account.</p><label>Email</label><input id="email" type="email" autocomplete="username"><label>Password</label><input id="password" type="password" autocomplete="current-password"><button class="primary" id="signin">Sign in</button><p id="authmsg" class="muted"></p></div>
+<div id="workspace" class="hidden">
+<div class="tabs"><button class="active" data-tab="feed">For You</button><button data-tab="upload">Create video</button><button data-tab="profile">My creator space</button></div>
+<section id="feed" class="panel feedempty"><div class="emoji">🎬</div><h2>Your Flow feed starts here</h2><p class="muted">The vertical feed will show approved public videos from PLAYAM creators. Publishing, likes, comments, follows and verified views are being connected next.</p></section>
+<section id="upload" class="panel hidden"><h2>Upload a video</h2><p class="muted">Choose an MP4, MOV or WebM video up to 100 MB. Uploads are private in Staging and are not published automatically.</p><label>Video file</label><input id="video" type="file" accept="video/mp4,video/quicktime,video/webm"><label>Caption</label><textarea id="caption" rows="3" maxlength="2000" placeholder="Tell people about your video..."></textarea><button id="uploadBtn" class="primary">Upload private draft</button><div class="bar" style="margin-top:16px"><span id="progress"></span></div><p id="status" role="status"></p></section>
+<section id="profile" class="panel hidden"><h2>Creator space</h2><p class="muted">Your profile, follower count, qualified views, engagement and creator eligibility will appear here.</p><p><b>Monetisation:</b> Not enabled in this Staging preview.</p><p class="muted">Eligibility will require minimum followers AND qualified views, an account in good standing and original-content checks. Likes contribute to engagement; they do not independently generate cash.</p></section>
+<button id="signout">Sign out</button></div><footer>PLAYAM Staging · Test accounts only · No real earnings or payouts</footer></main>
+<script>
+const URL="https://pwnjrdedeoxbmtfywhkk.supabase.co";
+const KEY="sb_publishable_6zZlj2moK_zv9lAA_0xdzA_nBDueD50";
+const client=supabase.createClient(URL,KEY);
+const $=id=>document.getElementById(id);
+function showWorkspace(session){$("auth").classList.toggle("hidden",!!session);$("workspace").classList.toggle("hidden",!session)}
+async function restore(){const {data}=await client.auth.getSession();showWorkspace(data.session)}
+$("signin").onclick=async()=>{const {error}=await client.auth.signInWithPassword({email:$("email").value,password:$("password").value});$("authmsg").textContent=error?error.message:"Signed in.";if(!error)restore()};
+$("signout").onclick=async()=>{await client.auth.signOut();restore()};
+client.auth.onAuthStateChange((_event,session)=>showWorkspace(session));
+document.querySelectorAll("[data-tab]").forEach(btn=>btn.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b===btn));["feed","upload","profile"].forEach(id=>$(id).classList.toggle("hidden",id!==btn.dataset.tab))});
+$("uploadBtn").onclick=async()=>{
+ const file=$("video").files[0];$("status").textContent="";$("progress").style.width="0";
+ if(!file){$("status").textContent="Choose a video first.";return}
+ if(file.size>104857600){$("status").textContent="The video exceeds the 100 MB limit.";return}
+ const allowed=["video/mp4","video/quicktime","video/webm"];if(!allowed.includes(file.type)){$("status").textContent="Please choose MP4, MOV or WebM.";return}
+ const {data:{session}}=await client.auth.getSession();if(!session){$("status").textContent="Please sign in again.";return}
+ const btn=$("uploadBtn");btn.disabled=true;
+ try{
+  const prep=await fetch(URL+"/functions/v1/flow-create-upload",{method:"POST",headers:{Authorization:"Bearer "+session.access_token,apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify({fileName:file.name,mimeType:file.type})});
+  const ticket=await prep.json();if(!prep.ok)throw new Error(ticket.error||"Could not prepare upload.");
+  const {error}=await client.storage.from(ticket.bucket).uploadToSignedUrl(ticket.path,ticket.token,file,{contentType:file.type,upsert:false});
+  if(error)throw error;
+  $("progress").style.width="100%";
+  $("status").textContent="Private video upload successful. Your file is safely stored in your Staging folder. It is not published yet; the publishing and moderation function is the next backend step.";
+ }catch(e){$("status").textContent=e.message||"Upload failed. Please try again."}finally{btn.disabled=false}
+};
+restore();
+</script></body></html>
