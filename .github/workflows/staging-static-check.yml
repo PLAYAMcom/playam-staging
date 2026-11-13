@@ -5,12 +5,14 @@ on:
     branches: [main]
     paths:
       - "index.html"
+      - "site/**"
       - "scripts/staging-static-check.py"
       - ".github/workflows/staging-static-check.yml"
   pull_request:
     branches: [main]
     paths:
       - "index.html"
+      - "site/**"
       - "scripts/staging-static-check.py"
       - ".github/workflows/staging-static-check.yml"
 
