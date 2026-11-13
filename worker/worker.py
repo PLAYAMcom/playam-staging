@@ -133,7 +133,7 @@ def process(job):
     if source_bucket != BUCKET or not isinstance(source_key, str):
         raise PermanentMediaError("source_location_invalid")
     if not source_key.startswith(job["creator_auth_user_id"] + "/") or ".." in source_key.split("/"):
-        raise ValueError("source_location_invalid")
+        raise PermanentMediaError("source_location_invalid")
     with tempfile.TemporaryDirectory(prefix="playam-flow-") as temp:
         root = Path(temp)
         source = root / "source.media"
