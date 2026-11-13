@@ -176,9 +176,11 @@ class WorkerSafetyTests(unittest.TestCase):
             thumb = Path(tmp) / "thumbnail.jpg"
             video.write_bytes(b"video")
             thumb.write_bytes(b"thumbnail")
-            with self.assertRaisesRegex(RuntimeError, "upload failed"):
-                worker.upload_processed_pair(storage, "processed/u/a/job/worker/playback.mp4",
-                                             "processed/u/a/job/worker/thumbnail.jpg", video, thumb)
+            with patch.object(worker.time, "sleep"):
+                with self.assertRaisesRegex(RuntimeError, "upload failed"):
+                    worker.upload_processed_pair(storage, "processed/u/a/job/worker/playback.mp4",
+                                                 "processed/u/a/job/worker/thumbnail.jpg", video, thumb)
+        self.assertEqual(storage.remove.call_count, 3)
 
     def test_cleanup_ignores_empty_object_list(self):
         storage = Mock()
