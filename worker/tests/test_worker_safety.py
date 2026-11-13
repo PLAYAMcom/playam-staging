@@ -88,6 +88,17 @@ class WorkerSafetyTests(unittest.TestCase):
                 with self.assertRaises(worker.PermanentMediaError):
                     worker.inspect_video(source)
 
+    def test_malware_signature_is_permanent_rejection(self):
+        scanner = Mock()
+        scanner.ping.return_value = True
+        scanner.instream.return_value = {"stream": ("FOUND", "Eicar-Test-Signature")}
+        with patch.object(worker.clamd, "ClamdNetworkSocket", return_value=scanner):
+            with tempfile.TemporaryDirectory() as tmp:
+                source = Path(tmp) / "sample.mp4"
+                source.write_bytes(b"x" * 2048)
+                with self.assertRaises(worker.PermanentMediaError):
+                    worker.scan(source)
+
     def test_scanner_unavailable_is_transient(self):
         scanner = Mock()
         scanner.ping.side_effect = OSError("clamd unavailable")
