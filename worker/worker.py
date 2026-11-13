@@ -5,6 +5,8 @@ import subprocess
 import tempfile
 import time
 import uuid
+
+import httpx
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -32,6 +34,49 @@ def sha256(path: Path) -> str:
 def run(args, timeout=900):
     return subprocess.run(args, check=True, capture_output=True, text=True, timeout=timeout)
 
+
+
+def download_bounded(storage, object_key: str, destination: Path):
+    """Stream a private object to disk and stop immediately at the configured cap."""
+    signed = storage.create_signed_url(object_key, 300)
+    signed_url = signed.get("signedURL") if isinstance(signed, dict) else None
+    if not signed_url:
+        raise RuntimeError("source_download_url_unavailable")
+    from urllib.parse import urljoin
+    signed_url = urljoin(URL.rstrip("/") + "/", signed_url)
+    total = 0
+    with httpx.stream("GET", signed_url, follow_redirects=True,
+                      timeout=httpx.Timeout(60.0, read=120.0)) as response:
+        response.raise_for_status()
+        declared = response.headers.get("content-length")
+        if declared:
+            try:
+                if int(declared) > MAX_BYTES:
+                    raise ValueError("source_size_invalid")
+            except ValueError as exc:
+                if str(exc) == "source_size_invalid":
+                    raise
+                raise ValueError("source_size_invalid") from exc
+        with destination.open("wb") as target:
+            for chunk in response.iter_bytes(chunk_size=1024 * 1024):
+                if not chunk:
+                    continue
+                total += len(chunk)
+                if total > MAX_BYTES:
+                    raise ValueError("source_size_invalid")
+                target.write(chunk)
+    if total < 1024:
+        raise ValueError("source_size_invalid")
+    return total
+
+
+def upload_file(storage, object_key: str, path: Path, content_type: str):
+    """Pass a file handle to the storage client rather than materializing it in RAM."""
+    with path.open("rb") as handle:
+        storage.upload(object_key, handle, {
+            "content-type": content_type,
+            "upsert": "true",
+        })
 
 def inspect_video(path: Path):
     if not path.is_file() or path.stat().st_size < 1024 or path.stat().st_size > MAX_BYTES:
@@ -89,11 +134,8 @@ def process(job):
         source = root / "source.media"
         output = root / "playback.mp4"
         thumb = root / "thumbnail.jpg"
-        data = supabase.storage.from_(source_bucket).download(source_key)
-        # Enforce the size limit before writing to disk or invoking scanners.
-        if not isinstance(data, (bytes, bytearray)) or len(data) < 1024 or len(data) > MAX_BYTES:
-            raise ValueError("source_size_invalid")
-        source.write_bytes(data)
+        storage = supabase.storage.from_(source_bucket)
+        download_bounded(storage, source_key, source)
         source_hash = sha256(source)
         scan(source)
         duration = inspect_video(source)
@@ -115,8 +157,8 @@ def process(job):
         prefix = f"processed/{job['creator_auth_user_id']}/{asset_id}"
         video_key, thumb_key = f"{prefix}/playback.mp4", f"{prefix}/thumbnail.jpg"
         storage = supabase.storage.from_(BUCKET)
-        storage.upload(video_key, output.read_bytes(), {"content-type": "video/mp4", "upsert": "true"})
-        storage.upload(thumb_key, thumb.read_bytes(), {"content-type": "image/jpeg", "upsert": "true"})
+        upload_file(storage, video_key, output, "video/mp4")
+        upload_file(storage, thumb_key, thumb, "image/jpeg")
         output_hash = sha256(output)
         result = supabase.rpc("flow_complete_media_job_v1", {
             "p_job_id": job_id, "p_worker_id": WORKER_ID,
