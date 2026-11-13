@@ -2,13 +2,13 @@ name: PLAYAM Flow worker build checks
 
 on:
   push:
-    branches: [main, codex/flow-media-worker]
+    branches: [main, codex/flow-media-worker, codex/flow-worker-hardening]
     paths:
       - "worker/**"
       - "supabase/migrations/**"
       - ".github/workflows/flow-worker-check.yml"
   pull_request:
-    branches: [main]
+    branches: [main, codex/flow-media-worker]
     paths:
       - "worker/**"
       - "supabase/migrations/**"
@@ -29,5 +29,8 @@ jobs:
         run: pip install -r worker/requirements.txt
       - name: Compile worker
         run: python -m py_compile worker/worker.py
+      - name: Run worker safety unit tests
+        working-directory: worker
+        run: python -m unittest discover -s tests -v
       - name: Build isolated Python worker container
         run: docker build -t playam-flow-media-worker:test worker

@@ -5,6 +5,8 @@ import subprocess
 import tempfile
 import time
 import uuid
+
+import httpx
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -17,8 +19,13 @@ BUCKET = "flow-media-staging"
 MAX_BYTES = int(os.getenv("MAX_SOURCE_BYTES", str(100 * 1024 * 1024)))
 MAX_SECONDS = int(os.getenv("MAX_VIDEO_SECONDS", "180"))
 POLL_SECONDS = float(os.getenv("POLL_SECONDS", "4"))
-WORKER_ID = os.getenv("WORKER_ID", "playam-flow-" + str(uuid.uuid4()))
+WORKER_ID = os.getenv("WORKER_ID", "playam-flow") + "-" + str(uuid.uuid4())
 supabase = create_client(URL, SERVICE_KEY)
+
+
+class PermanentMediaError(Exception):
+    """Input is unsafe or invalid and must not be retried."""
+
 
 
 def sha256(path: Path) -> str:
@@ -33,9 +40,57 @@ def run(args, timeout=900):
     return subprocess.run(args, check=True, capture_output=True, text=True, timeout=timeout)
 
 
+
+def download_bounded(storage, object_key: str, destination: Path):
+    """Stream a private object to disk and stop immediately at the configured cap."""
+    signed = storage.create_signed_url(object_key, 300)
+    signed_url = signed.get("signedURL") if isinstance(signed, dict) else None
+    if not signed_url:
+        raise RuntimeError("source_download_url_unavailable")
+    from urllib.parse import urljoin
+    if signed_url.startswith(("https://", "http://")):
+        pass
+    elif signed_url.startswith("/storage/v1/"):
+        signed_url = urljoin(URL.rstrip("/") + "/", signed_url.lstrip("/"))
+    else:
+        signed_url = urljoin(URL.rstrip("/") + "/storage/v1/", signed_url.lstrip("/"))
+    total = 0
+    with httpx.stream("GET", signed_url, follow_redirects=True,
+                      timeout=httpx.Timeout(60.0, read=120.0)) as response:
+        response.raise_for_status()
+        declared = response.headers.get("content-length")
+        if declared:
+            try:
+                if int(declared) > MAX_BYTES:
+                    raise PermanentMediaError("source_size_invalid")
+            except ValueError as exc:
+                if str(exc) == "source_size_invalid":
+                    raise
+                raise PermanentMediaError("source_size_invalid") from exc
+        with destination.open("wb") as target:
+            for chunk in response.iter_bytes(chunk_size=1024 * 1024):
+                if not chunk:
+                    continue
+                total += len(chunk)
+                if total > MAX_BYTES:
+                    raise PermanentMediaError("source_size_invalid")
+                target.write(chunk)
+    if total < 1024:
+        raise PermanentMediaError("source_size_invalid")
+    return total
+
+
+def upload_file(storage, object_key: str, path: Path, content_type: str):
+    """Pass a file handle to the storage client rather than materializing it in RAM."""
+    with path.open("rb") as handle:
+        storage.upload(object_key, handle, {
+            "content-type": content_type,
+            "upsert": "true",
+        })
+
 def inspect_video(path: Path):
     if not path.is_file() or path.stat().st_size < 1024 or path.stat().st_size > MAX_BYTES:
-        raise ValueError("source_size_invalid")
+        raise PermanentMediaError("source_size_invalid")
     result = run(["ffprobe", "-v", "error", "-show_entries",
                   "format=duration,format_name:stream=codec_type,codec_name,width,height",
                   "-of", "json", str(path)], timeout=30)
@@ -44,12 +99,12 @@ def inspect_video(path: Path):
     streams = meta.get("streams", [])
     video = next((s for s in streams if s.get("codec_type") == "video"), None)
     if not video:
-        raise ValueError("video_stream_missing")
+        raise PermanentMediaError("video_stream_missing")
     duration = float(meta.get("format", {}).get("duration", 0))
     if duration <= 0 or duration > MAX_SECONDS:
-        raise ValueError("video_duration_invalid")
+        raise PermanentMediaError("video_duration_invalid")
     if int(video.get("width", 0)) < 160 or int(video.get("height", 0)) < 160:
-        raise ValueError("video_dimensions_invalid")
+        raise PermanentMediaError("video_dimensions_invalid")
     return duration
 
 
@@ -64,7 +119,7 @@ def scan(path: Path):
         raise RuntimeError("scanner_unavailable")
     status, signature = result["stream"]
     if status == "FOUND":
-        raise ValueError("malware_detected")
+        raise PermanentMediaError("malware_detected")
     if status != "OK":
         raise RuntimeError("scanner_error")
 
@@ -81,19 +136,16 @@ def process(job):
     # Never allow a queued job to make the service worker read outside the
     # dedicated private Staging bucket or another creator's storage prefix.
     if source_bucket != BUCKET or not isinstance(source_key, str):
-        raise ValueError("source_location_invalid")
+        raise PermanentMediaError("source_location_invalid")
     if not source_key.startswith(job["creator_auth_user_id"] + "/") or ".." in source_key.split("/"):
-        raise ValueError("source_location_invalid")
+        raise PermanentMediaError("source_location_invalid")
     with tempfile.TemporaryDirectory(prefix="playam-flow-") as temp:
         root = Path(temp)
         source = root / "source.media"
         output = root / "playback.mp4"
         thumb = root / "thumbnail.jpg"
-        data = supabase.storage.from_(source_bucket).download(source_key)
-        # Enforce the size limit before writing to disk or invoking scanners.
-        if not isinstance(data, (bytes, bytearray)) or len(data) < 1024 or len(data) > MAX_BYTES:
-            raise ValueError("source_size_invalid")
-        source.write_bytes(data)
+        storage = supabase.storage.from_(source_bucket)
+        download_bounded(storage, source_key, source)
         source_hash = sha256(source)
         scan(source)
         duration = inspect_video(source)
@@ -115,8 +167,8 @@ def process(job):
         prefix = f"processed/{job['creator_auth_user_id']}/{asset_id}"
         video_key, thumb_key = f"{prefix}/playback.mp4", f"{prefix}/thumbnail.jpg"
         storage = supabase.storage.from_(BUCKET)
-        storage.upload(video_key, output.read_bytes(), {"content-type": "video/mp4", "upsert": "true"})
-        storage.upload(thumb_key, thumb.read_bytes(), {"content-type": "image/jpeg", "upsert": "true"})
+        upload_file(storage, video_key, output, "video/mp4")
+        upload_file(storage, thumb_key, thumb, "image/jpeg")
         output_hash = sha256(output)
         result = supabase.rpc("flow_complete_media_job_v1", {
             "p_job_id": job_id, "p_worker_id": WORKER_ID,
@@ -139,9 +191,9 @@ def main():
             try:
                 process(claimed)
                 print("completed media job", claimed["job_id"], flush=True)
-            except ValueError as exc:
+            except PermanentMediaError as exc:
                 code = str(exc)[:80]
-                rejected = code == "malware_detected"
+                rejected = True
                 supabase.rpc("flow_fail_media_job_v1", {
                     "p_job_id": claimed["job_id"], "p_worker_id": WORKER_ID,
                     "p_error_code": code,
