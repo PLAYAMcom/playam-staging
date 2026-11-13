@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6190689513280728"
+     crossorigin="anonymous"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PLAYAM 🎮</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#090914;--panel:#151528;--panel2:#20203b;--purple:#9b5cff;--pink:#ed4cbd;--blue:#586bff;--text:#fff;--muted:#aaaac5}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif;min-height:100vh}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer;border:0;border-radius:12px;padding:14px;font-weight:bold}
+button:disabled{opacity:.5;cursor:not-allowed}
+input,select,textarea{width:100%;padding:14px;border:1px solid #41415d;border-radius:12px;background:#101020;color:white;margin:8px 0}
+textarea{min-height:120px}
+.hidden{display:none!important}
+#authScreen{max-width:440px;margin:12vh auto 30px;padding:28px;background:var(--panel);border:1px solid #34304f;border-radius:22px;text-align:center}
+.logo{font-size:34px;font-weight:900;letter-spacing:2px;background:linear-gradient(90deg,#b17aff,#ff55c8);color:transparent;background-clip:text}
+.tagline,.muted,.small{color:var(--muted);font-size:13px}
+.primary{background:linear-gradient(100deg,var(--purple),var(--pink));color:white}
+.secondary{background:#292943;color:white;border:1px solid #46466b}
+.back{background:transparent;border:1px solid #555;color:white}
+#app{display:flex;min-height:100vh}
+.sidebar{width:245px;flex-shrink:0;background:#101020;border-right:1px solid #292943;padding:25px 16px;display:flex;flex-direction:column;gap:12px}
+.brand{font-size:27px;font-weight:900;margin:5px 10px 28px;background:linear-gradient(90deg,#b17aff,#ff55c8);color:transparent;background-clip:text}
+.side-label{font-size:11px;color:#777795;letter-spacing:2px;margin:16px 10px 5px}
+.navbtn{background:transparent;color:#c9c9df;text-align:left;border:1px solid transparent;padding:13px}
+.navbtn:hover,.navbtn.active{background:#28213f;border-color:#7048a6;color:white}
+.sidebar-bottom{margin-top:auto}
+.main{flex:1;min-width:0;padding:30px;max-width:1500px;margin:auto;width:100%}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:28px}
+.online{font-size:12px;color:#7cf0ad;background:#153326;padding:8px 12px;border-radius:30px}
+.welcome{font-size:30px;margin:10px 0}
+.hero{background:linear-gradient(115deg,#302052,#171a3a 65%,#31204d);border:1px solid #594078;border-radius:23px;padding:28px;margin-bottom:22px}
+.hero h2{font-size:28px;margin:0 0 8px}
+.hero p{color:#d1c6e6}
+.section-title{margin:28px 0 15px;font-size:19px}
+.game-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.game-card{border:1px solid #393454;background:linear-gradient(145deg,#201d39,#151528);border-radius:20px;padding:23px;min-height:190px;display:flex;flex-direction:column;align-items:flex-start}
+.game-card .emoji{font-size:32px;margin-bottom:12px}
+.game-card h3{margin:0 0 8px;font-size:20px}
+.game-card p{color:var(--muted);font-size:13px;line-height:1.5;flex:1}
+.game-card button{width:100%;margin-top:10px}
+.small-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.small-card{background:var(--panel);border:1px solid #33334d;border-radius:17px;padding:19px}
+.screen-card{background:var(--panel);border:1px solid #34304f;border-radius:20px;padding:25px;max-width:850px}
+.screen-card h2{margin-top:0}
+label{display:block;margin-top:13px;font-weight:bold}
+#message{min-height:22px;color:#ffb4dc;margin:15px 0;text-align:center}
+.room-code{font-size:36px;letter-spacing:5px;color:#d18cff;text-align:center;overflow-wrap:anywhere}
+.player-item,.result-item{background:#292943;padding:13px;margin:8px 0;border-radius:12px;display:flex;justify-content:space-between;gap:10px}
+.player-status{color:#8df0a5}
+.question-box{background:#101020;border-radius:16px;padding:23px;margin:20px 0;text-align:center;font-size:20px;line-height:1.5}
+.timer{background:#101020;border-radius:12px;text-align:center;padding:14px;font-size:30px}
+.timer.warning{color:#ff5c5c}
+.solo-progress{height:8px;background:#444;border-radius:20px;overflow:hidden;margin:15px 0}
+.solo-progress-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--pink));width:0}
+.solo-score{text-align:center;color:#d18cff;margin:12px}
+.solo-result{text-align:center;background:#101020;border-radius:15px;padding:20px}
+.solo-result strong{display:block;font-size:40px;color:#d18cff;margin:12px}
+.option-button,.vote-player{width:100%;background:#292943;color:white;text-align:left;border:1px solid #555;margin:7px 0}
+.vote-player.selected{background:#914bd5}
+.waiting-box{padding:22px;text-align:center;background:#101020;border-radius:15px}
+.game-status,.lobby-info{text-align:center;color:var(--muted);margin:12px}
+.mobile-menu{display:none;background:#22223a;color:white}
+
+.report-trigger{display:block;width:100%;margin:14px 0;background:#292943;color:#f0dfff;border:1px solid #7048a6}
+.report-trigger:hover{background:#38264f}
+.report-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(4,4,12,.82);overflow-y:auto}
+.report-card{width:100%;max-width:480px;max-height:calc(100vh - 36px);overflow-y:auto;background:var(--panel);border:1px solid #7048a6;border-radius:20px;padding:24px;box-shadow:0 18px 60px rgba(0,0,0,.55)}
+.report-card h3{margin:0 0 10px;font-size:22px}
+.report-card p{color:var(--muted);font-size:13px;line-height:1.5}
+.report-card select,.report-card textarea{display:block;margin:8px 0 14px}
+.report-card textarea{resize:vertical}
+.report-buttons{display:flex;gap:10px;margin-top:16px}
+.report-buttons button{flex:1;min-width:0}
+#reportFormMessage{min-height:20px;margin-bottom:0}
+@media(max-width:480px){.report-card{padding:18px}.report-buttons{flex-direction:column}}
+
+@media(max-width:760px){
+ #app{display:block}
+ .sidebar{width:100%;height:auto;padding:12px;display:flex;flex-direction:row;align-items:center;overflow-x:auto;border-right:0;border-bottom:1px solid #292943}
+ .brand{font-size:20px;margin:0 12px 0 3px;white-space:nowrap}
+ .side-label,.sidebar-bottom{display:none}
+ .navbtn{white-space:nowrap;padding:10px;font-size:12px}
+ .main{padding:17px}
+ .welcome{font-size:24px}
+ .hero{padding:21px}
+ .game-grid{grid-template-columns:1fr}
+ .small-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="authScreen">
+ <div class="logo">PLAYAM 🎮</div>
+ <p class="tagline">Laugh. Confess. Play. Keep the secrets. 👀❤️</p>
+ <h2>Welcome to PLAYAM</h2>
+ <input id="email" type="email" placeholder="Email address">
+ <input id="password" type="password" placeholder="Password">
+ <button class="primary" style="width:100%;margin-top:8px" onclick="signUp()">CREATE NEW ACCOUNT</button>
+ <button class="secondary" style="width:100%;margin-top:8px" onclick="signIn()">LOG IN TO EXISTING ACCOUNT</button>
+ <p class="small">Only email and password are required.</p>
+ <div id="authMessage"></div>
+</div>
+
+<div id="app" class="hidden">
+ <aside class="sidebar">
+  <div class="brand">PLAYAM 🎮</div>
+  <div class="side-label">MAIN MENU</div>
+  <button class="navbtn active" id="navHome" onclick="showHome()">🏠 Home</button>
+  <button class="navbtn" onclick="showSoloSetup()">🎯 Play Solo</button>
+  <button class="navbtn" onclick="showFindPlayer()">👥 Find Player</button>
+  <button class="navbtn" onclick="showCreateRoom()">➕ Create Room</button>
+  <button class="navbtn" onclick="showJoinRoom()">🔗 Join Room</button>
+  <div class="sidebar-bottom">
+   <div class="side-label">ACCOUNT</div>
+   <button class="navbtn" onclick="showSettings()">⚙️ Settings</button>
+   <button class="navbtn" onclick="signOut()">↪ Log Out</button>
+  </div>
+ </aside>
+
+ <main class="main">
+  <div class="topbar">
+   <div>
+    <div class="small">YOUR PLAYAM SPACE</div>
+    <div class="welcome">Welcome back, Player! 👋</div>
+   </div>
+   <div class="online">● ACCOUNT ONLINE</div>
+  </div>
+
+  <section id="homeScreen">
+   <div class="hero">
+    <h2>Ready for your next challenge?</h2>
+    <p>Choose your game, challenge your mind and make every round count.</p>
+   </div>
+   <h3 class="section-title">Choose how you want to play</h3>
+   <div class="game-grid">
+    <div class="game-card">
+     <div class="emoji">🎯</div>
+     <h3>PLAY SOLO</h3>
+     <p>Play Friendship Court alone. Answer open-ended questions and discover your PLAYAM personality.</p>
+     <button class="primary" onclick="showSoloSetup()">PLAY SOLO →</button>
+    </div>
+    <div class="game-card">
+     <div class="emoji">⚔️</div>
+     <h3>FIND AN ACTIVE PLAYER</h3>
+     <p>Look for another player and prepare for a Friendship Court challenge at Hard difficulty.</p>
+     <button class="primary" onclick="showFindPlayer()">FIND PLAYER →</button>
+    </div>
+   </div>
+   <h3 class="section-title">Play with friends</h3>
+   <div class="small-grid">
+    <div class="small-card">
+     <h3>🎉 Create a Room</h3>
+     <p class="muted">Start a game and invite others with your room code.</p>
+     <button class="secondary" style="width:100%" onclick="showCreateRoom()">CREATE ROOM</button>
+    </div>
+    <div class="small-card">
+     <h3>🔗 Join a Room</h3>
+     <p class="muted">Enter a room code to join your friends.</p>
+     <button class="secondary" style="width:100%" onclick="showJoinRoom()">JOIN ROOM</button>
+    </div>
+   </div>
+   <h3 class="section-title">Your game modes</h3>
+   <div class="small-card">
+    <strong>⚖️ Friendship Court</strong>
+    <p class="muted">Your first PLAYAM experience. More game modes will unlock as the platform grows.</p>
+   </div>
+  </section>
+
+  <section id="findPlayerScreen" class="screen-card hidden">
+   <h2>👥 Find an Active Player</h2>
+   <p class="muted">Find someone online for a Friendship Court challenge.</p>
+   <div class="small-card">
+    <h3>⚔️ Hard Challenge</h3>
+    <p class="muted">The matchmaking level is set to Hard.</p>
+    <span class="online">HARD 🔞</span>
+   </div>
+   <div class="small-card" style="margin-top:15px">
+    <h3>Player matchmaking</h3>
+    <p class="muted">Live player discovery is not connected yet. This screen will show available players after we add online presence and matchmaking to Supabase.</p>
+    <p id="matchStatus" class="muted">Waiting for matchmaking setup.</p>
+   </div>
+   <button class="primary" style="width:100%;margin-top:15px" onclick="showCreateRoomWithHard()">CREATE HARD ROOM</button>
+   <button class="back" style="width:100%;margin-top:8px" onclick="showHome()">← BACK TO HOME</button>
+  </section>
+
+  <section id="settingsScreen" class="screen-card hidden">
+   <h2>⚙️ Settings</h2>
+   <p class="muted">Manage your PLAYAM account.</p>
+   <button class="back" style="width:100%" onclick="signOut()">LOG OUT</button>
+   <button class="back" style="width:100%" onclick="showHome()">← BACK</button>
+  </section>
+
+  <section id="soloSetupScreen" class="screen-card hidden">
+   <h2>🎯 Friendship Court — Solo</h2>
+   <p class="muted">Answer 10 questions and discover your PLAYAM personality.</p>
+   <label>Choose your difficulty</label>
+   <select id="soloDifficulty">
+    <option value="starter">Starter</option>
+    <option value="hard">Hard 🔒 (18+ verified · 25 wins)</option>
+    <option value="elite">Elite 🔒 (18+ verified · 50 wins)</option>
+    <option value="final_boss">Final Boss 🔒 (18+ verified · 75 wins)</option>
+   </select>
+   <p class="small">10 random open-ended questions. Each completed answer earns 10 points.</p>
+   <button class="primary" style="width:100%" onclick="startSoloGame()">START SOLO GAME</button>
+   <button class="back" style="width:100%" onclick="showHome()">← BACK</button>
+  </section>
+
+  <section id="soloGameScreen" class="screen-card hidden">
+   <div class="game-status">⚖️ FRIENDSHIP COURT — SOLO</div>
+   <div id="soloQuestionNumber" class="lobby-info">Question 1 of 10</div>
+   <div class="solo-progress"><div id="soloProgressFill" class="solo-progress-fill"></div></div>
+   <div id="soloQuestionBox" class="question-box">Loading question...</div>
+   <textarea id="soloAnswerInput" maxlength="2000" placeholder="Write your honest answer..."></textarea>
+   <div class="solo-score" id="soloLiveScore">Score: 0 / 100</div>
+   <button id="soloSubmitButton" class="primary" style="width:100%" onclick="submitSoloAnswer()">SUBMIT ANSWER</button>
+   <button class="back" style="width:100%" onclick="cancelSoloGame()">EXIT SOLO GAME</button>
+  </section>
+
+  <section id="soloResultsScreen" class="screen-card hidden">
+   <h2>🏆 YOUR SOLO RESULTS</h2>
+   <div class="solo-result">
+    YOUR FINAL SCORE
+    <strong id="soloFinalScore">0 / 100</strong>
+    <div id="soloPersonalityTitle">PLAYAM Player</div>
+   </div>
+   <h3>Your PLAYAM personality</h3>
+   <p id="soloPersonalityText" class="lobby-info"></p>
+   <p id="soloAnswerSummary" class="small"></p>
+   <button class="primary" style="width:100%" onclick="showSoloSetup()">PLAY AGAIN</button>
+   <button class="back" style="width:100%" onclick="showHome()">BACK TO DASHBOARD</button>
+  </section>
+
+  <section id="createScreen" class="screen-card hidden">
+   <h2>Create a Room 🎉</h2>
+   <label>Your nickname</label>
+   <input id="nickname" maxlength="20" placeholder="Enter a nickname">
+   <label>Choose game</label>
+   <select id="game">
+    <option value="friendship-court">Friendship Court</option>
+    <option value="would-you-rather">Would You Rather?</option>
+    <option value="truth-or-dare">Truth or Dare</option>
+    <option value="mind-battle">Mind Battle</option>
+    <option value="secret-confessions">Secret Confessions</option>
+   </select>
+   <label>Difficulty</label>
+   <select id="level">
+    <option value="starter">Starter</option>
+    <option value="hard">Hard 🔞</option>
+    <option value="elite">Elite 🔞</option>
+    <option value="final_boss">Final Boss 🔞</option>
+   </select>
+   <label>Number of rounds</label>
+   <select id="rounds">
+    <option value="5">5 Rounds</option>
+    <option value="10" selected>10 Rounds</option>
+    <option value="15">15 Rounds</option>
+    <option value="20">20 Rounds</option>
+   </select>
+   <button class="primary" style="width:100%" onclick="createRoom()">CREATE PLAYAM ROOM</button>
+   <button class="back" style="width:100%" onclick="showHome()">← BACK</button>
+  </section>
+
+  <section id="joinScreen" class="screen-card hidden">
+   <h2>Join a Room 🔗</h2>
+   <input id="joinCode" placeholder="Enter room code">
+   <input id="joinNickname" maxlength="20" placeholder="Your nickname">
+   <button class="primary" style="width:100%" onclick="joinRoom()">JOIN ROOM</button>
+   <button class="back" style="width:100%" onclick="showHome()">← BACK</button>
+  </section>
+
+  <section id="lobbyScreen" class="screen-card hidden">
+   <h2>🎮 PLAYAM LOBBY</h2>
+   <p class="lobby-info">Your Room Code</p>
+   <div id="lobbyRoomCode" class="room-code">------</div>
+   <button class="secondary" style="width:100%" onclick="copyRoomCode()">COPY ROOM CODE</button>
+   <p class="lobby-info">Share this code with your friends.</p>
+   <hr>
+   <h3>Players in the Room</h3>
+   <div id="lobbyPlayers">Loading players...</div>
+   <button class="report-trigger" onclick="openReportPlayer()">⚑ REPORT A PLAYER</button>
+   <p id="lobbyStatus" class="lobby-info">Waiting for players...</p>
+   <p id="lobbyRound" class="lobby-info"></p>
+   <button id="readyButton" class="primary" style="width:100%" onclick="toggleReady()">I'M READY</button>
+   <button id="startButton" class="secondary hidden" style="width:100%" onclick="startGame()">START GAME</button>
+   <button class="back" style="width:100%" onclick="leaveLobbyView()">BACK TO HOME</button>
+  </section>
+
+  <section id="gameScreen" class="screen-card hidden">
+   <div id="gameName" class="game-status">PLAYAM</div>
+   <div id="gameRoundNumber" class="lobby-info">Round 1</div>
+   <div id="gameTimer" class="timer">30</div>
+   <div id="questionBox" class="question-box">Loading question...</div>
+   <div id="choiceArea" class="hidden">
+    <button id="optionAButton" class="option-button" onclick="submitChoice('A')">Option A</button>
+    <button id="optionBButton" class="option-button" onclick="submitChoice('B')">Option B</button>
+   </div>
+   <div id="answerArea" class="hidden">
+    <textarea id="answerInput" maxlength="2000" placeholder="Enter your answer..."></textarea>
+    <button class="primary" style="width:100%" onclick="submitWrittenAnswer()">SUBMIT ANSWER</button>
+   </div>
+   <div id="voteArea" class="hidden">
+    <p class="small">Choose the player you vote for.</p>
+    <div id="votePlayers"></div>
+    <button id="submitVoteButton" class="primary hidden" style="width:100%" onclick="submitVote()">SUBMIT VOTE</button>
+   </div>
+   <div id="gameWaiting" class="waiting-box hidden">Waiting for the round to continue... 👀</div>
+   <div id="gameStatus" class="game-status"></div>
+   <button class="report-trigger" onclick="openReportPlayer()">⚑ REPORT A PLAYER</button>
+  </section>
+
+  <section id="resultsScreen" class="screen-card hidden">
+   <h2>🏆 GAME RESULTS</h2>
+   <p id="resultsTitle" class="lobby-info">Final scores</p>
+   <div id="resultsList">Loading results...</div>
+   <button class="primary" style="width:100%" onclick="returnHomeFromResults()">BACK TO DASHBOARD</button>
+  </section>
+
+  <div id="reportPlayerOverlay" class="report-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="reportPlayerTitle">
+   <div class="report-card">
+    <h3 id="reportPlayerTitle">Report a player</h3>
+    <p>Reports are sent privately to the PLAYAM moderation team. Only report behaviour that violates our community rules.</p>
+    <label for="reportTarget">Player</label>
+    <select id="reportTarget"><option value="">Choose a player</option></select>
+    <label for="reportReason">Reason</label>
+    <select id="reportReason">
+     <option value="">Choose a reason</option>
+     <option value="Harassment or bullying">Harassment or bullying</option>
+     <option value="Hate speech or abusive behaviour">Hate speech or abusive behaviour</option>
+     <option value="Cheating or unfair play">Cheating or unfair play</option>
+     <option value="Inappropriate content">Inappropriate content</option>
+     <option value="Spam or disruptive behaviour">Spam or disruptive behaviour</option>
+     <option value="Other">Other</option>
+    </select>
+    <label for="reportDetails">Additional details (optional)</label>
+    <textarea id="reportDetails" maxlength="2000" placeholder="Tell us what happened (up to 2,000 characters)."></textarea>
+    <div class="report-buttons">
+     <button class="back" type="button" onclick="closeReportPlayer()">CANCEL</button>
+     <button id="submitReportButton" class="primary" type="button" onclick="submitPlayerReport()">SEND REPORT</button>
+    </div>
+    <p id="reportFormMessage" role="status" aria-live="polite"></p>
+   </div>
+  </div>
+  <div id="message"></div>
+  <p class="small">🔞 Hard, Elite and Final Boss contain mature content.</p>
+ </main>
+</div>
+
+<script>
+const SUPABASE_URL="https://pwnjrdedeoxbmtfywhkk.supabase.co";
+const SUPABASE_KEY="sb_publishable_6zZlj2moK_zv9lAA_0xdzA_nBDueD50";
+const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let currentRoomCode="",currentRoomId="",currentPlayerId="",currentNickname="";
+let currentPlayerReady=false,currentPlayerIsHost=false,currentGame="",currentRoundId="";
+let selectedVotePlayerId="",lobbyRefreshTimer=null,lobbyLoading=false;
+let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,roundAdvanceRequestedFor="";
+let soloQuestions=[],soloAnswers=[],soloQuestionIndex=0,soloDifficulty="starter",soloLoading=false;
+
+const screenIds=["homeScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
+
+function showMessage(t){document.getElementById("message").innerText=t||""}
+function hideScreens(){screenIds.forEach(id=>document.getElementById(id).classList.add("hidden"))}
+function setNav(id){document.querySelectorAll(".navbtn").forEach(b=>b.classList.remove("active"));if(id)document.getElementById(id)?.classList.add("active")}
+function showScreen(id,nav=""){hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
+function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome")}
+function showFindPlayer(){stopLobbyRefresh();stopGameRefresh();showScreen("findPlayerScreen")}
+function showSettings(){showScreen("settingsScreen")}
+function showCreateRoom(){showScreen("createScreen")}
+function showJoinRoom(){showScreen("joinScreen")}
+function showCreateRoomWithHard(){document.getElementById("game").value="friendship-court";document.getElementById("level").value="hard";showCreateRoom()}
+
+/* AUTH */
+async function signUp(){
+ const email=document.getElementById("email").value.trim(),password=document.getElementById("password").value;
+ if(!email||!password){showMessage("Please enter your email and password.");return}
+ showMessage("Creating your account...");
+ const {data,error}=await supabaseClient.auth.signUp({email,password});
+ if(error){showMessage(error.message);return}
+ if(data.session)showHome();else showMessage("Account created. Please check your email if confirmation is required.");
+}
+async function signIn(){
+ const email=document.getElementById("email").value.trim(),password=document.getElementById("password").value;
+ if(!email||!password){showMessage("Please enter your email and password.");return}
+ showMessage("Logging in...");
+ const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+ if(error){showMessage(error.message);return}
+ if(data.session)showHome();else showMessage("Login succeeded, but no active session was returned.");
+}
+async function signOut(){
+ stopLobbyRefresh();stopGameRefresh();await supabaseClient.auth.signOut();
+ resetGameState();resetSoloGame();document.getElementById("app").classList.add("hidden");
+ document.getElementById("authScreen").classList.remove("hidden");showMessage("You have logged out.");
+}
+
+/* SOLO */
+function showSoloSetup(){stopLobbyRefresh();stopGameRefresh();resetSoloGame();showScreen("soloSetupScreen")}
+function resetSoloGame(){soloQuestions=[];soloAnswers=[];soloQuestionIndex=0;soloLoading=false;const a=document.getElementById("soloAnswerInput");if(a)a.value=""}
+async function startSoloGame(){
+ if(soloLoading)return;soloLoading=true;soloDifficulty=document.getElementById("soloDifficulty").value;showMessage("Preparing your Solo questions...");
+ const {data,error}=await supabaseClient.from("questions").select("id,text,question_type").eq("game_key","friendship-court").eq("difficulty_key",soloDifficulty).eq("active",true).eq("question_type","open");
+ soloLoading=false;
+ if(error){showMessage("Unable to load Solo questions: "+error.message);return}
+ if(!data||data.length<10){showMessage("Not enough active open-ended questions for this difficulty. At least 10 are needed.");return}
+ soloQuestions=[...data].sort(()=>Math.random()-.5).slice(0,10);soloAnswers=[];soloQuestionIndex=0;
+ showScreen("soloGameScreen");renderSoloQuestion();
+}
+function renderSoloQuestion(){
+ if(soloQuestionIndex>=soloQuestions.length){finishSoloGame();return}
+ const q=soloQuestions[soloQuestionIndex];
+ document.getElementById("soloQuestionNumber").innerText="Question "+(soloQuestionIndex+1)+" of 10";
+ document.getElementById("soloQuestionBox").innerText=q.text;
+ document.getElementById("soloAnswerInput").value="";
+ document.getElementById("soloProgressFill").style.width=(soloQuestionIndex/10*100)+"%";
+ document.getElementById("soloLiveScore").innerText="Score: "+(soloAnswers.length*10)+" / 100";
+ document.getElementById("soloSubmitButton").disabled=false;
+ document.getElementById("soloSubmitButton").innerText=soloQuestionIndex===9?"FINISH GAME":"SUBMIT ANSWER";
+}
+function submitSoloAnswer(){
+ const answer=document.getElementById("soloAnswerInput").value.trim();
+ if(!answer){showMessage("Please write your answer before continuing.");return}
+ soloAnswers.push({question_id:soloQuestions[soloQuestionIndex].id,question:soloQuestions[soloQuestionIndex].text,answer});
+ soloQuestionIndex++;showMessage("");renderSoloQuestion();
+}
+function getSoloPersonality(avg){
+ if(avg<25)return{title:"THE STRAIGHT SHOOTER 🎯",description:"You keep things short and direct. You prefer getting straight to the point."};
+ if(avg<70)return{title:"THE BALANCED PLAYER ⚖️",description:"You give thoughtful responses without saying too much. You keep things clear and balanced."};
+ if(avg<140)return{title:"THE OPEN BOOK 📖",description:"You enjoy expressing your thoughts and explaining your side."};
+ return{title:"THE DEEP THINKER 🧠",description:"You have plenty to say and enjoy exploring your thoughts in detail."};
+}
+function finishSoloGame(){
+ hideScreens();const score=soloAnswers.length*10;
+ const words=soloAnswers.reduce((n,a)=>n+a.answer.split(/\s+/).filter(Boolean).length,0);
+ const avg=soloAnswers.length?words/soloAnswers.length:0,p=getSoloPersonality(avg);
+ document.getElementById("soloFinalScore").innerText=score+" / 100";
+ document.getElementById("soloPersonalityTitle").innerText=p.title;
+ document.getElementById("soloPersonalityText").innerText=p.description;
+ document.getElementById("soloAnswerSummary").innerText="You completed "+soloAnswers.length+" out of 10 questions. Average answer length: "+Math.round(avg)+" words.";
+ document.getElementById("soloProgressFill").style.width="100%";
+ document.getElementById("soloResultsScreen").classList.remove("hidden");showMessage("");
+}
+function cancelSoloGame(){if(!confirm("Exit this Solo game? Your current answers will be lost."))return;resetSoloGame();showHome()}
+
+/* CREATE / JOIN */
+async function createRoom(){
+ const nickname=document.getElementById("nickname").value.trim(),game=document.getElementById("game").value,level=document.getElementById("level").value,rounds=Number(document.getElementById("rounds").value);
+ if(!nickname){showMessage("Please enter a nickname.");return}
+ showMessage("Creating your PLAYAM room...");
+ const {data,error}=await supabaseClient.rpc("create_playam_room",{p_nickname:nickname,p_rounds:rounds,p_game:game,p_level_key:level});
+ if(error){showMessage(error.message);return}
+ if(!data||!data.length||!data[0].room_code){showMessage("Room was created, but its details were not returned.");return}
+ currentRoomCode=data[0].room_code;currentPlayerId=data[0].player_id;currentNickname=nickname;openLobby();
+}
+async function joinRoom(){
+ const code=document.getElementById("joinCode").value.trim().toUpperCase(),nickname=document.getElementById("joinNickname").value.trim();
+ if(!code||!nickname){showMessage("Enter your room code and nickname.");return}
+ showMessage("Joining room...");
+ const {data,error}=await supabaseClient.rpc("join_playam_room",{p_code:code,p_nickname:nickname});
+ if(error){showMessage(error.message);return}
+ if(!data||!data.length||!data[0].room_code){showMessage("You joined, but room details were not returned.");return}
+ currentRoomCode=data[0].room_code;currentPlayerId=data[0].player_id;currentNickname=nickname;openLobby();
+}
+
+/* LOBBY */
+function openLobby(){
+ stopLobbyRefresh();stopGameRefresh();showScreen("lobbyScreen");
+ document.getElementById("lobbyRoomCode").innerText=currentRoomCode;loadLobby();lobbyRefreshTimer=setInterval(loadLobby,3000);
+}
+function stopLobbyRefresh(){if(lobbyRefreshTimer){clearInterval(lobbyRefreshTimer);lobbyRefreshTimer=null}}
+async function loadLobby(){
+ if(!currentRoomCode||lobbyLoading)return;lobbyLoading=true;
+ const {data,error}=await supabaseClient.rpc("get_playam_lobby",{p_code:currentRoomCode});lobbyLoading=false;
+ if(error){showMessage(error.message);return}
+ if(!data||!data.length){showMessage("No players found in this room.");return}
+ if(data[0].game_status==="playing"){stopLobbyRefresh();openGame();return}
+ const box=document.getElementById("lobbyPlayers");box.innerHTML="";
+ currentPlayerReady=false;currentPlayerIsHost=false;
+ data.forEach(p=>{
+  const item=document.createElement("div");item.className="player-item";
+  const name=document.createElement("span");name.textContent=p.nickname;
+  if(p.player_id===currentPlayerId){name.textContent+=" (You)";currentPlayerReady=p.is_ready;currentPlayerIsHost=p.is_host}
+  if(p.is_host)name.textContent+=" 👑";
+  const status=document.createElement("span");status.className="player-status";status.textContent=p.is_ready?"READY ✓":"Not ready";
+  item.append(name,status);box.appendChild(item);
+ });
+ currentRoomId=data[0].room_id||currentRoomId;
+ document.getElementById("lobbyRoomCode").innerText=data[0].room_code;
+ document.getElementById("lobbyStatus").innerText="Game status: "+data[0].game_status;
+ document.getElementById("lobbyRound").innerText="Current round: "+data[0].current_round+" | Total rounds: "+data[0].total_rounds;
+ const ready=document.getElementById("readyButton");ready.innerText=currentPlayerReady?"CANCEL READY":"I'M READY";ready.disabled=data[0].game_status!=="waiting";
+ document.getElementById("startButton").classList.toggle("hidden",!(currentPlayerIsHost&&data[0].game_status==="waiting"));
+}
+async function toggleReady(){
+ const next=!currentPlayerReady;showMessage("Updating your readiness...");
+ const {error}=await supabaseClient.rpc("set_playam_ready",{p_ready:next,p_code:currentRoomCode});
+ if(error){showMessage(error.message);return}
+ showMessage(next?"You are ready!":"You are no longer ready.");await loadLobby();
+}
+async function startGame(){
+ if(!currentPlayerIsHost){showMessage("Only the room host can start the game.");return}
+ showMessage("Starting PLAYAM game...");
+ const {error}=await supabaseClient.rpc("start_playam_game",{p_code:currentRoomCode});
+ if(error){showMessage(error.message);return}
+ showMessage("PLAYAM has started!");stopLobbyRefresh();setTimeout(openGame,500);
+}
+
+/* MULTIPLAYER GAME */
+function openGame(){
+ stopLobbyRefresh();stopGameRefresh();showScreen("gameScreen");answerSubmitted=false;selectedVotePlayerId="";
+ loadGame();gameRefreshTimer=setInterval(loadGame,2000);
+}
+function stopGameRefresh(){
+ if(gameRefreshTimer){clearInterval(gameRefreshTimer);gameRefreshTimer=null}
+ if(gameTimerInterval){clearInterval(gameTimerInterval);gameTimerInterval=null}
+}
+async function loadGame(){
+ if(!currentRoomCode)return;
+ const {data:room,error:roomError}=await supabaseClient.from("rooms").select("*").eq("code",currentRoomCode).single();
+ if(roomError){showMessage(roomError.message);return}if(!room)return;
+ currentRoomId=room.id;currentGame=room.game;
+ if(room.status==="finished"||room.game_status==="finished"){stopGameRefresh();showResults();return}
+ const {data:round,error:roundError}=await supabaseClient.from("game_rounds").select("*,questions(id,text,question_type,option_a,option_b)").eq("room_id",room.id).eq("round_number",room.current_round).single();
+ if(roundError||!round){document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="Preparing the next round...";return}
+ if(currentRoundId!==round.id){currentRoundId=round.id;answerSubmitted=false;selectedVotePlayerId="";roundAdvanceRequestedFor="";document.getElementById("answerInput").value=""}
+ document.getElementById("gameName").innerText=getGameTitle(room.game);
+ document.getElementById("gameRoundNumber").innerText="Round "+room.current_round+" of "+room.rounds;
+ document.getElementById("questionBox").innerText=round.questions.text;
+ currentRoundEndsAt=round.ends_at;startRoundTimer();await renderGameControls(round,room);
+}
+function getGameTitle(g){return({"friendship-court":"⚖️ Friendship Court","would-you-rather":"🤔 Would You Rather?","truth-or-dare":"🎭 Truth or Dare","mind-battle":"🧠 Mind Battle","secret-confessions":"🤫 Secret Confessions"})[g]||"PLAYAM"}
+function hideGameControls(){["choiceArea","answerArea","voteArea","gameWaiting"].forEach(id=>document.getElementById(id).classList.add("hidden"))}
+async function renderGameControls(round,room){
+ hideGameControls();const status=document.getElementById("gameStatus");
+ if(answerSubmitted){document.getElementById("gameWaiting").classList.remove("hidden");status.innerText="Your response has been submitted. Waiting for the round...";return}
+ if(room.game==="friendship-court"){document.getElementById("voteArea").classList.remove("hidden");await loadVotePlayers();status.innerText="Choose a player and submit your vote.";return}
+ if(room.game==="would-you-rather"){
+  document.getElementById("choiceArea").classList.remove("hidden");
+  document.getElementById("optionAButton").innerText="A — "+(round.questions.option_a||"Option A");
+  document.getElementById("optionBButton").innerText="B — "+(round.questions.option_b||"Option B");
+  status.innerText="Choose your option.";return;
+ }
+ document.getElementById("answerArea").classList.remove("hidden");
+ document.getElementById("answerInput").placeholder=room.game==="secret-confessions"?"Write your confession...":room.game==="truth-or-dare"?"Enter your response...":"Enter your answer...";
+ status.innerText="Submit your response before time runs out.";
+}
+function startRoundTimer(){if(gameTimerInterval)return;updateTimer();gameTimerInterval=setInterval(updateTimer,500)}
+function updateTimer(){
+ if(!currentRoundEndsAt){document.getElementById("gameTimer").innerText="--";return}
+ let seconds=Math.max(0,Math.ceil((new Date(currentRoundEndsAt).getTime()-Date.now())/1000));
+ const timer=document.getElementById("gameTimer");timer.innerText=seconds;timer.classList.toggle("warning",seconds<=10);
+ if(seconds===0){
+  document.getElementById("gameStatus").innerText="Time is up. Moving to the next round...";
+  if(currentRoundId&&roundAdvanceRequestedFor!==currentRoundId){
+   roundAdvanceRequestedFor=currentRoundId;
+   supabaseClient.rpc("advance_playam_round",{p_code:currentRoomCode}).then(({data,error})=>{
+    if(error){roundAdvanceRequestedFor="";showMessage("Round could not advance: "+error.message);return}
+    if(data==="advanced"||data==="finished"||data==="finished_no_more_questions"){loadGame()}
+   });
+  }
+ }
+}
+async function submitChoice(choice){await submitGameAnswer(choice)}
+async function submitWrittenAnswer(){const answer=document.getElementById("answerInput").value.trim();if(!answer){showMessage("Please enter an answer.");return}await submitGameAnswer(answer)}
+async function submitGameAnswer(answer){
+ if(answerSubmitted)return;
+ const {error}=await supabaseClient.rpc("submit_playam_answer",{p_answer:answer,p_code:currentRoomCode});
+ if(error){showMessage(error.message);return}
+ answerSubmitted=true;showMessage("✓ Answer submitted!");hideGameControls();
+ document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="Your answer is locked in.";
+}
+async function loadVotePlayers(){
+ const box=document.getElementById("votePlayers");box.innerHTML="Loading players...";
+ const {data,error}=await supabaseClient.from("players").select("id,nickname").eq("room_id",currentRoomId);
+ if(error){box.innerHTML="Unable to load players.";return}
+ box.innerHTML="";
+ data.forEach(p=>{
+  if(p.id===currentPlayerId)return;
+  const b=document.createElement("button");b.className="vote-player";b.innerText=p.nickname;
+  b.onclick=()=>{selectedVotePlayerId=p.id;document.querySelectorAll(".vote-player").forEach(x=>x.classList.remove("selected"));b.classList.add("selected");document.getElementById("submitVoteButton").classList.remove("hidden")};
+  box.appendChild(b);
+ });
+}
+async function submitVote(){
+ if(!selectedVotePlayerId){showMessage("Choose a player first.");return}
+ const {error}=await supabaseClient.from("votes").insert({round_id:currentRoundId,voter_player_id:currentPlayerId,target_player_id:selectedVotePlayerId});
+ if(error){showMessage(error.message);return}
+ answerSubmitted=true;hideGameControls();document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="✓ Vote submitted. Waiting for the round...";
+}
+
+
+/* PLAYER REPORTING */
+let reportSubmitting=false,reportSubmitted=false;
+function closeReportPlayer(){
+ const overlay=document.getElementById("reportPlayerOverlay");
+ overlay.classList.add("hidden");
+ reportSubmitted=false;
+ document.getElementById("reportFormMessage").innerText="";
+}
+async function openReportPlayer(){
+ if(!currentRoomId||!currentPlayerId){showMessage("Join a room before reporting a player.");return}
+ const overlay=document.getElementById("reportPlayerOverlay");
+ const select=document.getElementById("reportTarget");
+ const message=document.getElementById("reportFormMessage");
+ const submit=document.getElementById("submitReportButton");
+ select.innerHTML='<option value="">Loading players...</option>';
+ message.innerText="";submit.disabled=true;reportSubmitted=false;
+ document.getElementById("reportReason").value="";
+ document.getElementById("reportDetails").value="";
+ overlay.classList.remove("hidden");
+ try{
+  const {data:{session},error:sessionError}=await supabaseClient.auth.getSession();
+  if(sessionError||!session){message.innerText="Please sign in again before submitting a report.";select.innerHTML='<option value="">Unable to load players</option>';return}
+  const {data:players,error}=await supabaseClient.rpc("list_room_report_targets",{p_room_id:currentRoomId});
+  if(error){message.innerText="Unable to load room players. Please try again.";select.innerHTML='<option value="">Unable to load players</option>';return}
+  select.innerHTML='<option value="">Choose a player</option>';
+  let available=0;
+  (players||[]).forEach(player=>{
+   if(!player.reported_auth_user_id||player.reported_auth_user_id===session.user.id)return;
+   const option=document.createElement("option");option.value=player.reported_auth_user_id;option.textContent=player.nickname||"PLAYAM player";select.appendChild(option);available++;
+  });
+  if(!available){message.innerText="There are no other eligible players in this room to report.";return}
+  submit.disabled=false;
+ }catch(error){message.innerText="Something went wrong while loading players. Please try again."}
+}
+async function submitPlayerReport(){
+ if(reportSubmitting)return;
+ const target=document.getElementById("reportTarget").value;
+ const reason=document.getElementById("reportReason").value;
+ const details=document.getElementById("reportDetails").value.trim();
+ const message=document.getElementById("reportFormMessage");
+ const submit=document.getElementById("submitReportButton");
+ if(!target){message.innerText="Please choose the player you want to report.";return}
+ if(!reason){message.innerText="Please choose a reason for the report.";return}
+ if(details.length>2000){message.innerText="Details must be 2,000 characters or fewer.";return}
+ reportSubmitting=true;submit.disabled=true;message.innerText="Sending your report...";
+ try{
+  const {data:{session},error:sessionError}=await supabaseClient.auth.getSession();
+  if(sessionError||!session)throw new Error("Your session has expired. Please sign in again.");
+  const {error}=await supabaseClient.rpc("submit_player_report",{p_reported_auth_user_id:target,p_reason:reason,p_details:details||null,p_room_id:currentRoomId});
+  if(error)throw error;
+  reportSubmitted=true;
+  message.innerText="Your report has been submitted securely. Thank you for helping keep PLAYAM safe.";
+  document.getElementById("reportTarget").value="";document.getElementById("reportReason").value="";document.getElementById("reportDetails").value="";
+  setTimeout(closeReportPlayer,1800);
+ }catch(error){message.innerText=error.message||"Your report could not be submitted. Please try again."}
+ finally{reportSubmitting=false;submit.disabled=reportSubmitted}
+}
+document.addEventListener("keydown",event=>{if(event.key==="Escape")closeReportPlayer()});
+
+/* RESULTS AND NAVIGATION */
+async function showResults(){
+ hideScreens();document.getElementById("resultsScreen").classList.remove("hidden");
+ const box=document.getElementById("resultsList");box.innerHTML="Loading results...";
+ if(currentGame!=="friendship-court"){
+  box.innerHTML="";
+  const note=document.createElement("div");note.className="result-item";
+  note.textContent="Thanks for playing! This is a casual game mode, so no points are awarded.";
+  box.appendChild(note);return;
+ }
+ const {data,error}=await supabaseClient.from("players").select("id,nickname,score").eq("room_id",currentRoomId).order("score",{ascending:false});
+ if(error){box.innerHTML=error.message;return}
+ box.innerHTML="";
+ data.forEach((p,i)=>{const item=document.createElement("div");item.className="result-item";const name=document.createElement("span");name.innerText=(i+1)+". "+p.nickname;const score=document.createElement("strong");score.innerText=p.score+" pts";item.append(name,score);box.appendChild(item)});
+}
+async function copyRoomCode(){try{await navigator.clipboard.writeText(currentRoomCode);showMessage("Room code copied!")}catch(e){showMessage("Your room code is: "+currentRoomCode)}}
+function resetGameState(){
+ currentRoomCode="";currentRoomId="";currentPlayerId="";currentNickname="";currentPlayerReady=false;currentPlayerIsHost=false;currentGame="";currentRoundId="";selectedVotePlayerId="";currentRoundEndsAt=null;answerSubmitted=false;
+}
+function leaveLobbyView(){stopLobbyRefresh();stopGameRefresh();resetGameState();showHome()}
+function returnHomeFromResults(){stopGameRefresh();resetGameState();showHome()}
+
+/* LOGIN RESTORE */
+async function checkLogin(){
+ const {data:{session},error}=await supabaseClient.auth.getSession();
+ if(error){document.getElementById("authMessage").innerText=error.message;return}
+ if(session){document.getElementById("authScreen").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showHome()}
+ else{document.getElementById("app").classList.add("hidden");document.getElementById("authScreen").classList.remove("hidden")}
+}
+supabaseClient.auth.onAuthStateChange((event,session)=>{
+ if(event==="SIGNED_OUT"){resetGameState();resetSoloGame();document.getElementById("app").classList.add("hidden");document.getElementById("authScreen").classList.remove("hidden")}
+ if(event==="SIGNED_IN"&&session){document.getElementById("authScreen").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showHome()}
+});
+checkLogin();
+</script>
+</body>
+</html>
