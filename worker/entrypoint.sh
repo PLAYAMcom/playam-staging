@@ -23,9 +23,6 @@ MaxThreads 1
 MaxQueue 2
 ReadTimeout 120
 Foreground yes
-LogFile /dev/stderr
-LogTime yes
-LogSyslog no
 CLAMD_CONFIG
 chown clamav:clamav /run/clamav/clamd.conf
 chmod 0640 /run/clamav/clamd.conf
