@@ -23,6 +23,11 @@ WORKER_ID = os.getenv("WORKER_ID", "playam-flow") + "-" + str(uuid.uuid4())
 supabase = create_client(URL, SERVICE_KEY)
 
 
+class PermanentMediaError(Exception):
+    """Input is unsafe or invalid and must not be retried."""
+
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -52,7 +57,7 @@ def download_bounded(storage, object_key: str, destination: Path):
         if declared:
             try:
                 if int(declared) > MAX_BYTES:
-                    raise ValueError("source_size_invalid")
+                    raise PermanentMediaError("source_size_invalid")
             except ValueError as exc:
                 if str(exc) == "source_size_invalid":
                     raise
@@ -89,12 +94,12 @@ def inspect_video(path: Path):
     streams = meta.get("streams", [])
     video = next((s for s in streams if s.get("codec_type") == "video"), None)
     if not video:
-        raise ValueError("video_stream_missing")
+        raise PermanentMediaError("video_stream_missing")
     duration = float(meta.get("format", {}).get("duration", 0))
     if duration <= 0 or duration > MAX_SECONDS:
-        raise ValueError("video_duration_invalid")
+        raise PermanentMediaError("video_duration_invalid")
     if int(video.get("width", 0)) < 160 or int(video.get("height", 0)) < 160:
-        raise ValueError("video_dimensions_invalid")
+        raise PermanentMediaError("video_dimensions_invalid")
     return duration
 
 
@@ -109,7 +114,7 @@ def scan(path: Path):
         raise RuntimeError("scanner_unavailable")
     status, signature = result["stream"]
     if status == "FOUND":
-        raise ValueError("malware_detected")
+        raise PermanentMediaError("malware_detected")
     if status != "OK":
         raise RuntimeError("scanner_error")
 
@@ -126,7 +131,7 @@ def process(job):
     # Never allow a queued job to make the service worker read outside the
     # dedicated private Staging bucket or another creator's storage prefix.
     if source_bucket != BUCKET or not isinstance(source_key, str):
-        raise ValueError("source_location_invalid")
+        raise PermanentMediaError("source_location_invalid")
     if not source_key.startswith(job["creator_auth_user_id"] + "/") or ".." in source_key.split("/"):
         raise ValueError("source_location_invalid")
     with tempfile.TemporaryDirectory(prefix="playam-flow-") as temp:
@@ -181,9 +186,9 @@ def main():
             try:
                 process(claimed)
                 print("completed media job", claimed["job_id"], flush=True)
-            except ValueError as exc:
+            except PermanentMediaError as exc:
                 code = str(exc)[:80]
-                rejected = code == "malware_detected"
+                rejected = True
                 supabase.rpc("flow_fail_media_job_v1", {
                     "p_job_id": claimed["job_id"], "p_worker_id": WORKER_ID,
                     "p_error_code": code,
