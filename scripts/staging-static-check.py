@@ -23,7 +23,7 @@ if not ADMIN_APP.exists():
 if not LANDING_PAGE.exists():
     raise SystemExit("FAIL: Staging landing page is missing")
 landing_source = LANDING_PAGE.read_text(encoding="utf-8")
-for link in ('href="game.html"', 'href="admin-playam-staging.html"'):
+for link in ('href="game.html"', 'href="admin-playam-staging.html"', 'href="game-catalogue.html"'):
     if link not in landing_source:
         raise SystemExit("FAIL: Staging landing page is missing a required link: " + link)
 admin_source = ADMIN_APP.read_text(encoding="utf-8")
