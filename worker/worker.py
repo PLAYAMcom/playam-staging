@@ -22,6 +22,7 @@ MAX_SECONDS = int(os.getenv("MAX_VIDEO_SECONDS", "180"))
 POLL_SECONDS = float(os.getenv("POLL_SECONDS", "4"))
 LEASE_HEARTBEAT_SECONDS = int(os.getenv("LEASE_HEARTBEAT_SECONDS", "300"))
 WORKER_ID = os.getenv("WORKER_ID", "playam-flow") + "-" + str(uuid.uuid4())
+OUTPUT_WORKER_TOKEN = uuid.uuid4().hex
 supabase = create_client(URL, SERVICE_KEY)
 
 
@@ -144,6 +145,18 @@ def upload_file(storage, object_key: str, path: Path, content_type: str):
             "upsert": "true",
         })
 
+
+def cleanup_processed_objects(storage, object_keys):
+    """Best-effort cleanup for this worker's uniquely namespaced partial uploads."""
+    keys = [key for key in object_keys if key]
+    if not keys:
+        return
+    try:
+        storage.remove(keys)
+    except Exception as exc:
+        # Preserve the original processing/upload error; orphan cleanup can be retried.
+        print("processed object cleanup failed", len(keys), type(exc).__name__, flush=True)
+
 def inspect_video(path: Path):
     if not path.is_file() or path.stat().st_size < 1024 or path.stat().st_size > MAX_BYTES:
         raise PermanentMediaError("source_size_invalid")
@@ -235,13 +248,21 @@ def process(job):
             lease.check()
             if not thumb.exists() or thumb.stat().st_size < 512:
                 raise RuntimeError("thumbnail_output_invalid")
-            prefix = f"processed/{job['creator_auth_user_id']}/{asset_id}"
+            # Each attempt has an isolated prefix so cleanup cannot delete another worker's output.
+            prefix = f"processed/{job['creator_auth_user_id']}/{asset_id}/{job_id}/{OUTPUT_WORKER_TOKEN}"
             video_key, thumb_key = f"{prefix}/playback.mp4", f"{prefix}/thumbnail.jpg"
             storage = supabase.storage.from_(BUCKET)
-            upload_file(storage, video_key, output, "video/mp4")
-            lease.check()
-            upload_file(storage, thumb_key, thumb, "image/jpeg")
-            lease.check()
+            uploaded_keys = []
+            try:
+                upload_file(storage, video_key, output, "video/mp4")
+                uploaded_keys.append(video_key)
+                lease.check()
+                upload_file(storage, thumb_key, thumb, "image/jpeg")
+                uploaded_keys.append(thumb_key)
+                lease.check()
+            except Exception:
+                cleanup_processed_objects(storage, uploaded_keys)
+                raise
             output_hash = sha256(output)
             # Stop heartbeats before terminal RPC; it checks the last lease expiry.
             lease.check()
