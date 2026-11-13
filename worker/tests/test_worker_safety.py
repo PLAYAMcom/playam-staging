@@ -122,5 +122,29 @@ class WorkerSafetyTests(unittest.TestCase):
                     worker.scan(source)
 
 
+    def test_lease_heartbeat_renews_only_when_database_confirms(self):
+        response = SimpleNamespace(data={"ok": True, "locked_at": "2026-11-13T18:00:00Z"})
+        client = Mock()
+        client.rpc.return_value.execute.return_value = response
+        with patch.object(worker, "supabase", client):
+            heartbeat = worker.LeaseHeartbeat("job-id", "worker-id-123", interval=30)
+            heartbeat._renew()
+        client.rpc.assert_called_once_with("flow_renew_media_job_lease_v1", {
+            "p_job_id": "job-id", "p_worker_id": "worker-id-123"
+        })
+
+    def test_lease_heartbeat_fails_closed_when_renewal_is_not_confirmed(self):
+        response = SimpleNamespace(data={"ok": False})
+        client = Mock()
+        client.rpc.return_value.execute.return_value = response
+        with patch.object(worker, "supabase", client):
+            heartbeat = worker.LeaseHeartbeat("job-id", "worker-id-123", interval=30)
+            with self.assertRaises(worker.LeaseLostError):
+                heartbeat._renew()
+
+    def test_lease_heartbeat_rejects_nonpositive_interval(self):
+        with self.assertRaises(ValueError):
+            worker.LeaseHeartbeat("job-id", "worker-id-123", interval=0)
+
 if __name__ == "__main__":
     unittest.main()
