@@ -13,4 +13,4 @@ i=0
 until python -c "import socket; s=socket.create_connection(('127.0.0.1',3310),2); s.close()" 2>/dev/null; do
   i=$((i+1)); [ "$i" -lt 30 ] || exit 1; sleep 2
 done
-exec python /app/worker.py
+exec gosu playam-worker:playam-worker python /app/worker.py
