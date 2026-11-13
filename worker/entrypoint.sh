@@ -22,13 +22,19 @@ MaxScanSize 200M
 MaxThreads 1
 MaxQueue 2
 ReadTimeout 120
+Foreground yes
+LogFile /dev/stderr
+LogTime yes
+LogSyslog no
 CLAMD_CONFIG
 chown clamav:clamav /run/clamav/clamd.conf
 chmod 0640 /run/clamav/clamd.conf
 
-clamd --config-file=/run/clamav/clamd.conf
+clamd --config-file=/run/clamav/clamd.conf &
+CLAMD_PID=$!
 i=0
 until python -c "import socket; s=socket.create_connection(('127.0.0.1',3310),2); s.close()" 2>/dev/null; do
+  kill -0 "$CLAMD_PID" 2>/dev/null || { wait "$CLAMD_PID"; exit 1; }
   i=$((i+1)); [ "$i" -lt 30 ] || exit 1; sleep 2
 done
 exec gosu playam-worker:playam-worker python /app/worker.py
