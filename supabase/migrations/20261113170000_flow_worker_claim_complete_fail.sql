@@ -12,8 +12,13 @@ declare v_job public.flow_media_processing_jobs%rowtype; v_asset public.flow_pos
 begin
  if coalesce(auth.role(),'') <> 'service_role' then raise exception 'service role required' using errcode='42501'; end if;
  if p_worker_id is null or length(p_worker_id)<8 or length(p_worker_id)>120 then raise exception 'invalid worker id' using errcode='22023'; end if;
+ update public.flow_media_processing_jobs
+ set status='failed',locked_at=null,locked_by=null,last_error_code='worker_lease_expired',last_error_safe_message='Worker stopped before completing media processing.',updated_at=now()
+ where status in ('scanning','transcoding','thumbnailing') and locked_at < now()-interval '30 minutes' and attempts>=max_attempts;
  select * into v_job from public.flow_media_processing_jobs
- where status in ('queued','failed') and available_at<=now() and attempts<max_attempts
+ where ((status in ('queued','failed') and available_at<=now()) or
+        (status in ('scanning','transcoding','thumbnailing') and locked_at < now()-interval '30 minutes'))
+   and attempts<max_attempts
  order by available_at,created_at for update skip locked limit 1;
  if not found then return null; end if;
  update public.flow_media_processing_jobs set status='scanning',attempts=attempts+1,locked_at=now(),locked_by=p_worker_id,updated_at=now()
