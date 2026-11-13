@@ -146,6 +146,21 @@ def upload_file(storage, object_key: str, path: Path, content_type: str):
         })
 
 
+def upload_processed_pair(storage, video_key: str, thumbnail_key: str, video_path: Path, thumbnail_path: Path):
+    """Upload video and thumbnail atomically enough for retry safety.
+
+    If the second upload fails, remove only the first object created by this attempt.
+    """
+    uploaded = []
+    try:
+        upload_file(storage, video_key, video_path, "video/mp4")
+        uploaded.append(video_key)
+        upload_file(storage, thumbnail_key, thumbnail_path, "image/jpeg")
+        uploaded.append(thumbnail_key)
+    except Exception:
+        cleanup_processed_objects(storage, uploaded)
+        raise
+
 def cleanup_processed_objects(storage, object_keys):
     """Best-effort cleanup for this worker's uniquely namespaced partial uploads."""
     keys = [key for key in object_keys if key]
