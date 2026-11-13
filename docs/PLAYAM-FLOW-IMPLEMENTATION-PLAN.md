@@ -26,9 +26,9 @@ PLAYAM Flow is one connected, mobile-first vertical video feed. People can creat
 - Pay creators only from actually funded ad/sponsorship programmes, with clear calculation records. Avoid promising earnings from estimated ad revenue.
 - Exact follower threshold, qualified-view threshold, measurement window, minimum age/region rules, revenue share and payout schedule are launch decisions and must be agreed and published before monetisation is enabled. Do not hard-code guessed values.
 
-## Proposed Staging data model (design only; do not run SQL yet)
+## Staging data model (foundation created; app access still locked)
 
-Use a separate Flow domain. Do not extend the existing five-value `rooms.game` or `questions.game_key` checks to represent videos.
+A separate Flow domain has now been created in Staging with nine tables. All have RLS enabled and no client grants or policies yet, so the app cannot access them until secure server-side APIs and narrowly scoped policies are implemented. Do not extend the existing five-value `rooms.game` or `questions.game_key` checks to represent videos. See `docs/PLAYAM-FLOW-STAGING-STATUS.md` for the verified current state.
 
 - `flow_posts`: creator, caption, visibility, moderation state, publication timestamps, asset reference and safe status fields.
 - `flow_post_assets`: storage object key, media type, duration, dimensions, processing state, thumbnail and transcoding metadata. Keep uploaded media in private/quarantined storage until checks pass.
