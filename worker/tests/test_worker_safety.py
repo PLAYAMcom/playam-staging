@@ -28,16 +28,19 @@ class FakeResponse:
 class WorkerSafetyTests(unittest.TestCase):
     def test_download_streams_under_limit(self):
         response = FakeResponse([b"x" * 700, b"y" * 500], {"content-length": "1200"})
+        requested_urls = []
         @contextmanager
-        def stream(*args, **kwargs):
+        def stream(url, *args, **kwargs):
+            requested_urls.append(url)
             yield response
         storage = Mock()
-        storage.create_signed_url.return_value = {"signedURL": "/storage/v1/object/sign/private/source"}
+        storage.create_signed_url.return_value = {"signedURL": "/object/sign/private/source?token=test"}
         with tempfile.TemporaryDirectory() as tmp, patch.object(worker.httpx, "stream", stream):
             target = Path(tmp) / "source.bin"
             size = worker.download_bounded(storage, "creator/source", target)
             self.assertEqual(size, 1200)
             self.assertEqual(target.stat().st_size, 1200)
+        self.assertEqual(requested_urls[0], "https://example.supabase.co/storage/v1/object/sign/private/source?token=test")
 
     def test_download_rejects_declared_oversize_before_stream(self):
         response = FakeResponse([], {"content-length": str(worker.MAX_BYTES + 1)})
