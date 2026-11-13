@@ -4,11 +4,26 @@ set -eu
 # the worker does not start and media stays quarantined.
 chown -R clamav:clamav /var/lib/clamav /run/clamav
 freshclam --stdout || exit 1
-grep -q '^TCPSocket ' /etc/clamav/clamd.conf || printf '\nTCPSocket 3310\n' >> /etc/clamav/clamd.conf
-grep -q '^TCPAddr ' /etc/clamav/clamd.conf || printf 'TCPAddr 127.0.0.1\n' >> /etc/clamav/clamd.conf
-sed -i '/^StreamMaxLength /d; /^MaxFileSize /d; /^MaxScanSize /d' /etc/clamav/clamd.conf
-printf 'StreamMaxLength 110M\nMaxFileSize 110M\nMaxScanSize 200M\n' >> /etc/clamav/clamd.conf
-clamd
+
+# Compose mounts the root filesystem read-only. Generate ClamAV's runtime
+# configuration under /run, which is an explicitly writable, size-limited tmpfs.
+cat > /run/clamav/clamd.conf <<'CLAMD_CONFIG'
+DatabaseDirectory /var/lib/clamav
+PidFile /run/clamav/clamd.pid
+User clamav
+TCPSocket 3310
+TCPAddr 127.0.0.1
+StreamMaxLength 110M
+MaxFileSize 110M
+MaxScanSize 200M
+MaxThreads 4
+MaxQueue 16
+ReadTimeout 120
+CLAMD_CONFIG
+chown clamav:clamav /run/clamav/clamd.conf
+chmod 0640 /run/clamav/clamd.conf
+
+clamd --config-file=/run/clamav/clamd.conf
 i=0
 until python -c "import socket; s=socket.create_connection(('127.0.0.1',3310),2); s.close()" 2>/dev/null; do
   i=$((i+1)); [ "$i" -lt 30 ] || exit 1; sleep 2
