@@ -1,0 +1,16 @@
+services:
+  flow-media-worker:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=1g
+      - /run:rw,noexec,nosuid,size=64m
+      - /var/lib/clamav:rw,nosuid,size=512m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 2g
+    cpus: 2.0
