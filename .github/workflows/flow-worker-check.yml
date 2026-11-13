@@ -5,14 +5,12 @@ on:
     branches: [main, codex/flow-media-worker]
     paths:
       - "worker/**"
-      - "workers/flow-media/**"
       - "supabase/migrations/**"
       - ".github/workflows/flow-worker-check.yml"
   pull_request:
     branches: [main]
     paths:
       - "worker/**"
-      - "workers/flow-media/**"
       - "supabase/migrations/**"
       - ".github/workflows/flow-worker-check.yml"
 
@@ -20,19 +18,16 @@ permissions:
   contents: read
 
 jobs:
-  worker:
+  python-worker:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - name: Compile existing Python worker
+      - name: Install worker dependencies
+        run: pip install -r worker/requirements.txt
+      - name: Compile worker
         run: python -m py_compile worker/worker.py
-      - name: Check Node worker syntax
-        run: node --check workers/flow-media/worker.js
-      - name: Build isolated Node worker container
-        run: docker build -t playam-flow-media-worker:test workers/flow-media
+      - name: Build isolated Python worker container
+        run: docker build -t playam-flow-media-worker:test worker
