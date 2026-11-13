@@ -1,0 +1,31 @@
+name: PLAYAM Flow worker build checks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "worker/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/flow-worker-check.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "worker/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/flow-worker-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile worker
+        run: python -m py_compile worker/worker.py
+      - name: Build isolated worker container
+        run: docker build -t playam-flow-worker:test worker
