@@ -252,17 +252,8 @@ def process(job):
             prefix = f"processed/{job['creator_auth_user_id']}/{asset_id}/{job_id}/{OUTPUT_WORKER_TOKEN}"
             video_key, thumb_key = f"{prefix}/playback.mp4", f"{prefix}/thumbnail.jpg"
             storage = supabase.storage.from_(BUCKET)
-            uploaded_keys = []
-            try:
-                upload_file(storage, video_key, output, "video/mp4")
-                uploaded_keys.append(video_key)
-                lease.check()
-                upload_file(storage, thumb_key, thumb, "image/jpeg")
-                uploaded_keys.append(thumb_key)
-                lease.check()
-            except Exception:
-                cleanup_processed_objects(storage, uploaded_keys)
-                raise
+            upload_processed_pair(storage, video_key, thumb_key, output, thumb)
+            lease.check()
             output_hash = sha256(output)
             # Stop heartbeats before terminal RPC; it checks the last lease expiry.
             lease.check()
