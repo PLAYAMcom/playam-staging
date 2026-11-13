@@ -19,7 +19,7 @@ BUCKET = "flow-media-staging"
 MAX_BYTES = int(os.getenv("MAX_SOURCE_BYTES", str(100 * 1024 * 1024)))
 MAX_SECONDS = int(os.getenv("MAX_VIDEO_SECONDS", "180"))
 POLL_SECONDS = float(os.getenv("POLL_SECONDS", "4"))
-WORKER_ID = os.getenv("WORKER_ID", "playam-flow-" + str(uuid.uuid4()))
+WORKER_ID = os.getenv("WORKER_ID", "playam-flow") + "-" + str(uuid.uuid4())
 supabase = create_client(URL, SERVICE_KEY)
 
 
