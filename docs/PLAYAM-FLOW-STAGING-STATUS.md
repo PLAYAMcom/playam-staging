@@ -1,48 +1,49 @@
-# PLAYAM Flow — Staging schema status
-
+# PLAYAM Flow — Current Staging status
 Checked: 2026-11-13
-Environment: Supabase Staging project only.
+Environment: Staging only (`pwnjrdedeoxbmtfywhkk`).
 
-## Created database foundation
+## Database
+Nine Flow tables exist: posts, post assets, likes, comments, follows, view events, daily creator metrics, creator eligibility and content moderation. They have RLS enabled and no direct client policies/grants. This is intentional deny-by-default; use authenticated server functions rather than opening direct table access.
 
-Nine new tables were created additively in Staging:
+## Private media storage
+- Bucket `flow-media-staging` exists and is private.
+- Maximum object size: 100 MiB.
+- Allowed MIME types: MP4, QuickTime/MOV, WebM, JPEG, PNG and WebP.
+- Authenticated users can upload/read only inside their own UID folder through the two bucket policies.
+- Do not make this bucket public.
 
-- `flow_posts` — creator, caption, visibility, publication and moderation state.
-- `flow_post_assets` — storage object references and quarantined/processing/ready state.
-- `flow_post_likes` — one like per user per post.
-- `flow_post_comments` — comments and replies with moderation state.
-- `flow_follows` — unique follower/followed relationship; self-follow prohibited.
-- `flow_view_events` — deduplicated view events and server qualification fields.
-- `flow_creator_metrics_daily` — daily aggregated creator performance metrics.
-- `flow_creator_eligibility` — locked-by-default monetisation eligibility, threshold snapshots and review fields.
-- `flow_content_moderation` — post reports and review outcomes.
+## Deployed Edge Functions (JWT verification enabled)
+- `flow-create-upload`: creates a signed upload ticket for an authenticated user and their UID-scoped path.
+- `flow-save-draft`: verifies uploaded object and stores a private draft plus quarantined asset record.
+- `flow-social`: approved public feed retrieval, likes/unlikes, comments and follows/unfollows, via server-side access.
+- `flow-admin-moderation`: requires a valid authenticated user, aal2 MFA and active `super_admin` role; lists pending drafts and records review decisions. Approval is blocked unless media asset processing status is `ready`.
 
-Indexes were added for creator posts, feed ordering, assets, comments, follows, view events and moderation queues.
+## Interface
+- `site/flow.html` has Staging sign-in, upload/caption UI, feed, creator space and admin review panel.
+- Upload screen calls `flow-create-upload`, uploads into private storage, then calls `flow-save-draft`.
+- Feed/social actions call `flow-social`.
+- Admin review panel calls `flow-admin-moderation`.
+- Landing page links to Flow.
 
-## Security state verified
+## Important limitations / not yet verified
+- There are currently zero Flow posts and zero assets.
+- No scanner, malware/content inspection or transcoding worker exists. Assets remain quarantined; public approval cannot succeed until a trusted processing pipeline marks assets ready.
+- No end-to-end test with signed-in Staging users has been completed. No video upload/playback, feed, like, comment, follow or moderation action is claimed tested.
+- No verified view-event pipeline, anti-fraud qualification, creator analytics evaluator or monetisation eligibility thresholds are implemented.
+- No creator earnings or payouts were issued.
+- Older Flow UI and schema commits may not yet have successful GitHub Actions / Pages deployment confirmation. Check the latest commit status before treating the hosted page as updated.
 
-All nine tables have Row Level Security enabled. There are currently no RLS policies and no grants to `anon` or `authenticated`. This is intentional deny-by-default protection while the server-side API and narrowly scoped access rules are being built. The tables are not yet accessible to the app.
+## Required next steps
+1. Build secure media scanning/transcoding and thumbnail pipeline; only trusted worker can set asset `processing_status=ready`.
+2. Add signed-in user view-event endpoint with server-side duration/anti-fraud rules, deduplication and qualified view accounting.
+3. Add profile/creator stats endpoints and creator dashboard.
+4. Decide and document exact follower + qualified-view thresholds before enabling monetisation; require good standing and original-content checks.
+5. Test upload, private draft, processing, moderation, publication, playback, likes, comments, follows and role/MFA denial using separate Staging accounts.
+6. Reconcile the direct-applied SQL schema into version-controlled migrations before any reset or promotion.
 
-The Supabase security advisor reports the nine new tables among its RLS-enabled/no-policy informational findings. This is expected at this foundation stage. Existing advisor findings remain: 18 SECURITY DEFINER functions need individual review, and leaked-password protection remains disabled. No broad permission changes were made.
-
-## Not built yet
-
-- No Flow Storage bucket exists in Staging; the storage bucket query returned zero.
-- No upload or transcoding pipeline.
-- No feed API, feed UI, or client interactions.
-- No server-side view qualification/anti-fraud pipeline.
-- No monetisation eligibility evaluator or funded campaign payout integration.
-- No creator earnings were issued; no payments or withdrawals were run.
-
-## Migration-history caveat
-
-Staging's migration history was previously found empty. This additive schema was applied directly through the database SQL interface and verified in place; it has not yet been reconciled into a version-controlled Supabase migration. Before any future reset, branch promotion or deployment automation, capture and reconcile the remote schema into a proper migration. Do not run a reset or destructive migration.
-
-## Non-negotiable safeguards
-
-- Do not grant direct client write access to view counts, qualification, moderation outcomes, eligibility or earnings.
-- Build authenticated, server-authoritative APIs and specific RLS rules before enabling app access.
-- Keep video uploads quarantined/private until scanning and processing succeed.
-- Monetisation requires both the approved follower and qualified-view thresholds plus policy checks. Likes contribute to engagement quality but do not directly create cash.
-- Credit only funded and verified earnings through the existing creator earnings ledger.
-- Keep Staging and Production separate; no Production resources or user data were touched.
+## Safety
+- Keep Staging and Production isolated; do not modify Production without explicit approval.
+- Never grant broad client table access or expose service-role keys.
+- Never publish unprocessed/unmoderated uploads.
+- Never trust client-supplied likes/views/eligibility/earnings.
+- No real payments or withdrawals in testing.
