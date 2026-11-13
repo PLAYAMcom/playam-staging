@@ -37,8 +37,11 @@ $("uploadBtn").onclick=async()=>{
   const ticket=await prep.json();if(!prep.ok)throw new Error(ticket.error||"Could not prepare upload.");
   const {error}=await client.storage.from(ticket.bucket).uploadToSignedUrl(ticket.path,ticket.token,file,{contentType:file.type,upsert:false});
   if(error)throw error;
+  $("progress").style.width="75%";
+  const saved=await fetch(URL+"/functions/v1/flow-save-draft",{method:"POST",headers:{Authorization:"Bearer "+session.access_token,apikey:KEY,"Content-Type":"application/json"},body:JSON.stringify({path:ticket.path,caption:$("caption").value})});
+  const draft=await saved.json();if(!saved.ok)throw new Error(draft.error||"Video uploaded, but the private draft could not be saved.");
   $("progress").style.width="100%";
-  $("status").textContent="Private video upload successful. Your file is safely stored in your Staging folder. It is not published yet; the publishing and moderation function is the next backend step.";
+  $("status").textContent="Video uploaded and private draft saved. Draft ID: "+draft.postId+". It is awaiting moderation and is NOT published or visible in the public feed.";
  }catch(e){$("status").textContent=e.message||"Upload failed. Please try again."}finally{btn.disabled=false}
 };
 restore();
