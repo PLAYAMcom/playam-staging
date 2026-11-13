@@ -19,8 +19,8 @@ TCPAddr 127.0.0.1
 StreamMaxLength 110M
 MaxFileSize 110M
 MaxScanSize 200M
-MaxThreads 4
-MaxQueue 16
+MaxThreads 1
+MaxQueue 2
 ReadTimeout 120
 CLAMD_CONFIG
 chown clamav:clamav /run/clamav/clamd.conf
