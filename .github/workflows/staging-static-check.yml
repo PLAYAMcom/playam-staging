@@ -1,0 +1,32 @@
+name: PLAYAM Staging safety checks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "scripts/staging-static-check.py"
+      - ".github/workflows/staging-static-check.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "scripts/staging-static-check.py"
+      - ".github/workflows/staging-static-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  staging-static-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check Staging isolation and browser JavaScript
+        run: python3 scripts/staging-static-check.py
