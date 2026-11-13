@@ -45,10 +45,13 @@ class LeaseHeartbeat:
         self._thread = threading.Thread(target=self._run, name="flow-lease-heartbeat", daemon=True)
 
     def _renew(self):
-        response = supabase.rpc("flow_renew_media_job_lease_v1", {
-            "p_job_id": self.job_id,
-            "p_worker_id": self.worker_id,
-        }).execute()
+        try:
+            response = supabase.rpc("flow_renew_media_job_lease_v1", {
+                "p_job_id": self.job_id,
+                "p_worker_id": self.worker_id,
+            }).execute()
+        except Exception as exc:
+            raise LeaseLostError("worker lease renewal could not be confirmed") from exc
         if not isinstance(response.data, dict) or response.data.get("ok") is not True:
             raise LeaseLostError("worker lease renewal was not confirmed")
 
