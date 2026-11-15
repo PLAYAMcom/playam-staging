@@ -578,7 +578,7 @@ async function loadGame(){
  document.getElementById("questionBox").innerText=round.questions.text;
  currentRoundEndsAt=round.ends_at;startRoundTimer();await renderGameControls(round,room);
 }
-function getGameTitle(g){return({"friendship-court":"⚖️ Friendship Court","would-you-rather":"🤔 Would You Rather?","truth-or-dare":"🎭 Truth or Dare","mind-battle":"🧠 Mind Battle","secret-confessions":"🤫 Secret Confessions"})[g]||"PLAYAM"}
+function getGameTitle(g){return({"friendship-court":"⚖️ Friendship Court","would-you-rather":"🤔 Would You Rather?","truth-or-dare":"🎭 Truth or Dare","mind-battle":"🧠 Mind Battle","secret-confessions":"🤫 Secret Confessions","legend-test":"🏆 Legend: Test","legend-pressure":"🔥 Legend: Pressure","legend-mind-game":"🧩 Legend: Mind Game","legend-ultimate-decision":"⚖️ Legend: Ultimate Decision","legend-final-trial":"🏁 Legend: Final Trial"})[g]||"PLAYAM"}
 function hideGameControls(){["choiceArea","answerArea","voteArea","gameWaiting"].forEach(id=>document.getElementById(id).classList.add("hidden"))}
 async function renderGameControls(round,room){
  hideGameControls();const status=document.getElementById("gameStatus");
@@ -591,8 +591,15 @@ async function renderGameControls(round,room){
   status.innerText="Choose your option.";return;
  }
  document.getElementById("answerArea").classList.remove("hidden");
- document.getElementById("answerInput").placeholder=room.game==="secret-confessions"?"Write your confession...":room.game==="truth-or-dare"?"Enter your response...":"Enter your answer...";
- status.innerText="Submit your response before time runs out.";
+ const legendPrompts={
+  "legend-test":"Give your strongest answer to the challenge.",
+  "legend-pressure":"Answer fast — pressure mode rewards decisive play.",
+  "legend-mind-game":"Think strategically before you submit your answer.",
+  "legend-ultimate-decision":"Make your final decision and defend it clearly.",
+  "legend-final-trial":"This is the final trial — give your best answer."
+ };
+ document.getElementById("answerInput").placeholder=room.game==="secret-confessions"?"Write your confession...":room.game==="truth-or-dare"?"Enter your response...":(legendPrompts[room.game]||"Enter your answer...");
+ status.innerText=legendPrompts[room.game]||"Submit your response before time runs out.";
 }
 function startRoundTimer(){if(gameTimerInterval)return;updateTimer();gameTimerInterval=setInterval(updateTimer,500)}
 function updateTimer(){
