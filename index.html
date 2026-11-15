@@ -552,6 +552,54 @@ async function beginPlayamVideoUpload(input){
   upload.start();
  }catch(error){setStatus(error?.message||"Upload could not be started.");input.value=""}
 }
+async function togglePlayamLike(postId,button){
+ const {data:{user},error:authError}=await supabaseClient.auth.getUser();
+ if(authError||!user){showMessage("Please sign in to like videos.");return}
+ const {data:existing,error:readError}=await supabaseClient.from("flow_post_likes").select("post_id").eq("post_id",postId).eq("user_auth_user_id",user.id).maybeSingle();
+ if(readError){showMessage("Unable to check your like: "+readError.message);return}
+ if(existing){
+  const {error}=await supabaseClient.from("flow_post_likes").delete().eq("post_id",postId).eq("user_auth_user_id",user.id);
+  if(error){showMessage("Unable to remove like: "+error.message);return}
+  button.textContent="♡ Like";button.dataset.liked="false";
+ }else{
+  const {error}=await supabaseClient.from("flow_post_likes").insert({post_id:postId,user_auth_user_id:user.id});
+  if(error){showMessage("Unable to like video: "+error.message);return}
+  button.textContent="♥ Liked";button.dataset.liked="true";
+ }
+}
+async function loadPlayamComments(postId,container){
+ container.textContent="Loading comments...";
+ const {data,error}=await supabaseClient.from("flow_post_comments").select("id,body,created_at").eq("post_id",postId).eq("moderation_status","visible").order("created_at",{ascending:false}).limit(8);
+ if(error){container.textContent="Comments are temporarily unavailable.";return}
+ container.replaceChildren();
+ if(!data?.length){container.textContent="No comments yet. Start the conversation.";return}
+ data.forEach(row=>{const item=document.createElement("p");item.className="small-card";item.style.margin="6px 0";item.textContent=row.body;container.append(item)});
+}
+async function submitPlayamComment(postId,input,container){
+ const body=input.value.trim();
+ if(!body||body.length>2000){showMessage("Write a comment between 1 and 2,000 characters.");return}
+ const {data:{user},error:authError}=await supabaseClient.auth.getUser();
+ if(authError||!user){showMessage("Please sign in to comment.");return}
+ const {error}=await supabaseClient.from("flow_post_comments").insert({post_id:postId,author_auth_user_id:user.id,body,moderation_status:"visible"});
+ if(error){showMessage("Unable to post comment: "+error.message);return}
+ input.value="";await loadPlayamComments(postId,container);
+}
+async function togglePlayamFollow(creatorId,button){
+ const {data:{user},error:authError}=await supabaseClient.auth.getUser();
+ if(authError||!user){showMessage("Please sign in to follow creators.");return}
+ if(user.id===creatorId){showMessage("You cannot follow your own account.");return}
+ const {data:existing,error:readError}=await supabaseClient.from("flow_follows").select("followed_auth_user_id").eq("follower_auth_user_id",user.id).eq("followed_auth_user_id",creatorId).maybeSingle();
+ if(readError){showMessage("Unable to check follow status: "+readError.message);return}
+ if(existing){
+  const {error}=await supabaseClient.from("flow_follows").delete().eq("follower_auth_user_id",user.id).eq("followed_auth_user_id",creatorId);
+  if(error){showMessage("Unable to unfollow creator: "+error.message);return}
+  button.textContent="＋ Follow";
+ }else{
+  const {error}=await supabaseClient.from("flow_follows").insert({follower_auth_user_id:user.id,followed_auth_user_id:creatorId});
+  if(error){showMessage("Unable to follow creator: "+error.message);return}
+  button.textContent="✓ Following";
+ }
+}
 async function openVideoFeed(loadMore=false){
  const status=document.getElementById("videoFeedStatus"),feed=document.getElementById("videoFeed"),more=document.getElementById("videoFeedMore");
  if(videoFeedLoading)return;videoFeedLoading=true;
@@ -563,11 +611,18 @@ async function openVideoFeed(loadMore=false){
   const pageSize=8;
   const {data:posts,error}=await supabaseClient.from("flow_posts").select("id,creator_auth_user_id,caption,published_at,created_at").eq("visibility","public").eq("status","published").eq("moderation_status","approved").order("published_at",{ascending:false}).range(videoFeedOffset,videoFeedOffset+pageSize-1);
   if(error)throw error;
-  if(!posts||posts.length===0){if(videoFeedOffset===0){status.textContent="No approved videos yet. Be the first creator to publish a video when uploads are enabled.";}else{status.textContent="You’ve reached the end of the feed.";}videoFeedEnded=true;more.classList.add("hidden");return;}
+  if(!posts||posts.length===0){status.textContent=videoFeedOffset===0?"No approved videos yet. Be the first creator to publish a video when uploads are enabled.":"You’ve reached the end of the feed.";videoFeedEnded=true;more.classList.add("hidden");return}
   const ids=posts.map(p=>p.id);
   const {data:assets,error:assetError}=await supabaseClient.from("flow_post_assets").select("post_id,playback_bucket,playback_object_key,storage_bucket,storage_object_key,processing_status,mime_type").in("post_id",ids).eq("processing_status","ready");
   if(assetError)throw assetError;
   const assetByPost=new Map((assets||[]).map(a=>[a.post_id,a]));
+  const {data:{user}}=await supabaseClient.auth.getUser();
+  const [{data:likedRows,error:likeError},{data:followRows,error:followError}] = await Promise.all([
+   supabaseClient.from("flow_post_likes").select("post_id").eq("user_auth_user_id",user.id).in("post_id",ids),
+   supabaseClient.from("flow_follows").select("followed_auth_user_id").eq("follower_auth_user_id",user.id)
+  ]);
+  if(likeError)throw likeError;if(followError)throw followError;
+  const liked=new Set((likedRows||[]).map(x=>x.post_id)),followed=new Set((followRows||[]).map(x=>x.followed_auth_user_id));
   let rendered=0;
   for(const post of posts){
    const asset=assetByPost.get(post.id);if(!asset)continue;
@@ -579,16 +634,26 @@ async function openVideoFeed(loadMore=false){
    const meta=document.createElement("div");meta.className="video-post-meta";
    const caption=document.createElement("p");caption.textContent=post.caption||"PLAYAM video";
    const date=document.createElement("div");date.className="small";date.textContent=post.published_at?"Published "+new Date(post.published_at).toLocaleDateString():"PLAYAM creator";
-   meta.append(caption,date);article.append(video,meta);feed.appendChild(article);rendered++;
+   const actions=document.createElement("div");actions.className="video-actions";actions.style.cssText="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0";
+   const like=document.createElement("button");like.className="secondary";like.textContent=liked.has(post.id)?"♥ Liked":"♡ Like";like.addEventListener("click",()=>togglePlayamLike(post.id,like));
+   const follow=document.createElement("button");follow.className="secondary";follow.textContent=followed.has(post.creator_auth_user_id)?"✓ Following":"＋ Follow";follow.disabled=post.creator_auth_user_id===user.id;follow.addEventListener("click",()=>togglePlayamFollow(post.creator_auth_user_id,follow));
+   const share=document.createElement("button");share.className="secondary";share.textContent="↗ Share";share.addEventListener("click",async()=>{const url=location.origin+location.pathname+"?post="+encodeURIComponent(post.id);try{if(navigator.share)await navigator.share({title:"PLAYAM video",text:caption.textContent,url});else{await navigator.clipboard.writeText(url);showMessage("Video link copied.")}}catch(e){if(e.name!=="AbortError")showMessage("Could not share this video.")}});
+   actions.append(like,follow,share);
+   const comments=document.createElement("div");comments.className="video-comments";
+   const list=document.createElement("div");list.className="small";list.textContent="Loading comments...";
+   const input=document.createElement("input");input.type="text";input.maxLength=2000;input.placeholder="Write a comment…";
+   const send=document.createElement("button");send.className="secondary";send.textContent="Comment";send.addEventListener("click",()=>submitPlayamComment(post.id,input,list));
+   comments.append(list,input,send);meta.append(caption,date,actions,comments);article.append(video,meta);feed.appendChild(article);rendered++;
+   loadPlayamComments(post.id,list);
   }
-  videoFeedOffset+=posts.length;
-  videoFeedEnded=posts.length<pageSize;
-  status.textContent=rendered?"Showing approved PLAYAM videos. Tap a video to play; only one video should play at a time.":(videoFeedOffset===posts.length?"Approved posts were found, but none has a ready accessible playback asset yet.":"No more videos available.");
+  videoFeedOffset+=posts.length;videoFeedEnded=posts.length<pageSize;
+  status.textContent=rendered?"Showing approved PLAYAM videos. Like, follow, comment or share.":"Approved posts were found, but none has a ready accessible playback asset yet.";
   more.classList.toggle("hidden",videoFeedEnded);
   feed.querySelectorAll("video").forEach(v=>{v.addEventListener("play",()=>feed.querySelectorAll("video").forEach(other=>{if(other!==v)other.pause()}));});
  }catch(error){status.textContent=error.message||"Could not load videos. Please try again."}
  finally{videoFeedLoading=false}
 }
+
 function showFindPlayer(){stopLobbyRefresh();stopGameRefresh();showScreen("findPlayerScreen")}
 function showSettings(){showScreen("settingsScreen")}
 function showCreateRoom(){showScreen("createScreen")}
