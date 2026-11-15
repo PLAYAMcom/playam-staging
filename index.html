@@ -1161,7 +1161,7 @@ async function checkLogin(){
 }
 supabaseClient.auth.onAuthStateChange((event,session)=>{
  if(event==="SIGNED_OUT"){resetGameState();resetSoloGame();document.getElementById("navAdminFinance")?.classList.add("hidden");document.getElementById("app").classList.add("hidden");document.getElementById("authScreen").classList.remove("hidden")}
- if(event==="SIGNED_IN"&&session){document.getElementById("authScreen").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showHome();refreshFinanceAdminVisibility()}
+ if(event==="SIGNED_IN"&&session){document.getElementById("authScreen").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showHome();setTimeout(()=>refreshFinanceAdminVisibility(),0)}
 });
 checkLogin();
 </script>
