@@ -307,7 +307,19 @@ label{display:block;margin-top:13px;font-weight:bold}
 
   <section id="settingsScreen" class="screen-card hidden">
    <h2>⚙️ Settings</h2>
-   <p class="muted">Manage your PLAYAM account.</p>
+   <p class="muted">Manage your PLAYAM account and market preferences.</p>
+   <div class="panel" style="margin:16px 0;padding:16px;text-align:left">
+    <h3>🌍 Country and region</h3>
+    <p class="muted">Choose the market you use PLAYAM from. Only markets approved for the current rollout are selectable.</p>
+    <label for="playamMarketCountry">Your country</label>
+    <select id="playamMarketCountry" onchange="updatePlayamMarketDetails()">
+     <option value="">Loading available markets…</option>
+    </select>
+    <p id="playamMarketCurrency" class="muted">Currency: loading…</p>
+    <p id="playamMarketLocale" class="muted">Language and time zone: loading…</p>
+    <button id="savePlayamMarketButton" class="primary" style="width:100%" onclick="savePlayamMarketPreference()">SAVE MARKET PREFERENCE</button>
+    <p id="playamMarketStatus" role="status" aria-live="polite" class="muted"></p>
+   </div>
    <button class="back" style="width:100%" onclick="signOut()">LOG OUT</button>
    <button class="back" style="width:100%" onclick="showHome()">← BACK</button>
   </section>
@@ -478,6 +490,7 @@ const SUPABASE_KEY="sb_publishable_6zZlj2moK_zv9lAA_0xdzA_nBDueD50";
 const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 let currentRoomCode="",currentRoomId="",currentPlayerId="",currentNickname="";
+let availablePlayamMarkets=[];
 let currentPlayerReady=false,currentPlayerIsHost=false,currentGame="",currentRoundId="";
 let selectedVotePlayerId="",lobbyRefreshTimer=null,lobbyLoading=false;
 let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,roundAdvanceRequestedFor="",roundAdvanceTimeoutRequestedFor="";
@@ -821,7 +834,74 @@ async function openVideoFeed(loadMore=false){
 }
 
 function showFindPlayer(){stopLobbyRefresh();stopGameRefresh();showScreen("findPlayerScreen")}
-function showSettings(){showScreen("settingsScreen")}
+function showSettings(){showScreen("settingsScreen");loadPlayamMarketSettings()}
+function updatePlayamMarketDetails(){
+ const country=document.getElementById("playamMarketCountry")?.value;
+ const market=availablePlayamMarkets.find(m=>m.country_code===country);
+ const currency=document.getElementById("playamMarketCurrency");
+ const locale=document.getElementById("playamMarketLocale");
+ if(currency)currency.textContent=market?"Currency: "+market.currency_code:"Currency: unavailable";
+ if(locale)locale.textContent=market?"Language: "+market.locale+" · Time zone: "+market.timezone:"Language and time zone: unavailable";
+}
+async function loadPlayamMarketSettings(){
+ const status=document.getElementById("playamMarketStatus");
+ const select=document.getElementById("playamMarketCountry");
+ const save=document.getElementById("savePlayamMarketButton");
+ if(!status||!select)return;
+ status.textContent="Loading approved markets…";
+ if(save)save.disabled=true;
+ try{
+  const [{data:markets,error:marketsError},{data:{user},error:userError}]=await Promise.all([
+   supabaseClient.rpc("playam_get_available_markets_v1"),
+   supabaseClient.auth.getUser()
+  ]);
+  if(marketsError)throw marketsError;
+  if(userError)throw userError;
+  if(!user)throw new Error("Please sign in again.");
+  availablePlayamMarkets=markets||[];
+  if(!availablePlayamMarkets.length)throw new Error("No markets are currently available.");
+  const {data:preference,error:preferenceError}=await supabaseClient.from("playam_user_market_preferences")
+   .select("country_code,preferred_currency_code,locale,timezone")
+   .eq("auth_user_id",user.id).maybeSingle();
+  if(preferenceError)throw preferenceError;
+  let selected=availablePlayamMarkets.find(m=>m.country_code===preference?.country_code);
+  if(!selected)selected=availablePlayamMarkets.find(m=>m.country_code==="NG")||availablePlayamMarkets[0];
+  if(!preference){
+   const {error:initError}=await supabaseClient.rpc("playam_set_user_market_preference_v1",{
+    p_country_code:selected.country_code,p_currency_code:selected.currency_code,
+    p_locale:selected.locale,p_timezone:selected.timezone
+   });
+   if(initError)throw initError;
+  }
+  select.replaceChildren();
+  availablePlayamMarkets.forEach(m=>{
+   const option=document.createElement("option");
+   option.value=m.country_code;option.textContent=m.country_name+" ("+m.country_code+")";
+   select.appendChild(option);
+  });
+  select.value=selected.country_code;
+  updatePlayamMarketDetails();
+  status.textContent="Your market settings are ready.";
+ }catch(error){status.textContent=error?.message||"Unable to load market settings."}
+ finally{if(save)save.disabled=false}
+}
+async function savePlayamMarketPreference(){
+ const status=document.getElementById("playamMarketStatus");
+ const button=document.getElementById("savePlayamMarketButton");
+ const country=document.getElementById("playamMarketCountry")?.value;
+ const market=availablePlayamMarkets.find(m=>m.country_code===country);
+ if(!market){status.textContent="Please select an available market.";return}
+ button.disabled=true;status.textContent="Saving your market preference…";
+ try{
+  const {error}=await supabaseClient.rpc("playam_set_user_market_preference_v1",{
+   p_country_code:market.country_code,p_currency_code:market.currency_code,
+   p_locale:market.locale,p_timezone:market.timezone
+  });
+  if(error)throw error;
+  status.textContent="✓ Market preference saved.";
+ }catch(error){status.textContent="Unable to save: "+(error?.message||"Please try again.")}
+ finally{button.disabled=false}
+}
 function showCreateRoom(){showScreen("createScreen")}
 function showJoinRoom(){showScreen("joinScreen")}
 function showCreateRoomWithHard(){document.getElementById("game").value="friendship-court";document.getElementById("level").value="hard";showCreateRoom()}
