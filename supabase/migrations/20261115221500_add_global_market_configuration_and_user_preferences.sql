@@ -111,14 +111,20 @@ GRANT ALL ON public.playam_user_market_preferences TO service_role;
 
 CREATE OR REPLACE FUNCTION public.playam_get_available_markets_v1()
 RETURNS TABLE(country_code text,country_name text,currency_code text,locale text,timezone text)
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=''
 AS $function$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+  RETURN QUERY
   SELECT c.country_code,c.country_name,c.default_currency_code,c.default_locale,c.default_timezone
   FROM private.playam_market_countries c
   JOIN private.playam_market_currencies m
     ON m.country_code=c.country_code AND m.currency_code=c.default_currency_code AND m.is_default
   WHERE c.rollout_status IN ('internal','testing','live')
   ORDER BY CASE c.country_code WHEN 'NG' THEN 0 ELSE 1 END,c.country_name;
+END;
 $function$;
 REVOKE ALL ON FUNCTION public.playam_get_available_markets_v1() FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.playam_get_available_markets_v1() TO authenticated,service_role;
