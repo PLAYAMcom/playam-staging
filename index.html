@@ -559,7 +559,8 @@ async function loadFinanceActivity(){
   ["Creator withdrawal requests (liability settlement)",data.creator_withdrawals||[]],
   ["Creator cash ledger",data.creator_cash_ledger||[]],
   ["Video creator rewards",data.video_creator_rewards||[]],
-  ["Video ad and sponsorship periods",data.video_revenue_periods||[]]
+  ["Video ad and sponsorship periods",data.video_revenue_periods||[]],
+  ["LIVE gifts — coin ledger (not cash valuation)",data.live_gifts_coin_ledger||[]]
  ];
  sections.forEach(([label,rows])=>{
   const card=document.createElement("div");card.className="small-card";
@@ -568,7 +569,7 @@ async function loadFinanceActivity(){
   pre.textContent=rows.length?JSON.stringify(rows,null,2):"No records currently available";
   card.append(title,pre);container.append(card);
  });
- const note=document.createElement("p");note.className="small muted";note.textContent=data.note||"Operational reconciliation only.";
+ const note=document.createElement("p");note.className="small muted";note.textContent=(data.note||"Operational reconciliation only.")+" LIVE gift cash valuation: "+(data.live_gift_cash_valuation||"not configured")+".";
  container.append(note);
  status.textContent="Source reconciliation loaded at "+new Date(data.generated_at).toLocaleString()+".";
 }
