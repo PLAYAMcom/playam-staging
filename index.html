@@ -580,9 +580,9 @@ async function submitPlayamComment(postId,input,container){
  if(!body||body.length>2000){showMessage("Write a comment between 1 and 2,000 characters.");return}
  const {data:{user},error:authError}=await supabaseClient.auth.getUser();
  if(authError||!user){showMessage("Please sign in to comment.");return}
- const {error}=await supabaseClient.from("flow_post_comments").insert({post_id:postId,author_auth_user_id:user.id,body,moderation_status:"visible"});
- if(error){showMessage("Unable to post comment: "+error.message);return}
- input.value="";await loadPlayamComments(postId,container);
+ const {error}=await supabaseClient.from("flow_post_comments").insert({post_id:postId,author_auth_user_id:user.id,body});
+ if(error){showMessage("Unable to submit comment: "+error.message);return}
+ input.value="";showMessage("Comment submitted for moderation. It will appear after approval.");await loadPlayamComments(postId,container);
 }
 async function togglePlayamFollow(creatorId,button){
  const {data:{user},error:authError}=await supabaseClient.auth.getUser();
