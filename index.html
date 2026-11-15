@@ -114,6 +114,7 @@ label{display:block;margin-top:13px;font-weight:bold}
   <div class="side-label">MAIN MENU</div>
   <button class="navbtn active" id="navHome" onclick="showHome()">🏠 Home</button>
   <button class="navbtn" onclick="showVideoHub()">🎥 Videos</button>
+  <button class="navbtn" id="navProfile" onclick="showProfile()">👤 Profile</button>
   <button class="navbtn" onclick="showSoloSetup()">🎯 Play Solo</button>
   <button class="navbtn" onclick="showFindPlayer()">👥 Find Player</button>
   <button class="navbtn" onclick="showCreateRoom()">➕ Create Room</button>
@@ -213,6 +214,32 @@ label{display:block;margin-top:13px;font-weight:bold}
    <div id="videoFeedStatus" class="small-card" role="status" aria-live="polite">Open the feed to load approved videos.</div>
    <div id="videoFeed" class="video-feed hidden"></div>
    <button id="videoFeedMore" class="secondary hidden" onclick="openVideoFeed(true)">LOAD MORE</button>
+  </section>
+
+  <section id="profileScreen" class="screen-card hidden">
+   <h2>👤 My PLAYAM Profile</h2>
+   <p class="muted">Your identity across PLAYAM games and the community.</p>
+   <div class="small-card" style="margin-top:15px">
+    <div class="feed-author-wrap"><div class="avatar" id="profileAvatar">P</div><div><div class="feed-author" id="profilePreviewName">PLAYAM Player</div><div class="feed-handle" id="profilePreviewHandle">@player</div></div></div>
+   </div>
+   <label>Display name</label><input id="profileDisplayName" maxlength="40" placeholder="Your display name">
+   <label>Username</label><input id="profileUsername" maxlength="30" placeholder="lowercase_username">
+   <label>Bio</label><textarea id="profileBio" maxlength="300" placeholder="Tell the PLAYAM community about yourself..."></textarea>
+   <button class="primary" onclick="saveProfile()">SAVE PROFILE</button>
+   <div id="profileStatus" class="small" role="status" aria-live="polite"></div>
+   <section class="small-card" id="creatorEarningsPanel" style="margin-top:18px">
+    <h3>💰 Creator Earnings</h3>
+    <p class="muted">Your video performance and creator cash balance.</p>
+    <div class="grid-two" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+     <div class="small-card"><div class="muted small">Qualified video views · 30 days</div><strong id="creatorQualifiedViews">—</strong></div>
+     <div class="small-card"><div class="muted small">Likes</div><strong id="creatorVideoLikes">—</strong><div class="muted small">Likes help engagement; they are not paid views.</div></div>
+     <div class="small-card"><div class="muted small">Pending earnings</div><strong id="creatorPendingBalance">₦0.00</strong></div>
+     <div class="small-card"><div class="muted small">Available earnings</div><strong id="creatorAvailableBalance">₦0.00</strong></div>
+    </div>
+    <p class="small muted" id="creatorRewardNotice">Creator reward details load when available.</p>
+    <h4>Recent video rewards</h4>
+    <div id="creatorRewardHistory" class="small muted">No rewards loaded yet.</div>
+   </section>
   </section>
 
   <section id="findPlayerScreen" class="screen-card hidden">
@@ -410,13 +437,88 @@ let selectedVotePlayerId="",lobbyRefreshTimer=null,lobbyLoading=false;
 let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,roundAdvanceRequestedFor="",roundAdvanceTimeoutRequestedFor="";
 let soloQuestions=[],soloAnswers=[],soloQuestionIndex=0,soloDifficulty="starter",soloLoading=false;
 
-const screenIds=["homeScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
+const screenIds=["homeScreen","profileScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
 
 function showMessage(t){document.getElementById("message").innerText=t||""}
 function hideScreens(){screenIds.forEach(id=>document.getElementById(id).classList.add("hidden"))}
 function setNav(id){document.querySelectorAll(".navbtn").forEach(b=>b.classList.remove("active"));if(id)document.getElementById(id)?.classList.add("active")}
 function showScreen(id,nav=""){hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome")}
+function showProfile(){stopLobbyRefresh();stopGameRefresh();showScreen("profileScreen","navProfile");loadProfile()}
+async function loadProfile(){
+ const status=document.getElementById("profileStatus");status.textContent="Loading profile...";
+ try{
+  const {data:{user},error:userError}=await supabaseClient.auth.getUser();
+  if(userError)throw userError;
+  if(!user){status.textContent="Please log in.";return}
+  const {data,error}=await supabaseClient.from("playam_profiles").select("user_id,display_name,username,bio,avatar_url").eq("user_id",user.id).maybeSingle();
+  if(error)throw error;
+  const fallback=(user.email||"player").split("@")[0];
+  const display=data?.display_name||fallback;
+  const username=data?.username||("player_"+user.id.slice(0,8));
+  document.getElementById("profileDisplayName").value=display;
+  document.getElementById("profileUsername").value=username.toLowerCase().replace(/[^a-z0-9_]/g,"_").slice(0,30);
+  document.getElementById("profileBio").value=data?.bio||"";
+  document.getElementById("profilePreviewName").textContent=display;
+  document.getElementById("profilePreviewHandle").textContent="@"+username;
+  document.getElementById("profileAvatar").textContent=(display[0]||"P").toUpperCase();
+  status.textContent="";
+  loadCreatorEarningsDashboard();
+ }catch(error){status.textContent=error?.message||"Unable to load your profile."}
+}
+async function saveProfile(){
+ const status=document.getElementById("profileStatus");
+ const display_name=document.getElementById("profileDisplayName").value.trim();
+ const username=document.getElementById("profileUsername").value.trim().toLowerCase();
+ const bio=document.getElementById("profileBio").value.trim();
+ if(!/^[a-z0-9_]{3,30}$/.test(username)){status.textContent="Username must use 3–30 lowercase letters, numbers or underscores.";return}
+ if(!display_name){status.textContent="Display name is required.";return}
+ status.textContent="Saving profile...";
+ try{
+  const {data:{user},error:userError}=await supabaseClient.auth.getUser();
+  if(userError)throw userError;
+  if(!user)throw new Error("Please log in again.");
+  const {error}=await supabaseClient.from("playam_profiles").upsert({user_id:user.id,display_name,username,bio,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+  if(error)throw error;
+  document.getElementById("profilePreviewName").textContent=display_name;
+  document.getElementById("profilePreviewHandle").textContent="@"+username;
+  document.getElementById("profileAvatar").textContent=(display_name[0]||"P").toUpperCase();
+  status.textContent="✓ Profile saved.";
+ }catch(error){status.textContent="Unable to save: "+(error?.message||"Please try again.")}
+}
+async function loadCreatorEarningsDashboard(){
+ const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value};
+ const money=(minor)=>"₦"+(Number(minor||0)/100).toLocaleString("en-NG",{minimumFractionDigits:2,maximumFractionDigits:2});
+ set("creatorQualifiedViews","—");set("creatorVideoLikes","—");
+ set("creatorPendingBalance","—");set("creatorAvailableBalance","—");
+ set("creatorRewardNotice","Loading creator earnings...");
+ const history=document.getElementById("creatorRewardHistory");
+ if(history)history.textContent="Loading reward history...";
+ try{
+  const {data,error}=await supabaseClient.functions.invoke("flow-creator-stats",{body:{}});
+  if(error||!data)throw error||new Error("No creator stats returned.");
+  set("creatorQualifiedViews",Number(data.qualifiedViewsLast30Days||0).toLocaleString("en-NG"));
+  set("creatorVideoLikes",Number(data.likes||0).toLocaleString("en-NG"));
+  set("creatorPendingBalance",money(data.creatorEarnings?.pendingMinor));
+  set("creatorAvailableBalance",money(data.creatorEarnings?.availableMinor));
+  const policy=data.rewardPolicy||{};
+  set("creatorRewardNotice",policy.enabled?"Video reward policy is active. Rewards remain subject to eligibility, funding and administrator approval.":"Video cash rewards are not enabled yet. Qualified views are tracked, but views and likes do not currently generate cash payments.");
+  if(history){
+   history.replaceChildren();
+   const rows=data.recentVideoRewards||[];
+   if(!rows.length){history.textContent="No video rewards recorded yet.";return}
+   rows.forEach(row=>{
+    const item=document.createElement("div");item.className="small-card";item.style.marginTop="8px";
+    const title=document.createElement("strong");title.textContent=money(row.amountMinor)+" · "+String(row.status||"").replaceAll("_"," ");
+    const detail=document.createElement("div");detail.className="muted small";detail.textContent=Number(row.qualifiedViews||0).toLocaleString("en-NG")+" qualified views";
+    item.append(title,detail);history.append(item);
+   });
+  }
+ }catch(error){
+  set("creatorRewardNotice","Creator earnings are temporarily unavailable.");
+  if(history)history.textContent="Reward history unavailable.";
+ }
+}
 function showVideoHub(){hideScreens();document.getElementById("videoScreen").classList.remove("hidden");document.querySelectorAll(".navbtn").forEach(x=>x.classList.remove("active"))}
 let videoFeedOffset=0,videoFeedLoading=false,videoFeedEnded=false;
 async function openVideoFeed(loadMore=false){
