@@ -58,6 +58,10 @@ required = [
     "has_playam_submitted",
     "list_room_report_targets",
     "submit_player_report",
+    "playam_get_available_markets_v1",
+    "playam_set_user_market_preference_v1",
+    "playamMarketCountry",
+    "savePlayamMarketPreference",
 ]
 missing = [item for item in required if item not in source]
 if missing:
