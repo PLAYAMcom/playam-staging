@@ -7,6 +7,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PLAYAM 🎮</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js"></script>
 <style>
 *{box-sizing:border-box}
 :root{--bg:#090914;--panel:#151528;--panel2:#20203b;--purple:#9b5cff;--pink:#ed4cbd;--blue:#586bff;--text:#fff;--muted:#aaaac5}
@@ -44,7 +46,7 @@ textarea{min-height:120px}
 .game-card h3{margin:0 0 8px;font-size:20px}
 .game-card p{color:var(--muted);font-size:13px;line-height:1.5;flex:1}
 .game-card button{width:100%;margin-top:10px}
-.small-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.video-feed{max-width:620px;margin:18px auto;display:flex;flex-direction:column;gap:18px}.video-post{position:relative;background:#05050b;border:1px solid #393454;border-radius:18px;overflow:hidden;min-height:300px}.video-post video{display:block;width:100%;max-height:78vh;aspect-ratio:9/16;object-fit:contain;background:#000}.video-post-meta{padding:14px}.video-post-meta p{margin:7px 0;color:#ddd}.video-post-actions{display:flex;gap:8px;flex-wrap:wrap}.video-post-actions button{padding:9px 13px}.video-feed-status{padding:18px;text-align:center}.small-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
 .small-card{background:var(--panel);border:1px solid #33334d;border-radius:17px;padding:19px}
 .screen-card{background:var(--panel);border:1px solid #34304f;border-radius:20px;padding:25px;max-width:850px}
 .screen-card h2{margin-top:0}
@@ -105,7 +107,7 @@ label{display:block;margin-top:13px;font-weight:bold}
  <button class="primary" style="width:100%;margin-top:8px" onclick="signUp()">CREATE NEW ACCOUNT</button>
  <button class="secondary" style="width:100%;margin-top:8px" onclick="signIn()">LOG IN TO EXISTING ACCOUNT</button>
  <p class="small">Only email and password are required.</p>
- <div id="authMessage"></div>
+ <div id="authMessage" role="status" aria-live="polite"></div>
 </div>
 
 <div id="app" class="hidden">
@@ -113,6 +115,9 @@ label{display:block;margin-top:13px;font-weight:bold}
   <div class="brand">PLAYAM 🎮</div>
   <div class="side-label">MAIN MENU</div>
   <button class="navbtn active" id="navHome" onclick="showHome()">🏠 Home</button>
+  <button class="navbtn" onclick="showVideoHub()">🎥 Videos</button>
+  <button class="navbtn" id="navProfile" onclick="showProfile()">👤 Profile</button>
+  <button class="navbtn hidden" id="navAdminFinance" onclick="showFinanceAdmin()">💼 Finance Admin</button>
   <button class="navbtn" onclick="showSoloSetup()">🎯 Play Solo</button>
   <button class="navbtn" onclick="showFindPlayer()">👥 Find Player</button>
   <button class="navbtn" onclick="showCreateRoom()">➕ Create Room</button>
@@ -166,11 +171,121 @@ label{display:block;margin-top:13px;font-weight:bold}
      <button class="secondary" style="width:100%" onclick="showJoinRoom()">JOIN ROOM</button>
     </div>
    </div>
-   <h3 class="section-title">Your game modes</h3>
-   <div class="small-card">
-    <strong>⚖️ Friendship Court</strong>
-    <p class="muted">Your first PLAYAM experience. More game modes will unlock as the platform grows.</p>
+   <h3 class="section-title">PLAYAM game universe</h3>
+   <div class="small-grid">
+    <div class="small-card"><strong>⚖️ Friendship Court</strong><p class="muted">Playable now — social voting multiplayer.</p></div>
+    <div class="small-card"><strong>🤔 Would You Rather?</strong><p class="muted">Playable now — answer and compare choices.</p></div>
+    <div class="small-card"><strong>🎭 Truth or Dare</strong><p class="muted">Playable now — social challenge rounds.</p></div>
+    <div class="small-card"><strong>🧠 Mind Battle</strong><p class="muted">Playable now — competitive open-answer rounds.</p></div>
+    <div class="small-card"><strong>🤫 Secret Confessions</strong><p class="muted">Playable now — social confession rounds.</p></div>
    </div>
+   <h3 class="section-title">Legend series — playable in Staging</h3>
+   <div class="small-grid">
+    <div class="small-card"><strong>🏆 Legend: Test</strong><p class="muted">Playable multiplayer challenge mode.</p></div>
+    <div class="small-card"><strong>🔥 Legend: Pressure</strong><p class="muted">Playable timed multiplayer challenge mode.</p></div>
+    <div class="small-card"><strong>🧩 Legend: Mind Game</strong><p class="muted">Playable strategy and mind challenge mode.</p></div>
+    <div class="small-card"><strong>⚖️ Legend: Ultimate Decision</strong><p class="muted">Playable multiplayer decision mode.</p></div>
+    <div class="small-card"><strong>🏁 Legend: Final Trial</strong><p class="muted">Playable multiplayer final-trial mode.</p></div>
+   </div>
+   <h3 class="section-title">Sports, board & action games</h3>
+   <div class="small-grid">
+    <div class="small-card"><strong>🎱 Snooker</strong><p class="muted">Planned multiplayer table game.</p></div>
+    <div class="small-card"><strong>🎱 Pool</strong><p class="muted">Planned multiplayer table game.</p></div>
+    <div class="small-card"><strong>⚽ Football</strong><p class="muted">Planned competitive football mode.</p></div>
+    <div class="small-card"><strong>♟️ Checkers</strong><p class="muted">Planned turn-based board game.</p></div>
+    <div class="small-card"><strong>🌰 Ayo</strong><p class="muted">Planned traditional strategy board game.</p></div>
+    <div class="small-card"><strong>🎲 Ludo</strong><p class="muted">Planned multiplayer board game.</p></div>
+   </div>
+   <h3 class="section-title">CODs — competitive action</h3>
+   <div class="small-grid">
+    <div class="small-card"><strong>🎯 CODs: Team Deathmatch</strong><p class="muted">Planned free-to-play team mode.</p></div>
+    <div class="small-card"><strong>🪂 CODs: Battle Royale</strong><p class="muted">Planned free-to-play survival competition.</p></div>
+    <div class="small-card"><strong>🛡️ CODs: Tactical 5v5</strong><p class="muted">Planned objective-based team mode.</p></div>
+    <div class="small-card"><strong>🌲 CODs: Survival Extraction</strong><p class="muted">Planned extraction and survival mode.</p></div>
+    <div class="small-card"><strong>🧟 CODs: Zombie Survival</strong><p class="muted">Planned cooperative survival mode.</p></div>
+   </div>
+   <h3 class="section-title">Challenges & community</h3>
+   <div class="small-grid">
+    <div class="small-card"><strong>🧶 Cotton Ball Challenge</strong><p class="muted">Planned community challenge.</p></div>
+    <div class="small-card"><strong>🎤 LIVE Questions & Answers</strong><p class="muted">Planned interactive LIVE activity.</p></div>
+    <div class="small-card"><strong>📊 Scoreboard</strong><p class="muted">Planned cross-game competition and rankings.</p></div>
+   </div>
+  </section>
+
+  <section id="videoScreen" class="hidden">
+   <div class="hero"><h2>🎥 PLAYAM Videos</h2><p>Discover public videos from PLAYAM creators. Only approved, published videos with ready playback assets appear here.</p><button class="primary" onclick="openVideoFeed()">▶ OPEN VIDEO FEED</button> <button class="secondary" onclick="document.getElementById('playamVideoFile').click()">⬆️ UPLOAD VIDEO</button>
+    <input id="playamVideoFile" type="file" accept="video/mp4,video/quicktime,video/webm" hidden onchange="beginPlayamVideoUpload(this)">
+    <label for="playamVideoCaption">Video caption (optional)</label><textarea id="playamVideoCaption" maxlength="2200" placeholder="Write a caption for your video..."></textarea>
+    <p class="small muted">MP4, MOV or WebM · maximum 100 MB · uploads remain private until processing and administrator approval.</p>
+   </div>
+   <div id="playamUploadStatus" class="small-card" role="status" aria-live="polite"></div>
+   <div id="videoFeedStatus" class="small-card" role="status" aria-live="polite">Open the feed to load approved videos.</div>
+   <div id="videoFeed" class="video-feed hidden"></div>
+   <button id="videoFeedMore" class="secondary hidden" onclick="openVideoFeed(true)">LOAD MORE</button>
+  </section>
+
+  <section id="profileScreen" class="screen-card hidden">
+   <h2>👤 My PLAYAM Profile</h2>
+   <p class="muted">Your identity across PLAYAM games and the community.</p>
+   <div class="small-card" style="margin-top:15px">
+    <div class="feed-author-wrap"><div class="avatar" id="profileAvatar">P</div><div><div class="feed-author" id="profilePreviewName">PLAYAM Player</div><div class="feed-handle" id="profilePreviewHandle">@player</div></div></div>
+   </div>
+   <label>Display name</label><input id="profileDisplayName" maxlength="40" placeholder="Your display name">
+   <label>Username</label><input id="profileUsername" maxlength="30" placeholder="lowercase_username">
+   <label>Bio</label><textarea id="profileBio" maxlength="300" placeholder="Tell the PLAYAM community about yourself..."></textarea>
+   <button class="primary" onclick="saveProfile()">SAVE PROFILE</button>
+   <div id="profileStatus" class="small" role="status" aria-live="polite"></div>
+   <section class="small-card" id="creatorEarningsPanel" style="margin-top:18px">
+    <h3>💰 Creator Earnings</h3>
+    <p class="muted">Your video performance and creator cash balance.</p>
+    <div class="grid-two" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+     <div class="small-card"><div class="muted small">Qualified video views · 30 days</div><strong id="creatorQualifiedViews">—</strong></div>
+     <div class="small-card"><div class="muted small">Likes</div><strong id="creatorVideoLikes">—</strong><div class="muted small">Likes help engagement; they are not paid views.</div></div>
+     <div class="small-card"><div class="muted small">Pending earnings</div><strong id="creatorPendingBalance">₦0.00</strong></div>
+     <div class="small-card"><div class="muted small">Available earnings</div><strong id="creatorAvailableBalance">₦0.00</strong></div>
+    </div>
+    <p class="small muted" id="creatorRewardNotice">Creator reward details load when available.</p>
+    <h4>Recent video rewards</h4>
+    <div id="creatorRewardHistory" class="small muted">No rewards loaded yet.</div>
+   </section>
+  </section>
+
+  <section id="financeAdminScreen" class="screen-card hidden">
+   <h2>💼 PLAYAM Finance</h2>
+   <p class="muted">Restricted finance workspace. Figures are based only on entries recorded in the audited ledger.</p>
+   <div class="small-card" style="margin:14px 0">
+    <div class="grid-two" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+     <div><label>From date</label><input type="date" id="financeFrom"></div>
+     <div><label>To date</label><input type="date" id="financeTo"></div>
+    </div>
+    <button class="primary" onclick="loadFinanceSummary()">LOAD FINANCIAL SUMMARY</button>
+    <div id="financeSummaryStatus" class="small muted" role="status" aria-live="polite">Choose a reporting period.</div>
+   </div>
+   <div id="financeSummaryCards" class="grid-two" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px"></div>
+   <div class="small-card" style="margin-top:16px">
+    <h3>Live financial source reconciliation</h3>
+    <p class="small muted">Read-only totals from payment, creator-wallet, withdrawal and video-reward records. These are operational flows, not automatically platform revenue or operating profit.</p>
+    <button class="primary" onclick="loadFinanceActivity()">REFRESH SOURCE TOTALS</button>
+    <div id="financeActivityStatus" class="small muted" role="status" aria-live="polite">Not yet loaded.</div>
+    <div id="financeActivityCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"></div>
+   </div>
+
+   <div class="small-card" style="margin-top:16px">
+    <h3>Record income or operating expense</h3>
+    <p class="muted">Enter amounts in the smallest currency unit: NGN is kobo (₦1 = 100 kobo). Each entry is immutable and requires an MFA-verified finance administrator.</p>
+    <label>Entry type</label><select id="financeEntryType" onchange="updateFinanceCategories()"><option value="expense">Operating expense</option><option value="income">Income</option></select>
+    <label>Category</label><select id="financeCategory"></select>
+    <label>Amount (minor currency units)</label><input id="financeAmount" type="number" min="1" step="1" placeholder="e.g. 250000">
+    <label>Currency</label><select id="financeCurrency"><option value="NGN">NGN — Nigerian naira</option><option value="USD">USD — US dollar</option><option value="GBP">GBP — British pound</option><option value="EUR">EUR — Euro</option></select>
+    <label>Date incurred</label><input id="financeOccurredOn" type="date">
+    <label>Description</label><input id="financeDescription" maxlength="500" placeholder="What was received or paid for?">
+    <label>External reference (optional)</label><input id="financeExternalRef" maxlength="200" placeholder="Invoice, receipt or transaction reference">
+    <label>Idempotency key</label><input id="financeIdempotency" maxlength="200" placeholder="Unique reference for this entry">
+    <button class="primary" onclick="recordFinanceEntry()">SAVE FINANCIAL ENTRY</button>
+    <div id="financeEntryStatus" class="small muted" role="status" aria-live="polite"></div>
+   </div>
+   <p class="small muted">Important: this ledger does not yet automatically import Paystack fees, LIVE gift revenue, refunds or infrastructure invoices. Record or integrate those sources before treating net operating results as complete. Purchased-coin top-ups are not platform revenue.</p>
+   <button class="back" onclick="showHome()">← BACK TO HOME</button>
   </section>
 
   <section id="findPlayerScreen" class="screen-card hidden">
@@ -192,7 +307,19 @@ label{display:block;margin-top:13px;font-weight:bold}
 
   <section id="settingsScreen" class="screen-card hidden">
    <h2>⚙️ Settings</h2>
-   <p class="muted">Manage your PLAYAM account.</p>
+   <p class="muted">Manage your PLAYAM account and market preferences.</p>
+   <div class="panel" style="margin:16px 0;padding:16px;text-align:left">
+    <h3>🌍 Country and region</h3>
+    <p class="muted">Choose the market you use PLAYAM from. Only markets approved for the current rollout are selectable.</p>
+    <label for="playamMarketCountry">Your country</label>
+    <select id="playamMarketCountry" onchange="updatePlayamMarketDetails()">
+     <option value="">Loading available markets…</option>
+    </select>
+    <p id="playamMarketCurrency" class="muted">Currency: loading…</p>
+    <p id="playamMarketLocale" class="muted">Language and time zone: loading…</p>
+    <button id="savePlayamMarketButton" class="primary" style="width:100%" onclick="savePlayamMarketPreference()">SAVE MARKET PREFERENCE</button>
+    <p id="playamMarketStatus" role="status" aria-live="polite" class="muted"></p>
+   </div>
    <button class="back" style="width:100%" onclick="signOut()">LOG OUT</button>
    <button class="back" style="width:100%" onclick="showHome()">← BACK</button>
   </section>
@@ -248,6 +375,11 @@ label{display:block;margin-top:13px;font-weight:bold}
     <option value="truth-or-dare">Truth or Dare</option>
     <option value="mind-battle">Mind Battle</option>
     <option value="secret-confessions">Secret Confessions</option>
+    <option value="legend-test">Legend: Test</option>
+    <option value="legend-pressure">Legend: Pressure</option>
+    <option value="legend-mind-game">Legend: Mind Game</option>
+    <option value="legend-ultimate-decision">Legend: Ultimate Decision</option>
+    <option value="legend-final-trial">Legend: Final Trial</option>
    </select>
    <label>Difficulty</label>
    <select id="level">
@@ -358,40 +490,452 @@ const SUPABASE_KEY="sb_publishable_6zZlj2moK_zv9lAA_0xdzA_nBDueD50";
 const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 let currentRoomCode="",currentRoomId="",currentPlayerId="",currentNickname="";
+let availablePlayamMarkets=[];
 let currentPlayerReady=false,currentPlayerIsHost=false,currentGame="",currentRoundId="";
 let selectedVotePlayerId="",lobbyRefreshTimer=null,lobbyLoading=false;
-let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,roundAdvanceRequestedFor="";
+let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,roundAdvanceRequestedFor="",roundAdvanceTimeoutRequestedFor="";
 let soloQuestions=[],soloAnswers=[],soloQuestionIndex=0,soloDifficulty="starter",soloLoading=false;
 
-const screenIds=["homeScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
+const screenIds=["homeScreen","profileScreen","financeAdminScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
 
 function showMessage(t){document.getElementById("message").innerText=t||""}
 function hideScreens(){screenIds.forEach(id=>document.getElementById(id).classList.add("hidden"))}
 function setNav(id){document.querySelectorAll(".navbtn").forEach(b=>b.classList.remove("active"));if(id)document.getElementById(id)?.classList.add("active")}
 function showScreen(id,nav=""){hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome")}
+const financeCategories={
+ expense:[
+ ["payment_processing_fees","Payment processing fees"],["creator_withdrawal_fees","Creator withdrawal fees"],
+ ["refunds_chargebacks","Refunds and chargebacks"],["fraud_losses","Fraud losses"],
+ ["hosting_database_storage_bandwidth","Hosting, database, storage and bandwidth"],["email_sms","Email and SMS"],
+ ["security_monitoring","Security and monitoring"],["customer_support","Customer support"],
+ ["moderation","Content moderation"],["marketing","Marketing"],["staffing_administration","Staffing and administration"],
+ ["legal_accounting","Legal and accounting"],["taxes","Taxes"],["other_expense","Other expense"]
+ ],
+ income:[
+ ["live_platform_share","LIVE platform share"],["advertising_revenue","Advertising revenue"],
+ ["sponsorship_revenue","Sponsorship revenue"],["marketplace_revenue","Marketplace revenue"],["other_income","Other income"]
+ ]
+};
+function updateFinanceCategories(){
+ const type=document.getElementById("financeEntryType").value,select=document.getElementById("financeCategory");
+ select.replaceChildren();
+ financeCategories[type].forEach(([value,label])=>{const o=document.createElement("option");o.value=value;o.textContent=label;select.append(o)});
+}
+function playamLocalDate(){
+ const now=new Date(),offset=now.getTimezoneOffset();
+ return new Date(now.getTime()-offset*60000).toISOString().slice(0,10);
+}
+async function refreshFinanceAdminVisibility(){
+ const nav=document.getElementById("navAdminFinance");
+ if(!nav)return;
+ nav.classList.add("hidden");
+ const {data:{session},error}=await supabaseClient.auth.getSession();
+ if(error||!session)return;
+ const {data:assurance,error:assuranceError}=await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
+ if(assuranceError||assurance?.currentLevel!=="aal2")return;
+ const today=playamLocalDate(),monthStart=today.slice(0,8)+"01";
+ const {error:accessError}=await supabaseClient.rpc("playam_get_financial_summary_v1",{p_from:monthStart,p_to:today});
+ if(!accessError)nav.classList.remove("hidden");
+}
+async function showFinanceAdmin(){
+ stopLobbyRefresh();stopGameRefresh();
+ const nav=document.getElementById("navAdminFinance");nav.classList.add("hidden");
+ const {data:{session},error}=await supabaseClient.auth.getSession();
+ if(error||!session){showMessage("Please sign in again.");return}
+ const {data:assurance,error:assuranceError}=await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
+ if(assuranceError||assurance?.currentLevel!=="aal2"){
+  showMessage("Finance access requires an MFA-verified administrator session (AAL2).");return;
+ }
+ const today=playamLocalDate(),monthStart=today.slice(0,8)+"01";
+ const {error:accessError}=await supabaseClient.rpc("playam_get_financial_summary_v1",{p_from:monthStart,p_to:today});
+ if(accessError){showMessage("Finance administrator access could not be verified: "+accessError.message);return}
+ nav.classList.remove("hidden");
+ showScreen("financeAdminScreen","navAdminFinance");
+ document.getElementById("financeFrom").value=monthStart;
+ document.getElementById("financeTo").value=today;
+ document.getElementById("financeOccurredOn").value=today;
+ updateFinanceCategories();await loadFinanceSummary();await loadFinanceActivity();
+}
+function formatFinanceMinor(value,currency){
+ const n=Number(value||0)/100;
+ try{return new Intl.NumberFormat("en-NG",{style:"currency",currency,minimumFractionDigits:2}).format(n)}
+ catch(e){return currency+" "+n.toFixed(2)}
+}
+async function loadFinanceActivity(){
+ const status=document.getElementById("financeActivityStatus"),container=document.getElementById("financeActivityCards");
+ status.textContent="Loading source reconciliation…";container.replaceChildren();
+ const {data,error}=await supabaseClient.rpc("playam_get_financial_activity_v1");
+ if(error){status.textContent="Could not load source totals: "+error.message;return}
+ const sections=[
+  ["Purchased coin top-ups (wallet funding; not revenue)",data.purchased_coin_topups||[]],
+  ["Creator withdrawal requests (liability settlement)",data.creator_withdrawals||[]],
+  ["Creator cash ledger",data.creator_cash_ledger||[]],
+  ["Video creator rewards",data.video_creator_rewards||[]],
+  ["Video ad and sponsorship periods",data.video_revenue_periods||[]],
+  ["LIVE gifts — coin ledger (not cash valuation)",data.live_gifts_coin_ledger||[]]
+ ];
+ sections.forEach(([label,rows])=>{
+  const card=document.createElement("div");card.className="small-card";
+  const title=document.createElement("h4");title.textContent=label;
+  const pre=document.createElement("pre");pre.className="small muted";pre.style.whiteSpace="pre-wrap";pre.style.overflowWrap="anywhere";
+  pre.textContent=rows.length?JSON.stringify(rows,null,2):"No records currently available";
+  card.append(title,pre);container.append(card);
+ });
+ const note=document.createElement("p");note.className="small muted";note.textContent=(data.note||"Operational reconciliation only.")+" LIVE gift cash valuation: "+(data.live_gift_cash_valuation||"not configured")+".";
+ container.append(note);
+ status.textContent="Source reconciliation loaded at "+new Date(data.generated_at).toLocaleString()+".";
+}
+async function loadFinanceSummary(){
+ const status=document.getElementById("financeSummaryStatus"),cards=document.getElementById("financeSummaryCards");
+ status.textContent="Loading verified ledger totals…";cards.replaceChildren();
+ const from=document.getElementById("financeFrom").value,to=document.getElementById("financeTo").value;
+ if(!from||!to||to<from){status.textContent="Choose a valid reporting period.";return}
+ const {data,error}=await supabaseClient.rpc("playam_get_financial_summary_v1",{p_from:from,p_to:to});
+ if(error){status.textContent="Could not load finance totals: "+error.message;return}
+ if(!data?.length){status.textContent="No recorded income or expenses in this period. This is not proof that PLAYAM had no costs or revenue.";return}
+ data.forEach(row=>{
+  const group=document.createElement("div");group.className="small-card";
+  const title=document.createElement("h3");title.textContent=row.currency;
+  const income=document.createElement("p");income.textContent="Recorded income: "+formatFinanceMinor(row.total_income_minor,row.currency);
+  const expense=document.createElement("p");expense.textContent="Recorded expenses: "+formatFinanceMinor(row.total_expenses_minor,row.currency);
+  const net=document.createElement("strong");net.textContent="Recorded net: "+formatFinanceMinor(row.net_operating_minor,row.currency);
+  const breakdown=document.createElement("pre");breakdown.className="small muted";breakdown.style.whiteSpace="pre-wrap";breakdown.textContent=JSON.stringify(row.category_breakdown,null,2);
+  group.append(title,income,expense,net,breakdown);cards.append(group);
+ });
+ status.textContent="Ledger totals loaded for "+from+" to "+to+". Only recorded entries are included.";
+}
+async function recordFinanceEntry(){
+ const status=document.getElementById("financeEntryStatus");status.textContent="Saving entry…";
+ const amount=Number(document.getElementById("financeAmount").value);
+ const params={
+  p_entry_type:document.getElementById("financeEntryType").value,
+  p_category:document.getElementById("financeCategory").value,
+  p_amount_minor:amount,
+  p_currency:document.getElementById("financeCurrency").value,
+  p_occurred_on:document.getElementById("financeOccurredOn").value||null,
+  p_description:document.getElementById("financeDescription").value.trim(),
+  p_external_reference:document.getElementById("financeExternalRef").value.trim()||null,
+  p_idempotency_key:document.getElementById("financeIdempotency").value.trim()
+ };
+ if(!Number.isSafeInteger(amount)||amount<=0||params.p_description.length<3||params.p_idempotency_key.length<8){status.textContent="Enter a positive whole-number amount, a description, and a unique idempotency key of at least 8 characters.";return}
+ const {data,error}=await supabaseClient.rpc("playam_record_financial_entry_v1",params);
+ if(error){status.textContent="Entry was not saved: "+error.message;return}
+ status.textContent="Entry saved. Reference: "+data+".";
+ document.getElementById("financeAmount").value="";document.getElementById("financeDescription").value="";document.getElementById("financeExternalRef").value="";document.getElementById("financeIdempotency").value="";
+ await loadFinanceSummary();
+}
+function showProfile(){stopLobbyRefresh();stopGameRefresh();showScreen("profileScreen","navProfile");loadProfile()}
+async function loadProfile(){
+ const status=document.getElementById("profileStatus");status.textContent="Loading profile...";
+ try{
+  const {data:{user},error:userError}=await supabaseClient.auth.getUser();
+  if(userError)throw userError;
+  if(!user){status.textContent="Please log in.";return}
+  const {data,error}=await supabaseClient.from("playam_profiles").select("user_id,display_name,username,bio,avatar_url").eq("user_id",user.id).maybeSingle();
+  if(error)throw error;
+  const fallback=(user.email||"player").split("@")[0];
+  const display=data?.display_name||fallback;
+  const username=data?.username||("player_"+user.id.slice(0,8));
+  document.getElementById("profileDisplayName").value=display;
+  document.getElementById("profileUsername").value=username.toLowerCase().replace(/[^a-z0-9_]/g,"_").slice(0,30);
+  document.getElementById("profileBio").value=data?.bio||"";
+  document.getElementById("profilePreviewName").textContent=display;
+  document.getElementById("profilePreviewHandle").textContent="@"+username;
+  document.getElementById("profileAvatar").textContent=(display[0]||"P").toUpperCase();
+  status.textContent="";
+  loadCreatorEarningsDashboard();
+ }catch(error){status.textContent=error?.message||"Unable to load your profile."}
+}
+async function saveProfile(){
+ const status=document.getElementById("profileStatus");
+ const display_name=document.getElementById("profileDisplayName").value.trim();
+ const username=document.getElementById("profileUsername").value.trim().toLowerCase();
+ const bio=document.getElementById("profileBio").value.trim();
+ if(!/^[a-z0-9_]{3,30}$/.test(username)){status.textContent="Username must use 3–30 lowercase letters, numbers or underscores.";return}
+ if(!display_name){status.textContent="Display name is required.";return}
+ status.textContent="Saving profile...";
+ try{
+  const {data:{user},error:userError}=await supabaseClient.auth.getUser();
+  if(userError)throw userError;
+  if(!user)throw new Error("Please log in again.");
+  const {error}=await supabaseClient.from("playam_profiles").upsert({user_id:user.id,display_name,username,bio,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+  if(error)throw error;
+  document.getElementById("profilePreviewName").textContent=display_name;
+  document.getElementById("profilePreviewHandle").textContent="@"+username;
+  document.getElementById("profileAvatar").textContent=(display_name[0]||"P").toUpperCase();
+  status.textContent="✓ Profile saved.";
+ }catch(error){status.textContent="Unable to save: "+(error?.message||"Please try again.")}
+}
+async function loadCreatorEarningsDashboard(){
+ const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value};
+ const money=(minor)=>"₦"+(Number(minor||0)/100).toLocaleString("en-NG",{minimumFractionDigits:2,maximumFractionDigits:2});
+ set("creatorQualifiedViews","—");set("creatorVideoLikes","—");
+ set("creatorPendingBalance","—");set("creatorAvailableBalance","—");
+ set("creatorRewardNotice","Loading creator earnings...");
+ const history=document.getElementById("creatorRewardHistory");
+ if(history)history.textContent="Loading reward history...";
+ try{
+  const {data,error}=await supabaseClient.functions.invoke("flow-creator-stats",{body:{}});
+  if(error||!data)throw error||new Error("No creator stats returned.");
+  set("creatorQualifiedViews",Number(data.qualifiedViewsLast30Days||0).toLocaleString("en-NG"));
+  set("creatorVideoLikes",Number(data.likes||0).toLocaleString("en-NG"));
+  set("creatorPendingBalance",money(data.creatorEarnings?.pendingMinor));
+  set("creatorAvailableBalance",money(data.creatorEarnings?.availableMinor));
+  const policy=data.rewardPolicy||{};
+  set("creatorRewardNotice",policy.enabled?"Video reward policy is active. Rewards remain subject to eligibility, funding and administrator approval.":"Video cash rewards are not enabled yet. Qualified views are tracked, but views and likes do not currently generate cash payments.");
+  if(history){
+   history.replaceChildren();
+   const rows=data.recentVideoRewards||[];
+   if(!rows.length){history.textContent="No video rewards recorded yet.";return}
+   rows.forEach(row=>{
+    const item=document.createElement("div");item.className="small-card";item.style.marginTop="8px";
+    const title=document.createElement("strong");title.textContent=money(row.amountMinor)+" · "+String(row.status||"").replaceAll("_"," ");
+    const detail=document.createElement("div");detail.className="muted small";detail.textContent=Number(row.qualifiedViews||0).toLocaleString("en-NG")+" qualified views";
+    item.append(title,detail);history.append(item);
+   });
+  }
+ }catch(error){
+  set("creatorRewardNotice","Creator earnings are temporarily unavailable.");
+  if(history)history.textContent="Reward history unavailable.";
+ }
+}
+function showVideoHub(){hideScreens();document.getElementById("videoScreen").classList.remove("hidden");document.querySelectorAll(".navbtn").forEach(x=>x.classList.remove("active"))}
+let videoFeedOffset=0,videoFeedLoading=false,videoFeedEnded=false;
+async function beginPlayamVideoUpload(input){
+ const file=input?.files?.[0];if(!file)return;
+ const status=document.getElementById("playamUploadStatus");
+ const setStatus=t=>{if(status)status.textContent=t};
+ const caption=document.getElementById("playamVideoCaption")?.value.trim()||"";
+ if(!window.tus?.Upload){setStatus("Secure resumable upload component did not load. Refresh and try again.");input.value="";return}
+ if(file.size<=0||file.size>104857600){setStatus("Choose a video between 1 byte and 100 MB.");input.value="";return}
+ if(!["video/mp4","video/quicktime","video/webm"].includes(file.type)){setStatus("Choose an MP4, MOV or WebM video.");input.value="";return}
+ if(caption.length>2200){setStatus("Caption must be 2,200 characters or fewer.");input.value="";return}
+ setStatus("Preparing a private, secure upload...");
+ try{
+  const {data:{session},error:sessionError}=await supabaseClient.auth.getSession();
+  if(sessionError)throw sessionError;
+  if(!session)throw new Error("Please sign in before uploading.");
+  const {data:prepared,error}=await supabaseClient.functions.invoke("flow-cloudflare-create-upload",{body:{mimeType:file.type,fileSize:file.size,caption}});
+  if(error||!prepared?.tusUploadUrl)throw new Error(prepared?.error||error?.message||"Could not prepare upload. Check whether Cloudflare Stream is configured in Staging.");
+  setStatus("Uploading video… 0%");
+  const upload=new tus.Upload(file,{uploadUrl:prepared.tusUploadUrl,chunkSize:8*1024*1024,retryDelays:[0,1000,3000,5000,10000],metadata:{filename:file.name,filetype:file.type},
+   onError(err){setStatus("Upload failed: "+(err?.message||"Please try again."));input.value=""},
+   onProgress(sent,total){setStatus("Uploading video… "+Math.floor(sent/total*100)+"%")},
+   onSuccess(){setStatus("Upload complete. Your video is private while Cloudflare processes it. It will appear only after administrator moderation and approval.");input.value="";const c=document.getElementById("playamVideoCaption");if(c)c.value=""}
+  });
+  upload.start();
+ }catch(error){setStatus(error?.message||"Upload could not be started.");input.value=""}
+}
+async function togglePlayamLike(postId,button){
+ const {data:{user},error:authError}=await supabaseClient.auth.getUser();
+ if(authError||!user){showMessage("Please sign in to like videos.");return}
+ const {data:existing,error:readError}=await supabaseClient.from("flow_post_likes").select("post_id").eq("post_id",postId).eq("user_auth_user_id",user.id).maybeSingle();
+ if(readError){showMessage("Unable to check your like: "+readError.message);return}
+ if(existing){
+  const {error}=await supabaseClient.from("flow_post_likes").delete().eq("post_id",postId).eq("user_auth_user_id",user.id);
+  if(error){showMessage("Unable to remove like: "+error.message);return}
+  button.textContent="♡ Like";button.dataset.liked="false";
+ }else{
+  const {error}=await supabaseClient.from("flow_post_likes").insert({post_id:postId,user_auth_user_id:user.id});
+  if(error){showMessage("Unable to like video: "+error.message);return}
+  button.textContent="♥ Liked";button.dataset.liked="true";
+ }
+}
+async function loadPlayamComments(postId,container){
+ container.textContent="Loading comments...";
+ const {data,error}=await supabaseClient.from("flow_post_comments").select("id,body,created_at").eq("post_id",postId).eq("moderation_status","visible").order("created_at",{ascending:false}).limit(8);
+ if(error){container.textContent="Comments are temporarily unavailable.";return}
+ container.replaceChildren();
+ if(!data?.length){container.textContent="No comments yet. Start the conversation.";return}
+ data.forEach(row=>{const item=document.createElement("p");item.className="small-card";item.style.margin="6px 0";item.textContent=row.body;container.append(item)});
+}
+async function submitPlayamComment(postId,input,container){
+ const body=input.value.trim();
+ if(!body||body.length>2000){showMessage("Write a comment between 1 and 2,000 characters.");return}
+ const {data:{user},error:authError}=await supabaseClient.auth.getUser();
+ if(authError||!user){showMessage("Please sign in to comment.");return}
+ const {error}=await supabaseClient.from("flow_post_comments").insert({post_id:postId,author_auth_user_id:user.id,body});
+ if(error){showMessage("Unable to submit comment: "+error.message);return}
+ input.value="";showMessage("Comment submitted for moderation. It will appear after approval.");await loadPlayamComments(postId,container);
+}
+async function togglePlayamFollow(creatorId,button){
+ const {data:{user},error:authError}=await supabaseClient.auth.getUser();
+ if(authError||!user){showMessage("Please sign in to follow creators.");return}
+ if(user.id===creatorId){showMessage("You cannot follow your own account.");return}
+ const {data:existing,error:readError}=await supabaseClient.from("flow_follows").select("followed_auth_user_id").eq("follower_auth_user_id",user.id).eq("followed_auth_user_id",creatorId).maybeSingle();
+ if(readError){showMessage("Unable to check follow status: "+readError.message);return}
+ if(existing){
+  const {error}=await supabaseClient.from("flow_follows").delete().eq("follower_auth_user_id",user.id).eq("followed_auth_user_id",creatorId);
+  if(error){showMessage("Unable to unfollow creator: "+error.message);return}
+  button.textContent="＋ Follow";
+ }else{
+  const {error}=await supabaseClient.from("flow_follows").insert({follower_auth_user_id:user.id,followed_auth_user_id:creatorId});
+  if(error){showMessage("Unable to follow creator: "+error.message);return}
+  button.textContent="✓ Following";
+ }
+}
+async function openVideoFeed(loadMore=false){
+ const status=document.getElementById("videoFeedStatus"),feed=document.getElementById("videoFeed"),more=document.getElementById("videoFeedMore");
+ if(videoFeedLoading)return;videoFeedLoading=true;
+ if(!loadMore){videoFeedOffset=0;videoFeedEnded=false;feed.innerHTML="";feed.classList.remove("hidden");more.classList.add("hidden")}
+ status.textContent="Loading approved PLAYAM videos…";
+ try{
+  const {data:{session},error:authError}=await supabaseClient.auth.getSession();
+  if(authError)throw authError;if(!session)throw new Error("Please sign in to view PLAYAM Videos.");
+  const pageSize=8;
+  const {data:posts,error}=await supabaseClient.from("flow_posts").select("id,creator_auth_user_id,caption,published_at,created_at").eq("visibility","public").eq("status","published").eq("moderation_status","approved").order("published_at",{ascending:false}).range(videoFeedOffset,videoFeedOffset+pageSize-1);
+  if(error)throw error;
+  if(!posts||posts.length===0){status.textContent=videoFeedOffset===0?"No approved videos yet. Be the first creator to publish a video when uploads are enabled.":"You’ve reached the end of the feed.";videoFeedEnded=true;more.classList.add("hidden");return}
+  const ids=posts.map(p=>p.id);
+  const {data:assets,error:assetError}=await supabaseClient.from("flow_post_assets").select("post_id,playback_bucket,playback_object_key,storage_bucket,storage_object_key,processing_status,mime_type").in("post_id",ids).eq("processing_status","ready");
+  if(assetError)throw assetError;
+  const assetByPost=new Map((assets||[]).map(a=>[a.post_id,a]));
+  const {data:{user}}=await supabaseClient.auth.getUser();
+  const [{data:likedRows,error:likeError},{data:followRows,error:followError}] = await Promise.all([
+   supabaseClient.from("flow_post_likes").select("post_id").eq("user_auth_user_id",user.id).in("post_id",ids),
+   supabaseClient.from("flow_follows").select("followed_auth_user_id").eq("follower_auth_user_id",user.id)
+  ]);
+  if(likeError)throw likeError;if(followError)throw followError;
+  const liked=new Set((likedRows||[]).map(x=>x.post_id)),followed=new Set((followRows||[]).map(x=>x.followed_auth_user_id));
+  let rendered=0;
+  for(const post of posts){
+   const asset=assetByPost.get(post.id);if(!asset)continue;
+   const {data:playback,error:playbackError}=await supabaseClient.functions.invoke("flow-cloudflare-playback",{body:{postId:post.id}});
+   if(playbackError||!playback?.hlsUrl)continue;
+   const article=document.createElement("article");article.className="video-post";
+   const video=document.createElement("video");video.controls=true;video.playsInline=true;video.preload="metadata";video.loop=true;video.setAttribute("aria-label","PLAYAM creator video");
+   if(window.Hls&&window.Hls.isSupported()){const player=new Hls({enableWorker:true,lowLatencyMode:true});player.loadSource(playback.hlsUrl);player.attachMedia(video);video._playamHls=player;}
+   else if(video.canPlayType("application/vnd.apple.mpegurl")){video.src=playback.hlsUrl;}
+   else if(playback.dashUrl&&window.dashjs){video.src=playback.dashUrl;}
+   else{continue}
+   if(playback.thumbnailUrl)video.poster=playback.thumbnailUrl;
+   const meta=document.createElement("div");meta.className="video-post-meta";
+   const caption=document.createElement("p");caption.textContent=post.caption||"PLAYAM video";
+   const date=document.createElement("div");date.className="small";date.textContent=post.published_at?"Published "+new Date(post.published_at).toLocaleDateString():"PLAYAM creator";
+   const actions=document.createElement("div");actions.className="video-actions";actions.style.cssText="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0";
+   const like=document.createElement("button");like.className="secondary";like.textContent=liked.has(post.id)?"♥ Liked":"♡ Like";like.addEventListener("click",()=>togglePlayamLike(post.id,like));
+   const follow=document.createElement("button");follow.className="secondary";follow.textContent=followed.has(post.creator_auth_user_id)?"✓ Following":"＋ Follow";follow.disabled=post.creator_auth_user_id===user.id;follow.addEventListener("click",()=>togglePlayamFollow(post.creator_auth_user_id,follow));
+   const share=document.createElement("button");share.className="secondary";share.textContent="↗ Share";share.addEventListener("click",async()=>{const url=location.origin+location.pathname+"?post="+encodeURIComponent(post.id);try{if(navigator.share)await navigator.share({title:"PLAYAM video",text:caption.textContent,url});else{await navigator.clipboard.writeText(url);showMessage("Video link copied.")}}catch(e){if(e.name!=="AbortError")showMessage("Could not share this video.")}});
+   actions.append(like,follow,share);
+   const comments=document.createElement("div");comments.className="video-comments";
+   const list=document.createElement("div");list.className="small";list.textContent="Loading comments...";
+   const input=document.createElement("input");input.type="text";input.maxLength=2000;input.placeholder="Write a comment…";
+   const send=document.createElement("button");send.className="secondary";send.textContent="Comment";send.addEventListener("click",()=>submitPlayamComment(post.id,input,list));
+   comments.append(list,input,send);meta.append(caption,date,actions,comments);article.append(video,meta);feed.appendChild(article);rendered++;
+   loadPlayamComments(post.id,list);
+  }
+  videoFeedOffset+=posts.length;videoFeedEnded=posts.length<pageSize;
+  status.textContent=rendered?"Showing approved PLAYAM videos. Like, follow, comment or share.":"Approved posts were found, but none has a ready accessible playback asset yet.";
+  more.classList.toggle("hidden",videoFeedEnded);
+  feed.querySelectorAll("video").forEach(v=>{v.addEventListener("play",()=>feed.querySelectorAll("video").forEach(other=>{if(other!==v)other.pause()}));});
+ }catch(error){status.textContent=error.message||"Could not load videos. Please try again."}
+ finally{videoFeedLoading=false}
+}
+
 function showFindPlayer(){stopLobbyRefresh();stopGameRefresh();showScreen("findPlayerScreen")}
-function showSettings(){showScreen("settingsScreen")}
+function showSettings(){showScreen("settingsScreen");loadPlayamMarketSettings()}
+function updatePlayamMarketDetails(){
+ const country=document.getElementById("playamMarketCountry")?.value;
+ const market=availablePlayamMarkets.find(m=>m.country_code===country);
+ const currency=document.getElementById("playamMarketCurrency");
+ const locale=document.getElementById("playamMarketLocale");
+ if(currency)currency.textContent=market?"Currency: "+market.currency_code:"Currency: unavailable";
+ if(locale)locale.textContent=market?"Language: "+market.locale+" · Time zone: "+market.timezone:"Language and time zone: unavailable";
+}
+async function loadPlayamMarketSettings(){
+ const status=document.getElementById("playamMarketStatus");
+ const select=document.getElementById("playamMarketCountry");
+ const save=document.getElementById("savePlayamMarketButton");
+ if(!status||!select)return;
+ status.textContent="Loading approved markets…";
+ if(save)save.disabled=true;
+ try{
+  const [{data:markets,error:marketsError},{data:{user},error:userError}]=await Promise.all([
+   supabaseClient.rpc("playam_get_available_markets_v1"),
+   supabaseClient.auth.getUser()
+  ]);
+  if(marketsError)throw marketsError;
+  if(userError)throw userError;
+  if(!user)throw new Error("Please sign in again.");
+  availablePlayamMarkets=markets||[];
+  if(!availablePlayamMarkets.length)throw new Error("No markets are currently available.");
+  const {data:preference,error:preferenceError}=await supabaseClient.from("playam_user_market_preferences")
+   .select("country_code,preferred_currency_code,locale,timezone")
+   .eq("auth_user_id",user.id).maybeSingle();
+  if(preferenceError)throw preferenceError;
+  let selected=availablePlayamMarkets.find(m=>m.country_code===preference?.country_code);
+  if(!selected)selected=availablePlayamMarkets.find(m=>m.country_code==="NG")||availablePlayamMarkets[0];
+  if(!preference){
+   const {error:initError}=await supabaseClient.rpc("playam_set_user_market_preference_v1",{
+    p_country_code:selected.country_code,p_currency_code:selected.currency_code,
+    p_locale:selected.locale,p_timezone:selected.timezone
+   });
+   if(initError)throw initError;
+  }
+  select.replaceChildren();
+  availablePlayamMarkets.forEach(m=>{
+   const option=document.createElement("option");
+   option.value=m.country_code;option.textContent=m.country_name+" ("+m.country_code+")";
+   select.appendChild(option);
+  });
+  select.value=selected.country_code;
+  updatePlayamMarketDetails();
+  status.textContent="Your market settings are ready.";
+ }catch(error){status.textContent=error?.message||"Unable to load market settings."}
+ finally{if(save)save.disabled=false}
+}
+async function savePlayamMarketPreference(){
+ const status=document.getElementById("playamMarketStatus");
+ const button=document.getElementById("savePlayamMarketButton");
+ const country=document.getElementById("playamMarketCountry")?.value;
+ const market=availablePlayamMarkets.find(m=>m.country_code===country);
+ if(!market){status.textContent="Please select an available market.";return}
+ button.disabled=true;status.textContent="Saving your market preference…";
+ try{
+  const {error}=await supabaseClient.rpc("playam_set_user_market_preference_v1",{
+   p_country_code:market.country_code,p_currency_code:market.currency_code,
+   p_locale:market.locale,p_timezone:market.timezone
+  });
+  if(error)throw error;
+  status.textContent="✓ Market preference saved.";
+ }catch(error){status.textContent="Unable to save: "+(error?.message||"Please try again.")}
+ finally{button.disabled=false}
+}
 function showCreateRoom(){showScreen("createScreen")}
 function showJoinRoom(){showScreen("joinScreen")}
 function showCreateRoomWithHard(){document.getElementById("game").value="friendship-court";document.getElementById("level").value="hard";showCreateRoom()}
 
 /* AUTH */
+function showAuthMessage(message){
+ const target=document.getElementById("authMessage");
+ if(target)target.textContent=message||"";
+}
 async function signUp(){
  const email=document.getElementById("email").value.trim(),password=document.getElementById("password").value;
- if(!email||!password){showMessage("Please enter your email and password.");return}
- showMessage("Creating your account...");
- const {data,error}=await supabaseClient.auth.signUp({email,password});
- if(error){showMessage(error.message);return}
- if(data.session)showHome();else showMessage("Account created. Please check your email if confirmation is required.");
+ if(!email||!password){showAuthMessage("Please enter your email and password.");return}
+ showAuthMessage("Creating your account...");
+ try{
+  const {data,error}=await supabaseClient.auth.signUp({email,password});
+  if(error){showAuthMessage(error.message);return}
+  if(data.session){showAuthMessage("");showHome();}
+  else showAuthMessage("Account created. Check your email if confirmation is required, then log in here.");
+ }catch(error){
+  showAuthMessage(error?.message||"We could not create your account. Please try again.");
+ }
 }
 async function signIn(){
  const email=document.getElementById("email").value.trim(),password=document.getElementById("password").value;
- if(!email||!password){showMessage("Please enter your email and password.");return}
- showMessage("Logging in...");
- const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
- if(error){showMessage(error.message);return}
- if(data.session)showHome();else showMessage("Login succeeded, but no active session was returned.");
+ if(!email||!password){showAuthMessage("Please enter your email and password.");return}
+ showAuthMessage("Logging in...");
+ try{
+  const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+  if(error){showAuthMessage(error.message);return}
+  if(data.session){showAuthMessage("");showHome();}
+  else showAuthMessage("Login completed without an active session. Check whether email confirmation is required.");
+ }catch(error){
+  showAuthMessage(error?.message||"We could not log you in. Check your connection and try again.");
+ }
 }
 async function signOut(){
  stopLobbyRefresh();stopGameRefresh();await supabaseClient.auth.signOut();
@@ -528,7 +1072,7 @@ async function loadGame(){
  const {data:round,error:roundError}=await supabaseClient.from("game_rounds").select("*,questions(id,text,question_type,option_a,option_b)").eq("room_id",room.id).eq("round_number",room.current_round).single();
  if(roundError||!round){document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="Preparing the next round...";return}
  if(currentRoundId!==round.id){
-  currentRoundId=round.id;answerSubmitted=false;selectedVotePlayerId="";roundAdvanceRequestedFor="";
+  currentRoundId=round.id;answerSubmitted=false;selectedVotePlayerId="";roundAdvanceRequestedFor="";roundAdvanceTimeoutRequestedFor="";
   document.getElementById("answerInput").value="";
   const {data:alreadySubmitted,error:submissionCheckError}=await supabaseClient.rpc("has_playam_submitted",{p_code:currentRoomCode});
   if(submissionCheckError){showMessage("Could not check your round status: "+submissionCheckError.message);return}
@@ -536,10 +1080,12 @@ async function loadGame(){
  }
  document.getElementById("gameName").innerText=getGameTitle(room.game);
  document.getElementById("gameRoundNumber").innerText="Round "+room.current_round+" of "+room.rounds;
+ const legendStage={"legend-test":"TEST","legend-pressure":"PRESSURE","legend-mind-game":"MIND GAME","legend-ultimate-decision":"ULTIMATE DECISION","legend-final-trial":"FINAL TRIAL"};
+ if(legendStage[room.game]) document.getElementById("gameRoundNumber").innerText+=" • "+legendStage[room.game];
  document.getElementById("questionBox").innerText=round.questions.text;
  currentRoundEndsAt=round.ends_at;startRoundTimer();await renderGameControls(round,room);
 }
-function getGameTitle(g){return({"friendship-court":"⚖️ Friendship Court","would-you-rather":"🤔 Would You Rather?","truth-or-dare":"🎭 Truth or Dare","mind-battle":"🧠 Mind Battle","secret-confessions":"🤫 Secret Confessions"})[g]||"PLAYAM"}
+function getGameTitle(g){return({"friendship-court":"⚖️ Friendship Court","would-you-rather":"🤔 Would You Rather?","truth-or-dare":"🎭 Truth or Dare","mind-battle":"🧠 Mind Battle","secret-confessions":"🤫 Secret Confessions","legend-test":"🏆 Legend: Test","legend-pressure":"🔥 Legend: Pressure","legend-mind-game":"🧩 Legend: Mind Game","legend-ultimate-decision":"⚖️ Legend: Ultimate Decision","legend-final-trial":"🏁 Legend: Final Trial"})[g]||"PLAYAM"}
 function hideGameControls(){["choiceArea","answerArea","voteArea","gameWaiting"].forEach(id=>document.getElementById(id).classList.add("hidden"))}
 async function renderGameControls(round,room){
  hideGameControls();const status=document.getElementById("gameStatus");
@@ -552,24 +1098,49 @@ async function renderGameControls(round,room){
   status.innerText="Choose your option.";return;
  }
  document.getElementById("answerArea").classList.remove("hidden");
- document.getElementById("answerInput").placeholder=room.game==="secret-confessions"?"Write your confession...":room.game==="truth-or-dare"?"Enter your response...":"Enter your answer...";
- status.innerText="Submit your response before time runs out.";
+ const legendPrompts={
+  "legend-test":"Give your strongest answer to the challenge.",
+  "legend-pressure":"Answer fast — pressure mode rewards decisive play.",
+  "legend-mind-game":"Think strategically before you submit your answer.",
+  "legend-ultimate-decision":"Make your final decision and defend it clearly.",
+  "legend-final-trial":"This is the final trial — give your best answer."
+ };
+ document.getElementById("answerInput").placeholder=room.game==="secret-confessions"?"Write your confession...":room.game==="truth-or-dare"?"Enter your response...":(legendPrompts[room.game]||"Enter your answer...");
+ status.innerText=legendPrompts[room.game]||"Submit your response before time runs out.";
 }
 function startRoundTimer(){if(gameTimerInterval)return;updateTimer();gameTimerInterval=setInterval(updateTimer,500)}
 function updateTimer(){
  if(!currentRoundEndsAt){document.getElementById("gameTimer").innerText="--";return}
  let seconds=Math.max(0,Math.ceil((new Date(currentRoundEndsAt).getTime()-Date.now())/1000));
- const timer=document.getElementById("gameTimer");timer.innerText=seconds;timer.classList.toggle("warning",seconds<=10);
+ const timer=document.getElementById("gameTimer");
+ const pressureMode=currentGame==="legend-pressure";
+ timer.innerText=seconds+(pressureMode?" ⚡":"");
+ timer.classList.toggle("warning",pressureMode?seconds<=15:seconds<=10);
  if(seconds===0){
   document.getElementById("gameStatus").innerText="Time is up. Moving to the next round...";
-  if(currentRoundId&&roundAdvanceRequestedFor!==currentRoundId){
-   roundAdvanceRequestedFor=currentRoundId;
-   supabaseClient.rpc("advance_playam_round",{p_code:currentRoomCode}).then(({data,error})=>{
-    if(error){roundAdvanceRequestedFor="";showMessage("Round could not advance: "+error.message);return}
-    if(data==="advanced"||data==="finished"||data==="finished_no_more_questions"){loadGame()}
-   });
+  if(currentRoundId&&roundAdvanceTimeoutRequestedFor!==currentRoundId){
+   roundAdvanceTimeoutRequestedFor=currentRoundId;
+   requestRoundAdvance(true);
   }
  }
+}
+async function requestRoundAdvance(force=false){
+ if(!currentRoundId||!currentRoomCode)return;
+ if(!force&&roundAdvanceRequestedFor===currentRoundId)return;
+ const requestedRoundId=currentRoundId;
+ roundAdvanceRequestedFor=requestedRoundId;
+ const {data,error}=await supabaseClient.rpc("advance_playam_round",{p_code:currentRoomCode});
+ if(currentRoundId!==requestedRoundId)return;
+ if(error){
+  roundAdvanceRequestedFor="";
+  showMessage("Round could not advance: "+error.message);
+  return;
+ }
+ if(data==="advanced"||data==="finished"||data==="finished_no_more_questions"||data==="already_advanced"){
+  await loadGame();
+  return;
+ }
+ if(data==="waiting")roundAdvanceRequestedFor="";
 }
 async function submitChoice(choice){await submitGameAnswer(choice)}
 async function submitWrittenAnswer(){const answer=document.getElementById("answerInput").value.trim();if(!answer){showMessage("Please enter an answer.");return}await submitGameAnswer(answer)}
@@ -579,6 +1150,7 @@ async function submitGameAnswer(answer){
  if(error){showMessage(error.message);return}
  answerSubmitted=true;showMessage("✓ Answer submitted!");hideGameControls();
  document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="Your answer is locked in.";
+ await requestRoundAdvance();
 }
 async function loadVotePlayers(){
  const box=document.getElementById("votePlayers");box.innerHTML="Loading players...";
@@ -594,9 +1166,11 @@ async function loadVotePlayers(){
 }
 async function submitVote(){
  if(!selectedVotePlayerId){showMessage("Choose a player first.");return}
- const {error}=await supabaseClient.from("votes").insert({round_id:currentRoundId,voter_player_id:currentPlayerId,target_player_id:selectedVotePlayerId});
+ if(!currentRoomCode){showMessage("Room information is missing. Please rejoin the game.");return}
+ const {error}=await supabaseClient.rpc("submit_playam_vote",{p_code:currentRoomCode,p_target_player_id:selectedVotePlayerId});
  if(error){showMessage(error.message);return}
  answerSubmitted=true;hideGameControls();document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="✓ Vote submitted. Waiting for the round...";
+ await requestRoundAdvance();
 }
 
 
@@ -663,20 +1237,29 @@ document.addEventListener("keydown",event=>{if(event.key==="Escape")closeReportP
 async function showResults(){
  hideScreens();document.getElementById("resultsScreen").classList.remove("hidden");
  const box=document.getElementById("resultsList");box.innerHTML="Loading results...";
- if(currentGame!=="friendship-court"){
-  box.innerHTML="";
-  const note=document.createElement("div");note.className="result-item";
-  note.textContent="Thanks for playing! This is a casual game mode, so no points are awarded.";
-  box.appendChild(note);return;
- }
  const {data,error}=await supabaseClient.from("players").select("id,nickname,score").eq("room_id",currentRoomId).order("score",{ascending:false});
  if(error){box.innerHTML=error.message;return}
  box.innerHTML="";
- data.forEach((p,i)=>{const item=document.createElement("div");item.className="result-item";const name=document.createElement("span");name.innerText=(i+1)+". "+p.nickname;const score=document.createElement("strong");score.innerText=p.score+" pts";item.append(name,score);box.appendChild(item)});
+ if(!data||!data.length){box.innerText="No player results were found for this game.";return}
+ const topScore=Number(data[0].score||0);
+ const winners=data.filter(p=>Number(p.score||0)===topScore);
+ const heading=document.createElement("div");heading.className="result-item";
+ heading.textContent=winners.length>1?"🏆 It's a tie!":"🏆 "+winners[0].nickname+" wins!";
+ box.appendChild(heading);
+ data.forEach((p,i)=>{
+  const item=document.createElement("div");item.className="result-item";
+  const name=document.createElement("span");name.innerText=(i+1)+". "+p.nickname+(Number(p.score||0)===topScore?" 🏆":"");
+  const score=document.createElement("strong");score.innerText=Number(p.score||0)+" pts";
+  item.append(name,score);box.appendChild(item);
+ });
+ const note=document.createElement("div");note.className="muted";
+ note.style.marginTop="12px";
+ note.innerText=currentGame==="friendship-court"?"Points are earned from votes received.":"Points are earned by submitting an answer in each completed round.";
+ box.appendChild(note);
 }
 async function copyRoomCode(){try{await navigator.clipboard.writeText(currentRoomCode);showMessage("Room code copied!")}catch(e){showMessage("Your room code is: "+currentRoomCode)}}
 function resetGameState(){
- currentRoomCode="";currentRoomId="";currentPlayerId="";currentNickname="";currentPlayerReady=false;currentPlayerIsHost=false;currentGame="";currentRoundId="";selectedVotePlayerId="";currentRoundEndsAt=null;answerSubmitted=false;
+ currentRoomCode="";currentRoomId="";currentPlayerId="";currentNickname="";currentPlayerReady=false;currentPlayerIsHost=false;currentGame="";currentRoundId="";selectedVotePlayerId="";currentRoundEndsAt=null;answerSubmitted=false;roundAdvanceRequestedFor="";roundAdvanceTimeoutRequestedFor="";
 }
 function leaveLobbyView(){stopLobbyRefresh();stopGameRefresh();resetGameState();showHome()}
 function returnHomeFromResults(){stopGameRefresh();resetGameState();showHome()}
@@ -685,12 +1268,12 @@ function returnHomeFromResults(){stopGameRefresh();resetGameState();showHome()}
 async function checkLogin(){
  const {data:{session},error}=await supabaseClient.auth.getSession();
  if(error){document.getElementById("authMessage").innerText=error.message;return}
- if(session){document.getElementById("authScreen").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showHome()}
+ if(session){document.getElementById("authScreen").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showHome();await refreshFinanceAdminVisibility()}
  else{document.getElementById("app").classList.add("hidden");document.getElementById("authScreen").classList.remove("hidden")}
 }
 supabaseClient.auth.onAuthStateChange((event,session)=>{
- if(event==="SIGNED_OUT"){resetGameState();resetSoloGame();document.getElementById("app").classList.add("hidden");document.getElementById("authScreen").classList.remove("hidden")}
- if(event==="SIGNED_IN"&&session){document.getElementById("authScreen").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showHome()}
+ if(event==="SIGNED_OUT"){resetGameState();resetSoloGame();document.getElementById("navAdminFinance")?.classList.add("hidden");document.getElementById("app").classList.add("hidden");document.getElementById("authScreen").classList.remove("hidden")}
+ if(event==="SIGNED_IN"&&session){document.getElementById("authScreen").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showHome();setTimeout(()=>refreshFinanceAdminVisibility(),0)}
 });
 checkLogin();
 </script>
