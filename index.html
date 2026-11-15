@@ -105,7 +105,7 @@ label{display:block;margin-top:13px;font-weight:bold}
  <button class="primary" style="width:100%;margin-top:8px" onclick="signUp()">CREATE NEW ACCOUNT</button>
  <button class="secondary" style="width:100%;margin-top:8px" onclick="signIn()">LOG IN TO EXISTING ACCOUNT</button>
  <p class="small">Only email and password are required.</p>
- <div id="authMessage"></div>
+ <div id="authMessage" role="status" aria-live="polite"></div>
 </div>
 
 <div id="app" class="hidden">
@@ -463,21 +463,35 @@ function showJoinRoom(){showScreen("joinScreen")}
 function showCreateRoomWithHard(){document.getElementById("game").value="friendship-court";document.getElementById("level").value="hard";showCreateRoom()}
 
 /* AUTH */
+function showAuthMessage(message){
+ const target=document.getElementById("authMessage");
+ if(target)target.textContent=message||"";
+}
 async function signUp(){
  const email=document.getElementById("email").value.trim(),password=document.getElementById("password").value;
- if(!email||!password){showMessage("Please enter your email and password.");return}
- showMessage("Creating your account...");
- const {data,error}=await supabaseClient.auth.signUp({email,password});
- if(error){showMessage(error.message);return}
- if(data.session)showHome();else showMessage("Account created. Please check your email if confirmation is required.");
+ if(!email||!password){showAuthMessage("Please enter your email and password.");return}
+ showAuthMessage("Creating your account...");
+ try{
+  const {data,error}=await supabaseClient.auth.signUp({email,password});
+  if(error){showAuthMessage(error.message);return}
+  if(data.session){showAuthMessage("");showHome();}
+  else showAuthMessage("Account created. Check your email if confirmation is required, then log in here.");
+ }catch(error){
+  showAuthMessage(error?.message||"We could not create your account. Please try again.");
+ }
 }
 async function signIn(){
  const email=document.getElementById("email").value.trim(),password=document.getElementById("password").value;
- if(!email||!password){showMessage("Please enter your email and password.");return}
- showMessage("Logging in...");
- const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
- if(error){showMessage(error.message);return}
- if(data.session)showHome();else showMessage("Login succeeded, but no active session was returned.");
+ if(!email||!password){showAuthMessage("Please enter your email and password.");return}
+ showAuthMessage("Logging in...");
+ try{
+  const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+  if(error){showAuthMessage(error.message);return}
+  if(data.session){showAuthMessage("");showHome();}
+  else showAuthMessage("Login completed without an active session. Check whether email confirmation is required.");
+ }catch(error){
+  showAuthMessage(error?.message||"We could not log you in. Check your connection and try again.");
+ }
 }
 async function signOut(){
  stopLobbyRefresh();stopGameRefresh();await supabaseClient.auth.signOut();
