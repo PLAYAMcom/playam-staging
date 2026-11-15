@@ -680,16 +680,25 @@ document.addEventListener("keydown",event=>{if(event.key==="Escape")closeReportP
 async function showResults(){
  hideScreens();document.getElementById("resultsScreen").classList.remove("hidden");
  const box=document.getElementById("resultsList");box.innerHTML="Loading results...";
- if(currentGame!=="friendship-court"){
-  box.innerHTML="";
-  const note=document.createElement("div");note.className="result-item";
-  note.textContent="Thanks for playing! This is a casual game mode, so no points are awarded.";
-  box.appendChild(note);return;
- }
  const {data,error}=await supabaseClient.from("players").select("id,nickname,score").eq("room_id",currentRoomId).order("score",{ascending:false});
  if(error){box.innerHTML=error.message;return}
  box.innerHTML="";
- data.forEach((p,i)=>{const item=document.createElement("div");item.className="result-item";const name=document.createElement("span");name.innerText=(i+1)+". "+p.nickname;const score=document.createElement("strong");score.innerText=p.score+" pts";item.append(name,score);box.appendChild(item)});
+ if(!data||!data.length){box.innerText="No player results were found for this game.";return}
+ const topScore=Number(data[0].score||0);
+ const winners=data.filter(p=>Number(p.score||0)===topScore);
+ const heading=document.createElement("div");heading.className="result-item";
+ heading.textContent=winners.length>1?"🏆 It's a tie!":"🏆 "+winners[0].nickname+" wins!";
+ box.appendChild(heading);
+ data.forEach((p,i)=>{
+  const item=document.createElement("div");item.className="result-item";
+  const name=document.createElement("span");name.innerText=(i+1)+". "+p.nickname+(Number(p.score||0)===topScore?" 🏆":"");
+  const score=document.createElement("strong");score.innerText=Number(p.score||0)+" pts";
+  item.append(name,score);box.appendChild(item);
+ });
+ const note=document.createElement("div");note.className="muted";
+ note.style.marginTop="12px";
+ note.innerText=currentGame==="friendship-court"?"Points are earned from votes received.":"Points are earned by submitting an answer in each completed round.";
+ box.appendChild(note);
 }
 async function copyRoomCode(){try{await navigator.clipboard.writeText(currentRoomCode);showMessage("Room code copied!")}catch(e){showMessage("Your room code is: "+currentRoomCode)}}
 function resetGameState(){
