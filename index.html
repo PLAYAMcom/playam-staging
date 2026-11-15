@@ -610,7 +610,8 @@ async function loadVotePlayers(){
 }
 async function submitVote(){
  if(!selectedVotePlayerId){showMessage("Choose a player first.");return}
- const {error}=await supabaseClient.from("votes").insert({round_id:currentRoundId,voter_player_id:currentPlayerId,target_player_id:selectedVotePlayerId});
+ if(!currentRoomCode){showMessage("Room information is missing. Please rejoin the game.");return}
+ const {error}=await supabaseClient.rpc("submit_playam_vote",{p_code:currentRoomCode,p_target_player_id:selectedVotePlayerId});
  if(error){showMessage(error.message);return}
  answerSubmitted=true;hideGameControls();document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="✓ Vote submitted. Waiting for the round...";
  await requestRoundAdvance();
