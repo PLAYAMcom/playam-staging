@@ -263,6 +263,14 @@ label{display:block;margin-top:13px;font-weight:bold}
    </div>
    <div id="financeSummaryCards" class="grid-two" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px"></div>
    <div class="small-card" style="margin-top:16px">
+    <h3>Live financial source reconciliation</h3>
+    <p class="small muted">Read-only totals from payment, creator-wallet, withdrawal and video-reward records. These are operational flows, not automatically platform revenue or operating profit.</p>
+    <button class="primary" onclick="loadFinanceActivity()">REFRESH SOURCE TOTALS</button>
+    <div id="financeActivityStatus" class="small muted" role="status" aria-live="polite">Not yet loaded.</div>
+    <div id="financeActivityCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"></div>
+   </div>
+
+   <div class="small-card" style="margin-top:16px">
     <h3>Record income or operating expense</h3>
     <p class="muted">Enter amounts in the smallest currency unit: NGN is kobo (₦1 = 100 kobo). Each entry is immutable and requires an MFA-verified finance administrator.</p>
     <label>Entry type</label><select id="financeEntryType" onchange="updateFinanceCategories()"><option value="expense">Operating expense</option><option value="income">Income</option></select>
@@ -534,12 +542,35 @@ async function showFinanceAdmin(){
  document.getElementById("financeFrom").value=monthStart;
  document.getElementById("financeTo").value=today;
  document.getElementById("financeOccurredOn").value=today;
- updateFinanceCategories();await loadFinanceSummary();
+ updateFinanceCategories();await loadFinanceSummary();await loadFinanceActivity();
 }
 function formatFinanceMinor(value,currency){
  const n=Number(value||0)/100;
  try{return new Intl.NumberFormat("en-NG",{style:"currency",currency,minimumFractionDigits:2}).format(n)}
  catch(e){return currency+" "+n.toFixed(2)}
+}
+async function loadFinanceActivity(){
+ const status=document.getElementById("financeActivityStatus"),container=document.getElementById("financeActivityCards");
+ status.textContent="Loading source reconciliation…";container.replaceChildren();
+ const {data,error}=await supabaseClient.rpc("playam_get_financial_activity_v1");
+ if(error){status.textContent="Could not load source totals: "+error.message;return}
+ const sections=[
+  ["Purchased coin top-ups (wallet funding; not revenue)",data.purchased_coin_topups||[]],
+  ["Creator withdrawal requests (liability settlement)",data.creator_withdrawals||[]],
+  ["Creator cash ledger",data.creator_cash_ledger||[]],
+  ["Video creator rewards",data.video_creator_rewards||[]],
+  ["Video ad and sponsorship periods",data.video_revenue_periods||[]]
+ ];
+ sections.forEach(([label,rows])=>{
+  const card=document.createElement("div");card.className="small-card";
+  const title=document.createElement("h4");title.textContent=label;
+  const pre=document.createElement("pre");pre.className="small muted";pre.style.whiteSpace="pre-wrap";pre.style.overflowWrap="anywhere";
+  pre.textContent=rows.length?JSON.stringify(rows,null,2):"No records currently available";
+  card.append(title,pre);container.append(card);
+ });
+ const note=document.createElement("p");note.className="small muted";note.textContent=data.note||"Operational reconciliation only.";
+ container.append(note);
+ status.textContent="Source reconciliation loaded at "+new Date(data.generated_at).toLocaleString()+".";
 }
 async function loadFinanceSummary(){
  const status=document.getElementById("financeSummaryStatus"),cards=document.getElementById("financeSummaryCards");
