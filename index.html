@@ -575,6 +575,8 @@ async function loadGame(){
  }
  document.getElementById("gameName").innerText=getGameTitle(room.game);
  document.getElementById("gameRoundNumber").innerText="Round "+room.current_round+" of "+room.rounds;
+ const legendStage={"legend-test":"TEST","legend-pressure":"PRESSURE","legend-mind-game":"MIND GAME","legend-ultimate-decision":"ULTIMATE DECISION","legend-final-trial":"FINAL TRIAL"};
+ if(legendStage[room.game]) document.getElementById("gameRoundNumber").innerText+=" • "+legendStage[room.game];
  document.getElementById("questionBox").innerText=round.questions.text;
  currentRoundEndsAt=round.ends_at;startRoundTimer();await renderGameControls(round,room);
 }
@@ -605,7 +607,10 @@ function startRoundTimer(){if(gameTimerInterval)return;updateTimer();gameTimerIn
 function updateTimer(){
  if(!currentRoundEndsAt){document.getElementById("gameTimer").innerText="--";return}
  let seconds=Math.max(0,Math.ceil((new Date(currentRoundEndsAt).getTime()-Date.now())/1000));
- const timer=document.getElementById("gameTimer");timer.innerText=seconds;timer.classList.toggle("warning",seconds<=10);
+ const timer=document.getElementById("gameTimer");
+ const pressureMode=currentGame==="legend-pressure";
+ timer.innerText=seconds+(pressureMode?" ⚡":"");
+ timer.classList.toggle("warning",pressureMode?seconds<=15:seconds<=10);
  if(seconds===0){
   document.getElementById("gameStatus").innerText="Time is up. Moving to the next round...";
   if(currentRoundId&&roundAdvanceTimeoutRequestedFor!==currentRoundId){
