@@ -117,6 +117,7 @@ label{display:block;margin-top:13px;font-weight:bold}
   <button class="navbtn active" id="navHome" onclick="showHome()">🏠 Home</button>
   <button class="navbtn" onclick="showVideoHub()">🎥 Videos</button>
   <button class="navbtn" id="navProfile" onclick="showProfile()">👤 Profile</button>
+  <button class="navbtn hidden" id="navAdminFinance" onclick="showFinanceAdmin()">💼 Finance Admin</button>
   <button class="navbtn" onclick="showSoloSetup()">🎯 Play Solo</button>
   <button class="navbtn" onclick="showFindPlayer()">👥 Find Player</button>
   <button class="navbtn" onclick="showCreateRoom()">➕ Create Room</button>
@@ -247,6 +248,36 @@ label{display:block;margin-top:13px;font-weight:bold}
     <h4>Recent video rewards</h4>
     <div id="creatorRewardHistory" class="small muted">No rewards loaded yet.</div>
    </section>
+  </section>
+
+  <section id="financeAdminScreen" class="screen-card hidden">
+   <h2>💼 PLAYAM Finance</h2>
+   <p class="muted">Restricted finance workspace. Figures are based only on entries recorded in the audited ledger.</p>
+   <div class="small-card" style="margin:14px 0">
+    <div class="grid-two" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+     <div><label>From date</label><input type="date" id="financeFrom"></div>
+     <div><label>To date</label><input type="date" id="financeTo"></div>
+    </div>
+    <button class="primary" onclick="loadFinanceSummary()">LOAD FINANCIAL SUMMARY</button>
+    <div id="financeSummaryStatus" class="small muted" role="status" aria-live="polite">Choose a reporting period.</div>
+   </div>
+   <div id="financeSummaryCards" class="grid-two" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px"></div>
+   <div class="small-card" style="margin-top:16px">
+    <h3>Record income or operating expense</h3>
+    <p class="muted">Enter amounts in the smallest currency unit: NGN is kobo (₦1 = 100 kobo). Each entry is immutable and requires an MFA-verified finance administrator.</p>
+    <label>Entry type</label><select id="financeEntryType" onchange="updateFinanceCategories()"><option value="expense">Operating expense</option><option value="income">Income</option></select>
+    <label>Category</label><select id="financeCategory"></select>
+    <label>Amount (minor currency units)</label><input id="financeAmount" type="number" min="1" step="1" placeholder="e.g. 250000">
+    <label>Currency</label><select id="financeCurrency"><option value="NGN">NGN — Nigerian naira</option><option value="USD">USD — US dollar</option><option value="GBP">GBP — British pound</option><option value="EUR">EUR — Euro</option></select>
+    <label>Date incurred</label><input id="financeOccurredOn" type="date">
+    <label>Description</label><input id="financeDescription" maxlength="500" placeholder="What was received or paid for?">
+    <label>External reference (optional)</label><input id="financeExternalRef" maxlength="200" placeholder="Invoice, receipt or transaction reference">
+    <label>Idempotency key</label><input id="financeIdempotency" maxlength="200" placeholder="Unique reference for this entry">
+    <button class="primary" onclick="recordFinanceEntry()">SAVE FINANCIAL ENTRY</button>
+    <div id="financeEntryStatus" class="small muted" role="status" aria-live="polite"></div>
+   </div>
+   <p class="small muted">Important: this ledger does not yet automatically import Paystack fees, LIVE gift revenue, refunds or infrastructure invoices. Record or integrate those sources before treating net operating results as complete. Purchased-coin top-ups are not platform revenue.</p>
+   <button class="back" onclick="showHome()">← BACK TO HOME</button>
   </section>
 
   <section id="findPlayerScreen" class="screen-card hidden">
@@ -451,6 +482,87 @@ function hideScreens(){screenIds.forEach(id=>document.getElementById(id).classLi
 function setNav(id){document.querySelectorAll(".navbtn").forEach(b=>b.classList.remove("active"));if(id)document.getElementById(id)?.classList.add("active")}
 function showScreen(id,nav=""){hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome")}
+const financeCategories={
+ expense:[
+ ["payment_processing_fees","Payment processing fees"],["creator_withdrawal_fees","Creator withdrawal fees"],
+ ["refunds_chargebacks","Refunds and chargebacks"],["fraud_losses","Fraud losses"],
+ ["hosting_database_storage_bandwidth","Hosting, database, storage and bandwidth"],["email_sms","Email and SMS"],
+ ["security_monitoring","Security and monitoring"],["customer_support","Customer support"],
+ ["moderation","Content moderation"],["marketing","Marketing"],["staffing_administration","Staffing and administration"],
+ ["legal_accounting","Legal and accounting"],["taxes","Taxes"],["other_expense","Other expense"]
+ ],
+ income:[
+ ["live_platform_share","LIVE platform share"],["advertising_revenue","Advertising revenue"],
+ ["sponsorship_revenue","Sponsorship revenue"],["marketplace_revenue","Marketplace revenue"],["other_income","Other income"]
+ ]
+};
+function updateFinanceCategories(){
+ const type=document.getElementById("financeEntryType").value,select=document.getElementById("financeCategory");
+ select.replaceChildren();
+ financeCategories[type].forEach(([value,label])=>{const o=document.createElement("option");o.value=value;o.textContent=label;select.append(o)});
+}
+async function showFinanceAdmin(){
+ stopLobbyRefresh();stopGameRefresh();
+ const nav=document.getElementById("navAdminFinance");
+ nav.classList.add("hidden");
+ const {data:{session},error}=await supabaseClient.auth.getSession();
+ if(error||!session){showMessage("Please sign in again.");return}
+ const aal=session.user?.app_metadata?.aal||session.access_token?.aal;
+ if(aal!=="aal2"){showMessage("Finance access requires an MFA-verified administrator session (AAL2).");return}
+ const {data:roles,error:roleError}=await supabaseClient.from("playam_admin_roles").select("role_name").eq("auth_user_id",session.user.id).eq("is_active",true).in("role_name",["super_admin","finance_admin"]);
+ if(roleError||!roles?.length){showMessage("Finance administrator access is required.");return}
+ nav.classList.remove("hidden");
+ showScreen("financeAdminScreen","navAdminFinance");
+ const today=new Date().toISOString().slice(0,10);
+ document.getElementById("financeFrom").value=today.slice(0,8)+"01";
+ document.getElementById("financeTo").value=today;
+ document.getElementById("financeOccurredOn").value=today;
+ updateFinanceCategories();await loadFinanceSummary();
+}
+function formatFinanceMinor(value,currency){
+ const n=Number(value||0)/100;
+ try{return new Intl.NumberFormat("en-NG",{style:"currency",currency,minimumFractionDigits:2}).format(n)}
+ catch(e){return currency+" "+n.toFixed(2)}
+}
+async function loadFinanceSummary(){
+ const status=document.getElementById("financeSummaryStatus"),cards=document.getElementById("financeSummaryCards");
+ status.textContent="Loading verified ledger totals…";cards.replaceChildren();
+ const from=document.getElementById("financeFrom").value,to=document.getElementById("financeTo").value;
+ if(!from||!to||to<from){status.textContent="Choose a valid reporting period.";return}
+ const {data,error}=await supabaseClient.rpc("playam_get_financial_summary_v1",{p_from:from,p_to:to});
+ if(error){status.textContent="Could not load finance totals: "+error.message;return}
+ if(!data?.length){status.textContent="No recorded income or expenses in this period. This is not proof that PLAYAM had no costs or revenue.";return}
+ data.forEach(row=>{
+  const group=document.createElement("div");group.className="small-card";
+  const title=document.createElement("h3");title.textContent=row.currency;
+  const income=document.createElement("p");income.textContent="Recorded income: "+formatFinanceMinor(row.total_income_minor,row.currency);
+  const expense=document.createElement("p");expense.textContent="Recorded expenses: "+formatFinanceMinor(row.total_expenses_minor,row.currency);
+  const net=document.createElement("strong");net.textContent="Recorded net: "+formatFinanceMinor(row.net_operating_minor,row.currency);
+  const breakdown=document.createElement("pre");breakdown.className="small muted";breakdown.style.whiteSpace="pre-wrap";breakdown.textContent=JSON.stringify(row.category_breakdown,null,2);
+  group.append(title,income,expense,net,breakdown);cards.append(group);
+ });
+ status.textContent="Ledger totals loaded for "+from+" to "+to+". Only recorded entries are included.";
+}
+async function recordFinanceEntry(){
+ const status=document.getElementById("financeEntryStatus");status.textContent="Saving entry…";
+ const amount=Number(document.getElementById("financeAmount").value);
+ const params={
+  p_entry_type:document.getElementById("financeEntryType").value,
+  p_category:document.getElementById("financeCategory").value,
+  p_amount_minor:amount,
+  p_currency:document.getElementById("financeCurrency").value,
+  p_occurred_on:document.getElementById("financeOccurredOn").value||null,
+  p_description:document.getElementById("financeDescription").value.trim(),
+  p_external_reference:document.getElementById("financeExternalRef").value.trim()||null,
+  p_idempotency_key:document.getElementById("financeIdempotency").value.trim()
+ };
+ if(!Number.isSafeInteger(amount)||amount<=0||params.p_description.length<3||params.p_idempotency_key.length<8){status.textContent="Enter a positive whole-number amount, a description, and a unique idempotency key of at least 8 characters.";return}
+ const {data,error}=await supabaseClient.rpc("playam_record_financial_entry_v1",params);
+ if(error){status.textContent="Entry was not saved: "+error.message;return}
+ status.textContent="Entry saved. Reference: "+data+".";
+ document.getElementById("financeAmount").value="";document.getElementById("financeDescription").value="";document.getElementById("financeExternalRef").value="";document.getElementById("financeIdempotency").value="";
+ await loadFinanceSummary();
+}
 function showProfile(){stopLobbyRefresh();stopGameRefresh();showScreen("profileScreen","navProfile");loadProfile()}
 async function loadProfile(){
  const status=document.getElementById("profileStatus");status.textContent="Loading profile...";
