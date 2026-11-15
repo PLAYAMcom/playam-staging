@@ -475,7 +475,7 @@ let selectedVotePlayerId="",lobbyRefreshTimer=null,lobbyLoading=false;
 let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,roundAdvanceRequestedFor="",roundAdvanceTimeoutRequestedFor="";
 let soloQuestions=[],soloAnswers=[],soloQuestionIndex=0,soloDifficulty="starter",soloLoading=false;
 
-const screenIds=["homeScreen","profileScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
+const screenIds=["homeScreen","profileScreen","financeAdminScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
 
 function showMessage(t){document.getElementById("message").innerText=t||""}
 function hideScreens(){screenIds.forEach(id=>document.getElementById(id).classList.add("hidden"))}
