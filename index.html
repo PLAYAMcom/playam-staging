@@ -501,20 +501,25 @@ function updateFinanceCategories(){
  select.replaceChildren();
  financeCategories[type].forEach(([value,label])=>{const o=document.createElement("option");o.value=value;o.textContent=label;select.append(o)});
 }
+function playamLocalDate(){
+ const now=new Date(),offset=now.getTimezoneOffset();
+ return new Date(now.getTime()-offset*60000).toISOString().slice(0,10);
+}
 async function showFinanceAdmin(){
  stopLobbyRefresh();stopGameRefresh();
- const nav=document.getElementById("navAdminFinance");
- nav.classList.add("hidden");
+ const nav=document.getElementById("navAdminFinance");nav.classList.add("hidden");
  const {data:{session},error}=await supabaseClient.auth.getSession();
  if(error||!session){showMessage("Please sign in again.");return}
- const aal=session.user?.app_metadata?.aal||session.access_token?.aal;
- if(aal!=="aal2"){showMessage("Finance access requires an MFA-verified administrator session (AAL2).");return}
- const {data:roles,error:roleError}=await supabaseClient.from("playam_admin_roles").select("role_name").eq("auth_user_id",session.user.id).eq("is_active",true).in("role_name",["super_admin","finance_admin"]);
- if(roleError||!roles?.length){showMessage("Finance administrator access is required.");return}
+ const {data:assurance,error:assuranceError}=await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
+ if(assuranceError||assurance?.currentLevel!=="aal2"){
+  showMessage("Finance access requires an MFA-verified administrator session (AAL2).");return;
+ }
+ const today=playamLocalDate(),monthStart=today.slice(0,8)+"01";
+ const {error:accessError}=await supabaseClient.rpc("playam_get_financial_summary_v1",{p_from:monthStart,p_to:today});
+ if(accessError){showMessage("Finance administrator access could not be verified: "+accessError.message);return}
  nav.classList.remove("hidden");
  showScreen("financeAdminScreen","navAdminFinance");
- const today=new Date().toISOString().slice(0,10);
- document.getElementById("financeFrom").value=today.slice(0,8)+"01";
+ document.getElementById("financeFrom").value=monthStart;
  document.getElementById("financeTo").value=today;
  document.getElementById("financeOccurredOn").value=today;
  updateFinanceCategories();await loadFinanceSummary();
