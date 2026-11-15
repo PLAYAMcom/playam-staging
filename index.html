@@ -7,6 +7,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PLAYAM 🎮</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
 <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -626,11 +627,15 @@ async function openVideoFeed(loadMore=false){
   let rendered=0;
   for(const post of posts){
    const asset=assetByPost.get(post.id);if(!asset)continue;
-   const bucket=asset.playback_bucket||asset.storage_bucket,key=asset.playback_object_key||asset.storage_object_key;if(!bucket||!key)continue;
-   const {data:signed,error:signedError}=await supabaseClient.storage.from(bucket).createSignedUrl(key,3600);
-   if(signedError||!signed?.signedUrl)continue;
+   const {data:playback,error:playbackError}=await supabaseClient.functions.invoke("flow-cloudflare-playback",{body:{postId:post.id}});
+   if(playbackError||!playback?.hlsUrl)continue;
    const article=document.createElement("article");article.className="video-post";
-   const video=document.createElement("video");video.src=signed.signedUrl;video.controls=true;video.playsInline=true;video.preload="metadata";video.loop=true;video.setAttribute("aria-label","PLAYAM creator video");
+   const video=document.createElement("video");video.controls=true;video.playsInline=true;video.preload="metadata";video.loop=true;video.setAttribute("aria-label","PLAYAM creator video");
+   if(window.Hls&&window.Hls.isSupported()){const player=new Hls({enableWorker:true,lowLatencyMode:true});player.loadSource(playback.hlsUrl);player.attachMedia(video);video._playamHls=player;}
+   else if(video.canPlayType("application/vnd.apple.mpegurl")){video.src=playback.hlsUrl;}
+   else if(playback.dashUrl&&window.dashjs){video.src=playback.dashUrl;}
+   else{continue}
+   if(playback.thumbnailUrl)video.poster=playback.thumbnailUrl;
    const meta=document.createElement("div");meta.className="video-post-meta";
    const caption=document.createElement("p");caption.textContent=post.caption||"PLAYAM video";
    const date=document.createElement("div");date.className="small";date.textContent=post.published_at?"Published "+new Date(post.published_at).toLocaleDateString():"PLAYAM creator";
