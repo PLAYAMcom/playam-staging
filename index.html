@@ -44,7 +44,7 @@ textarea{min-height:120px}
 .game-card h3{margin:0 0 8px;font-size:20px}
 .game-card p{color:var(--muted);font-size:13px;line-height:1.5;flex:1}
 .game-card button{width:100%;margin-top:10px}
-.small-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.video-feed{max-width:620px;margin:18px auto;display:flex;flex-direction:column;gap:18px}.video-post{position:relative;background:#05050b;border:1px solid #393454;border-radius:18px;overflow:hidden;min-height:300px}.video-post video{display:block;width:100%;max-height:78vh;aspect-ratio:9/16;object-fit:contain;background:#000}.video-post-meta{padding:14px}.video-post-meta p{margin:7px 0;color:#ddd}.video-post-actions{display:flex;gap:8px;flex-wrap:wrap}.video-post-actions button{padding:9px 13px}.video-feed-status{padding:18px;text-align:center}.small-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
 .small-card{background:var(--panel);border:1px solid #33334d;border-radius:17px;padding:19px}
 .screen-card{background:var(--panel);border:1px solid #34304f;border-radius:20px;padding:25px;max-width:850px}
 .screen-card h2{margin-top:0}
@@ -209,18 +209,10 @@ label{display:block;margin-top:13px;font-weight:bold}
   </section>
 
   <section id="videoScreen" class="hidden">
-   <div class="hero"><h2>🎥 PLAYAM Videos</h2><p>A dedicated video hub is now visible in Staging while we verify and connect the full upload and feed pipeline.</p></div>
-   <div class="game-grid">
-    <div class="game-card"><div class="emoji">📱</div><h3>SHORT VIDEO FEED</h3><p>Vertical, creator-led video discovery is the target PLAYAM experience.</p><button class="primary" onclick="showMessage('Video feed connection is the next implementation step.')">OPEN FEED</button></div>
-    <div class="game-card"><div class="emoji">⬆️</div><h3>UPLOAD VIDEO</h3><p>Creator uploads and playback remain part of the PLAYAM platform scope.</p><button class="secondary" onclick="showMessage('Upload flow will be connected after feed verification.')">UPLOAD</button></div>
-   </div>
-   <h3 class="section-title">Video platform roadmap</h3>
-   <div class="small-grid">
-    <div class="small-card"><strong>▶️ Playback</strong><p class="muted">Verify and improve playback.</p></div>
-    <div class="small-card"><strong>❤️ Interactions</strong><p class="muted">Likes, comments and sharing.</p></div>
-    <div class="small-card"><strong>👤 Creators</strong><p class="muted">Creator profiles and discovery.</p></div>
-    <div class="small-card"><strong>🛡️ Safety</strong><p class="muted">Reporting and moderation controls.</p></div>
-   </div>
+   <div class="hero"><h2>🎥 PLAYAM Videos</h2><p>Discover public videos from PLAYAM creators. Only approved, published videos with ready playback assets appear here.</p><button class="primary" onclick="openVideoFeed()">▶ OPEN VIDEO FEED</button> <button class="secondary" onclick="showMessage('Secure creator upload is the next connection step. No upload is started yet.')">⬆️ UPLOAD VIDEO</button></div>
+   <div id="videoFeedStatus" class="small-card" role="status" aria-live="polite">Open the feed to load approved videos.</div>
+   <div id="videoFeed" class="video-feed hidden"></div>
+   <button id="videoFeedMore" class="secondary hidden" onclick="openVideoFeed(true)">LOAD MORE</button>
   </section>
 
   <section id="findPlayerScreen" class="screen-card hidden">
@@ -426,6 +418,44 @@ function setNav(id){document.querySelectorAll(".navbtn").forEach(b=>b.classList.
 function showScreen(id,nav=""){hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome")}
 function showVideoHub(){hideScreens();document.getElementById("videoScreen").classList.remove("hidden");document.querySelectorAll(".navbtn").forEach(x=>x.classList.remove("active"))}
+let videoFeedOffset=0,videoFeedLoading=false,videoFeedEnded=false;
+async function openVideoFeed(loadMore=false){
+ const status=document.getElementById("videoFeedStatus"),feed=document.getElementById("videoFeed"),more=document.getElementById("videoFeedMore");
+ if(videoFeedLoading)return;videoFeedLoading=true;
+ if(!loadMore){videoFeedOffset=0;videoFeedEnded=false;feed.innerHTML="";feed.classList.remove("hidden");more.classList.add("hidden")}
+ status.textContent="Loading approved PLAYAM videos…";
+ try{
+  const {data:{session},error:authError}=await supabaseClient.auth.getSession();
+  if(authError)throw authError;if(!session)throw new Error("Please sign in to view PLAYAM Videos.");
+  const pageSize=8;
+  const {data:posts,error}=await supabaseClient.from("flow_posts").select("id,creator_auth_user_id,caption,published_at,created_at").eq("visibility","public").eq("status","published").eq("moderation_status","approved").order("published_at",{ascending:false}).range(videoFeedOffset,videoFeedOffset+pageSize-1);
+  if(error)throw error;
+  if(!posts||posts.length===0){if(videoFeedOffset===0){status.textContent="No approved videos yet. Be the first creator to publish a video when uploads are enabled.";}else{status.textContent="You’ve reached the end of the feed.";}videoFeedEnded=true;more.classList.add("hidden");return;}
+  const ids=posts.map(p=>p.id);
+  const {data:assets,error:assetError}=await supabaseClient.from("flow_post_assets").select("post_id,playback_bucket,playback_object_key,storage_bucket,storage_object_key,processing_status,mime_type").in("post_id",ids).eq("processing_status","ready");
+  if(assetError)throw assetError;
+  const assetByPost=new Map((assets||[]).map(a=>[a.post_id,a]));
+  let rendered=0;
+  for(const post of posts){
+   const asset=assetByPost.get(post.id);if(!asset)continue;
+   const bucket=asset.playback_bucket||asset.storage_bucket,key=asset.playback_object_key||asset.storage_object_key;if(!bucket||!key)continue;
+   const {data:signed,error:signedError}=await supabaseClient.storage.from(bucket).createSignedUrl(key,3600);
+   if(signedError||!signed?.signedUrl)continue;
+   const article=document.createElement("article");article.className="video-post";
+   const video=document.createElement("video");video.src=signed.signedUrl;video.controls=true;video.playsInline=true;video.preload="metadata";video.loop=true;video.setAttribute("aria-label","PLAYAM creator video");
+   const meta=document.createElement("div");meta.className="video-post-meta";
+   const caption=document.createElement("p");caption.textContent=post.caption||"PLAYAM video";
+   const date=document.createElement("div");date.className="small";date.textContent=post.published_at?"Published "+new Date(post.published_at).toLocaleDateString():"PLAYAM creator";
+   meta.append(caption,date);article.append(video,meta);feed.appendChild(article);rendered++;
+  }
+  videoFeedOffset+=posts.length;
+  videoFeedEnded=posts.length<pageSize;
+  status.textContent=rendered?"Showing approved PLAYAM videos. Tap a video to play; only one video should play at a time.":(videoFeedOffset===posts.length?"Approved posts were found, but none has a ready accessible playback asset yet.":"No more videos available.");
+  more.classList.toggle("hidden",videoFeedEnded);
+  feed.querySelectorAll("video").forEach(v=>{v.addEventListener("play",()=>feed.querySelectorAll("video").forEach(other=>{if(other!==v)other.pause()}));});
+ }catch(error){status.textContent=error.message||"Could not load videos. Please try again."}
+ finally{videoFeedLoading=false}
+}
 function showFindPlayer(){stopLobbyRefresh();stopGameRefresh();showScreen("findPlayerScreen")}
 function showSettings(){showScreen("settingsScreen")}
 function showCreateRoom(){showScreen("createScreen")}
