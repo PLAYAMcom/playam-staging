@@ -505,6 +505,18 @@ function playamLocalDate(){
  const now=new Date(),offset=now.getTimezoneOffset();
  return new Date(now.getTime()-offset*60000).toISOString().slice(0,10);
 }
+async function refreshFinanceAdminVisibility(){
+ const nav=document.getElementById("navAdminFinance");
+ if(!nav)return;
+ nav.classList.add("hidden");
+ const {data:{session},error}=await supabaseClient.auth.getSession();
+ if(error||!session)return;
+ const {data:assurance,error:assuranceError}=await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
+ if(assuranceError||assurance?.currentLevel!=="aal2")return;
+ const today=playamLocalDate(),monthStart=today.slice(0,8)+"01";
+ const {error:accessError}=await supabaseClient.rpc("playam_get_financial_summary_v1",{p_from:monthStart,p_to:today});
+ if(!accessError)nav.classList.remove("hidden");
+}
 async function showFinanceAdmin(){
  stopLobbyRefresh();stopGameRefresh();
  const nav=document.getElementById("navAdminFinance");nav.classList.add("hidden");
@@ -1144,12 +1156,12 @@ function returnHomeFromResults(){stopGameRefresh();resetGameState();showHome()}
 async function checkLogin(){
  const {data:{session},error}=await supabaseClient.auth.getSession();
  if(error){document.getElementById("authMessage").innerText=error.message;return}
- if(session){document.getElementById("authScreen").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showHome()}
+ if(session){document.getElementById("authScreen").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showHome();await refreshFinanceAdminVisibility()}
  else{document.getElementById("app").classList.add("hidden");document.getElementById("authScreen").classList.remove("hidden")}
 }
 supabaseClient.auth.onAuthStateChange((event,session)=>{
- if(event==="SIGNED_OUT"){resetGameState();resetSoloGame();document.getElementById("app").classList.add("hidden");document.getElementById("authScreen").classList.remove("hidden")}
- if(event==="SIGNED_IN"&&session){document.getElementById("authScreen").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showHome()}
+ if(event==="SIGNED_OUT"){resetGameState();resetSoloGame();document.getElementById("navAdminFinance")?.classList.add("hidden");document.getElementById("app").classList.add("hidden");document.getElementById("authScreen").classList.remove("hidden")}
+ if(event==="SIGNED_IN"&&session){document.getElementById("authScreen").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showHome();refreshFinanceAdminVisibility()}
 });
 checkLogin();
 </script>
