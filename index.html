@@ -7,6 +7,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PLAYAM 🎮</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js"></script>
 <style>
 *{box-sizing:border-box}
 :root{--bg:#090914;--panel:#151528;--panel2:#20203b;--purple:#9b5cff;--pink:#ed4cbd;--blue:#586bff;--text:#fff;--muted:#aaaac5}
@@ -210,7 +211,12 @@ label{display:block;margin-top:13px;font-weight:bold}
   </section>
 
   <section id="videoScreen" class="hidden">
-   <div class="hero"><h2>🎥 PLAYAM Videos</h2><p>Discover public videos from PLAYAM creators. Only approved, published videos with ready playback assets appear here.</p><button class="primary" onclick="openVideoFeed()">▶ OPEN VIDEO FEED</button> <button class="secondary" onclick="showMessage('Secure creator upload is the next connection step. No upload is started yet.')">⬆️ UPLOAD VIDEO</button></div>
+   <div class="hero"><h2>🎥 PLAYAM Videos</h2><p>Discover public videos from PLAYAM creators. Only approved, published videos with ready playback assets appear here.</p><button class="primary" onclick="openVideoFeed()">▶ OPEN VIDEO FEED</button> <button class="secondary" onclick="document.getElementById('playamVideoFile').click()">⬆️ UPLOAD VIDEO</button>
+    <input id="playamVideoFile" type="file" accept="video/mp4,video/quicktime,video/webm" hidden onchange="beginPlayamVideoUpload(this)">
+    <label for="playamVideoCaption">Video caption (optional)</label><textarea id="playamVideoCaption" maxlength="2200" placeholder="Write a caption for your video..."></textarea>
+    <p class="small muted">MP4, MOV or WebM · maximum 100 MB · uploads remain private until processing and administrator approval.</p>
+   </div>
+   <div id="playamUploadStatus" class="small-card" role="status" aria-live="polite"></div>
    <div id="videoFeedStatus" class="small-card" role="status" aria-live="polite">Open the feed to load approved videos.</div>
    <div id="videoFeed" class="video-feed hidden"></div>
    <button id="videoFeedMore" class="secondary hidden" onclick="openVideoFeed(true)">LOAD MORE</button>
@@ -521,6 +527,31 @@ async function loadCreatorEarningsDashboard(){
 }
 function showVideoHub(){hideScreens();document.getElementById("videoScreen").classList.remove("hidden");document.querySelectorAll(".navbtn").forEach(x=>x.classList.remove("active"))}
 let videoFeedOffset=0,videoFeedLoading=false,videoFeedEnded=false;
+async function beginPlayamVideoUpload(input){
+ const file=input?.files?.[0];if(!file)return;
+ const status=document.getElementById("playamUploadStatus");
+ const setStatus=t=>{if(status)status.textContent=t};
+ const caption=document.getElementById("playamVideoCaption")?.value.trim()||"";
+ if(!window.tus?.Upload){setStatus("Secure resumable upload component did not load. Refresh and try again.");input.value="";return}
+ if(file.size<=0||file.size>104857600){setStatus("Choose a video between 1 byte and 100 MB.");input.value="";return}
+ if(!["video/mp4","video/quicktime","video/webm"].includes(file.type)){setStatus("Choose an MP4, MOV or WebM video.");input.value="";return}
+ if(caption.length>2200){setStatus("Caption must be 2,200 characters or fewer.");input.value="";return}
+ setStatus("Preparing a private, secure upload...");
+ try{
+  const {data:{session},error:sessionError}=await supabaseClient.auth.getSession();
+  if(sessionError)throw sessionError;
+  if(!session)throw new Error("Please sign in before uploading.");
+  const {data:prepared,error}=await supabaseClient.functions.invoke("flow-cloudflare-create-upload",{body:{mimeType:file.type,fileSize:file.size,caption}});
+  if(error||!prepared?.tusUploadUrl)throw new Error(prepared?.error||error?.message||"Could not prepare upload. Check whether Cloudflare Stream is configured in Staging.");
+  setStatus("Uploading video… 0%");
+  const upload=new tus.Upload(file,{uploadUrl:prepared.tusUploadUrl,chunkSize:8*1024*1024,retryDelays:[0,1000,3000,5000,10000],metadata:{filename:file.name,filetype:file.type},
+   onError(err){setStatus("Upload failed: "+(err?.message||"Please try again."));input.value=""},
+   onProgress(sent,total){setStatus("Uploading video… "+Math.floor(sent/total*100)+"%")},
+   onSuccess(){setStatus("Upload complete. Your video is private while Cloudflare processes it. It will appear only after administrator moderation and approval.");input.value="";const c=document.getElementById("playamVideoCaption");if(c)c.value=""}
+  });
+  upload.start();
+ }catch(error){setStatus(error?.message||"Upload could not be started.");input.value=""}
+}
 async function openVideoFeed(loadMore=false){
  const status=document.getElementById("videoFeedStatus"),feed=document.getElementById("videoFeed"),more=document.getElementById("videoFeedMore");
  if(videoFeedLoading)return;videoFeedLoading=true;
