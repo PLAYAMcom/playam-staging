@@ -360,7 +360,7 @@ const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let currentRoomCode="",currentRoomId="",currentPlayerId="",currentNickname="";
 let currentPlayerReady=false,currentPlayerIsHost=false,currentGame="",currentRoundId="";
 let selectedVotePlayerId="",lobbyRefreshTimer=null,lobbyLoading=false;
-let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,roundAdvanceRequestedFor="";
+let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,roundAdvanceRequestedFor="",roundAdvanceTimeoutRequestedFor="";
 let soloQuestions=[],soloAnswers=[],soloQuestionIndex=0,soloDifficulty="starter",soloLoading=false;
 
 const screenIds=["homeScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
@@ -528,7 +528,7 @@ async function loadGame(){
  const {data:round,error:roundError}=await supabaseClient.from("game_rounds").select("*,questions(id,text,question_type,option_a,option_b)").eq("room_id",room.id).eq("round_number",room.current_round).single();
  if(roundError||!round){document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="Preparing the next round...";return}
  if(currentRoundId!==round.id){
-  currentRoundId=round.id;answerSubmitted=false;selectedVotePlayerId="";roundAdvanceRequestedFor="";
+  currentRoundId=round.id;answerSubmitted=false;selectedVotePlayerId="";roundAdvanceRequestedFor="";roundAdvanceTimeoutRequestedFor="";
   document.getElementById("answerInput").value="";
   const {data:alreadySubmitted,error:submissionCheckError}=await supabaseClient.rpc("has_playam_submitted",{p_code:currentRoomCode});
   if(submissionCheckError){showMessage("Could not check your round status: "+submissionCheckError.message);return}
@@ -562,14 +562,29 @@ function updateTimer(){
  const timer=document.getElementById("gameTimer");timer.innerText=seconds;timer.classList.toggle("warning",seconds<=10);
  if(seconds===0){
   document.getElementById("gameStatus").innerText="Time is up. Moving to the next round...";
-  if(currentRoundId&&roundAdvanceRequestedFor!==currentRoundId){
-   roundAdvanceRequestedFor=currentRoundId;
-   supabaseClient.rpc("advance_playam_round",{p_code:currentRoomCode}).then(({data,error})=>{
-    if(error){roundAdvanceRequestedFor="";showMessage("Round could not advance: "+error.message);return}
-    if(data==="advanced"||data==="finished"||data==="finished_no_more_questions"){loadGame()}
-   });
+  if(currentRoundId&&roundAdvanceTimeoutRequestedFor!==currentRoundId){
+   roundAdvanceTimeoutRequestedFor=currentRoundId;
+   requestRoundAdvance(true);
   }
  }
+}
+async function requestRoundAdvance(force=false){
+ if(!currentRoundId||!currentRoomCode)return;
+ if(!force&&roundAdvanceRequestedFor===currentRoundId)return;
+ const requestedRoundId=currentRoundId;
+ roundAdvanceRequestedFor=requestedRoundId;
+ const {data,error}=await supabaseClient.rpc("advance_playam_round",{p_code:currentRoomCode});
+ if(currentRoundId!==requestedRoundId)return;
+ if(error){
+  roundAdvanceRequestedFor="";
+  showMessage("Round could not advance: "+error.message);
+  return;
+ }
+ if(data==="advanced"||data==="finished"||data==="finished_no_more_questions"||data==="already_advanced"){
+  await loadGame();
+  return;
+ }
+ if(data==="waiting")roundAdvanceRequestedFor="";
 }
 async function submitChoice(choice){await submitGameAnswer(choice)}
 async function submitWrittenAnswer(){const answer=document.getElementById("answerInput").value.trim();if(!answer){showMessage("Please enter an answer.");return}await submitGameAnswer(answer)}
@@ -579,6 +594,7 @@ async function submitGameAnswer(answer){
  if(error){showMessage(error.message);return}
  answerSubmitted=true;showMessage("✓ Answer submitted!");hideGameControls();
  document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="Your answer is locked in.";
+ await requestRoundAdvance();
 }
 async function loadVotePlayers(){
  const box=document.getElementById("votePlayers");box.innerHTML="Loading players...";
@@ -597,6 +613,7 @@ async function submitVote(){
  const {error}=await supabaseClient.from("votes").insert({round_id:currentRoundId,voter_player_id:currentPlayerId,target_player_id:selectedVotePlayerId});
  if(error){showMessage(error.message);return}
  answerSubmitted=true;hideGameControls();document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="✓ Vote submitted. Waiting for the round...";
+ await requestRoundAdvance();
 }
 
 
@@ -676,7 +693,7 @@ async function showResults(){
 }
 async function copyRoomCode(){try{await navigator.clipboard.writeText(currentRoomCode);showMessage("Room code copied!")}catch(e){showMessage("Your room code is: "+currentRoomCode)}}
 function resetGameState(){
- currentRoomCode="";currentRoomId="";currentPlayerId="";currentNickname="";currentPlayerReady=false;currentPlayerIsHost=false;currentGame="";currentRoundId="";selectedVotePlayerId="";currentRoundEndsAt=null;answerSubmitted=false;
+ currentRoomCode="";currentRoomId="";currentPlayerId="";currentNickname="";currentPlayerReady=false;currentPlayerIsHost=false;currentGame="";currentRoundId="";selectedVotePlayerId="";currentRoundEndsAt=null;answerSubmitted=false;roundAdvanceRequestedFor="";roundAdvanceTimeoutRequestedFor="";
 }
 function leaveLobbyView(){stopLobbyRefresh();stopGameRefresh();resetGameState();showHome()}
 function returnHomeFromResults(){stopGameRefresh();resetGameState();showHome()}
