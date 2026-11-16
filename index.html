@@ -924,8 +924,8 @@ const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let currentRoomCode="",currentRoomId="",currentPlayerId="",currentNickname="";
 let availablePlayamMarkets=[];
 let currentPlayerReady=false,currentPlayerIsHost=false,currentGame="",currentRoundId="";
-let selectedVotePlayerId="",lobbyRefreshTimer=null,lobbyLoading=false;
-let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,roundAdvanceRequestedFor="",roundAdvanceTimeoutRequestedFor="";
+let selectedVotePlayerId="",lobbyRefreshTimer=null,lobbyLoading=false,lobbyActionInFlight=false;
+let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,answerSubmitting=false,voteSubmitting=false,roundAdvanceInFlight=false,gameLoading=false,gameLoadSequence=0,roundAdvanceRequestedFor="",roundAdvanceTimeoutRequestedFor="";
 let soloQuestions=[],soloAnswers=[],soloQuestionIndex=0,soloDifficulty="starter",soloLoading=false;
 
 const screenIds=["homeScreen","gamesScreen","messagesScreen","liveScreen","videoScreen","walletScreen","notificationsScreen","profileScreen","financeAdminScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
@@ -1757,22 +1757,34 @@ function cancelSoloGame(){if(!confirm("Exit this Solo game? Your current answers
 
 /* CREATE / JOIN */
 async function createRoom(){
+ if(lobbyActionInFlight)return;
+ const button=document.querySelector("#createScreen button.primary");
  const nickname=document.getElementById("nickname").value.trim(),game=document.getElementById("game").value,level=document.getElementById("level").value,rounds=Number(document.getElementById("rounds").value);
  if(!nickname){showMessage("Please enter a nickname.");return}
- showMessage("Creating your PLAYAM room...");
- const {data,error}=await supabaseClient.rpc("create_playam_room",{p_nickname:nickname,p_rounds:rounds,p_game:game,p_level_key:level});
- if(error){showMessage(error.message);return}
- if(!data||!data.length||!data[0].room_code){showMessage("Room was created, but its details were not returned.");return}
- currentRoomCode=data[0].room_code;currentPlayerId=data[0].player_id;currentNickname=nickname;openLobby();
+ lobbyActionInFlight=true;if(button)button.disabled=true;
+ try{
+  showMessage("Creating your PLAYAM room...");
+  const {data,error}=await supabaseClient.rpc("create_playam_room",{p_nickname:nickname,p_rounds:rounds,p_game:game,p_level_key:level});
+  if(error)throw error;
+  if(!data||!data.length||!data[0].room_code)throw new Error("Room was created, but its details were not returned.");
+  currentRoomCode=data[0].room_code;currentPlayerId=data[0].player_id;currentNickname=nickname;openLobby();
+ }catch(error){showMessage(error?.message||"Could not create the room. Please try again.")}
+ finally{lobbyActionInFlight=false;if(button)button.disabled=false}
 }
 async function joinRoom(){
+ if(lobbyActionInFlight)return;
+ const button=document.querySelector("#joinScreen button.primary");
  const code=document.getElementById("joinCode").value.trim().toUpperCase(),nickname=document.getElementById("joinNickname").value.trim();
  if(!code||!nickname){showMessage("Enter your room code and nickname.");return}
- showMessage("Joining room...");
- const {data,error}=await supabaseClient.rpc("join_playam_room",{p_code:code,p_nickname:nickname});
- if(error){showMessage(error.message);return}
- if(!data||!data.length||!data[0].room_code){showMessage("You joined, but room details were not returned.");return}
- currentRoomCode=data[0].room_code;currentPlayerId=data[0].player_id;currentNickname=nickname;openLobby();
+ lobbyActionInFlight=true;if(button)button.disabled=true;
+ try{
+  showMessage("Joining room...");
+  const {data,error}=await supabaseClient.rpc("join_playam_room",{p_code:code,p_nickname:nickname});
+  if(error)throw error;
+  if(!data||!data.length||!data[0].room_code)throw new Error("You joined, but room details were not returned.");
+  currentRoomCode=data[0].room_code;currentPlayerId=data[0].player_id;currentNickname=nickname;openLobby();
+ }catch(error){showMessage(error?.message||"Could not join the room. Please try again.")}
+ finally{lobbyActionInFlight=false;if(button)button.disabled=false}
 }
 
 /* LOBBY */
@@ -1783,7 +1795,10 @@ function openLobby(){
 function stopLobbyRefresh(){if(lobbyRefreshTimer){clearInterval(lobbyRefreshTimer);lobbyRefreshTimer=null}}
 async function loadLobby(){
  if(!currentRoomCode||lobbyLoading)return;lobbyLoading=true;
- const {data,error}=await supabaseClient.rpc("get_playam_lobby",{p_code:currentRoomCode});lobbyLoading=false;
+ const requestedRoomCode=currentRoomCode;
+ try{
+ const {data,error}=await supabaseClient.rpc("get_playam_lobby",{p_code:requestedRoomCode});
+ if(currentRoomCode!==requestedRoomCode)return;
  if(error){showMessage(error.message);return}
  if(!data||!data.length){showMessage("No players found in this room.");return}
  if(data[0].game_status==="playing"){stopLobbyRefresh();openGame();return}
@@ -1803,34 +1818,53 @@ async function loadLobby(){
  document.getElementById("lobbyRound").innerText="Current round: "+data[0].current_round+" | Total rounds: "+data[0].total_rounds;
  const ready=document.getElementById("readyButton");ready.innerText=currentPlayerReady?"CANCEL READY":"I'M READY";ready.disabled=data[0].game_status!=="waiting";
  document.getElementById("startButton").classList.toggle("hidden",!(currentPlayerIsHost&&data[0].game_status==="waiting"));
+ }catch(error){showMessage(error?.message||"Unable to refresh the lobby.")}
+ finally{lobbyLoading=false}
 }
 async function toggleReady(){
- const next=!currentPlayerReady;showMessage("Updating your readiness...");
- const {error}=await supabaseClient.rpc("set_playam_ready",{p_ready:next,p_code:currentRoomCode});
- if(error){showMessage(error.message);return}
- showMessage(next?"You are ready!":"You are no longer ready.");await loadLobby();
+ if(lobbyActionInFlight||!currentRoomCode)return;
+ lobbyActionInFlight=true;const button=document.getElementById("readyButton");if(button)button.disabled=true;
+ const next=!currentPlayerReady,requestedRoomCode=currentRoomCode;
+ try{
+  showMessage("Updating your readiness...");
+  const {error}=await supabaseClient.rpc("set_playam_ready",{p_ready:next,p_code:requestedRoomCode});
+  if(error)throw error;
+  showMessage(next?"You are ready!":"You are no longer ready.");await loadLobby();
+ }catch(error){showMessage(error?.message||"Could not update readiness.")}
+ finally{lobbyActionInFlight=false;if(button)button.disabled=false}
 }
 async function startGame(){
+ if(lobbyActionInFlight||!currentRoomCode)return;
  if(!currentPlayerIsHost){showMessage("Only the room host can start the game.");return}
- showMessage("Starting PLAYAM game...");
- const {error}=await supabaseClient.rpc("start_playam_game",{p_code:currentRoomCode});
- if(error){showMessage(error.message);return}
- showMessage("PLAYAM has started!");stopLobbyRefresh();setTimeout(openGame,500);
+ lobbyActionInFlight=true;const button=document.getElementById("startButton");if(button)button.disabled=true;
+ const requestedRoomCode=currentRoomCode;
+ try{
+  showMessage("Starting PLAYAM game...");
+  const {error}=await supabaseClient.rpc("start_playam_game",{p_code:requestedRoomCode});
+  if(error)throw error;
+  if(currentRoomCode!==requestedRoomCode)return;
+  showMessage("PLAYAM has started!");stopLobbyRefresh();setTimeout(openGame,500);
+ }catch(error){showMessage(error?.message||"Could not start the game.")}
+ finally{lobbyActionInFlight=false;if(button)button.disabled=false}
 }
 
 /* MULTIPLAYER GAME */
 function openGame(){
- stopLobbyRefresh();stopGameRefresh();showScreen("gameScreen");answerSubmitted=false;selectedVotePlayerId="";
+ stopLobbyRefresh();stopGameRefresh();gameLoadSequence++;gameLoading=false;showScreen("gameScreen");answerSubmitted=false;answerSubmitting=false;voteSubmitting=false;selectedVotePlayerId="";
  loadGame();gameRefreshTimer=setInterval(loadGame,2000);
 }
 function stopGameRefresh(){
  if(gameRefreshTimer){clearInterval(gameRefreshTimer);gameRefreshTimer=null}
  if(gameTimerInterval){clearInterval(gameTimerInterval);gameTimerInterval=null}
+ gameLoadSequence++;gameLoading=false;
 }
 async function loadGame(){
- if(!currentRoomCode)return;
- const {data:room,error:roomError}=await supabaseClient.from("rooms").select("*").eq("code",currentRoomCode).single();
- if(roomError){showMessage(roomError.message);return}if(!room)return;
+ if(!currentRoomCode||gameLoading)return;
+ gameLoading=true;const requestedRoomCode=currentRoomCode,sequence=gameLoadSequence;
+ try{
+ const {data:room,error:roomError}=await supabaseClient.from("rooms").select("*").eq("code",requestedRoomCode).single();
+ if(sequence!==gameLoadSequence||currentRoomCode!==requestedRoomCode)return;
+ if(roomError)throw roomError;if(!room)return;
  currentRoomId=room.id;currentGame=room.game;
  if(room.status==="finished"||room.game_status==="finished"){stopGameRefresh();showResults();return}
  const {data:round,error:roundError}=await supabaseClient.from("game_rounds").select("*,questions(id,text,question_type,option_a,option_b)").eq("room_id",room.id).eq("round_number",room.current_round).single();
@@ -1848,6 +1882,8 @@ async function loadGame(){
  if(legendStage[room.game]) document.getElementById("gameRoundNumber").innerText+=" • "+legendStage[room.game];
  document.getElementById("questionBox").innerText=round.questions.text;
  currentRoundEndsAt=round.ends_at;startRoundTimer();await renderGameControls(round,room);
+ }catch(error){if(sequence===gameLoadSequence)showMessage(error?.message||"Unable to refresh the game.")}
+ finally{if(sequence===gameLoadSequence)gameLoading=false}
 }
 function getGameTitle(g){return({"friendship-court":"⚖️ Friendship Court","would-you-rather":"🤔 Would You Rather?","truth-or-dare":"🎭 Truth or Dare","mind-battle":"🧠 Mind Battle","secret-confessions":"🤫 Secret Confessions","legend-test":"🏆 Legend: Test","legend-pressure":"🔥 Legend: Pressure","legend-mind-game":"🧩 Legend: Mind Game","legend-ultimate-decision":"⚖️ Legend: Ultimate Decision","legend-final-trial":"🏁 Legend: Final Trial"})[g]||"PLAYAM"}
 function hideGameControls(){["choiceArea","answerArea","voteArea","gameWaiting"].forEach(id=>document.getElementById(id).classList.add("hidden"))}
@@ -1889,12 +1925,13 @@ function updateTimer(){
  }
 }
 async function requestRoundAdvance(force=false){
- if(!currentRoundId||!currentRoomCode)return;
+ if(!currentRoundId||!currentRoomCode||roundAdvanceInFlight)return;
  if(!force&&roundAdvanceRequestedFor===currentRoundId)return;
- const requestedRoundId=currentRoundId;
- roundAdvanceRequestedFor=requestedRoundId;
- const {data,error}=await supabaseClient.rpc("advance_playam_round",{p_code:currentRoomCode});
- if(currentRoundId!==requestedRoundId)return;
+ const requestedRoundId=currentRoundId,requestedRoomCode=currentRoomCode;
+ roundAdvanceRequestedFor=requestedRoundId;roundAdvanceInFlight=true;
+ try{
+ const {data,error}=await supabaseClient.rpc("advance_playam_round",{p_code:requestedRoomCode});
+ if(currentRoundId!==requestedRoundId||currentRoomCode!==requestedRoomCode)return;
  if(error){
   roundAdvanceRequestedFor="";
   showMessage("Round could not advance: "+error.message);
@@ -1905,16 +1942,25 @@ async function requestRoundAdvance(force=false){
   return;
  }
  if(data==="waiting")roundAdvanceRequestedFor="";
+ }catch(error){if(currentRoundId===requestedRoundId){roundAdvanceRequestedFor="";showMessage(error?.message||"Round could not advance.")}}
+ finally{roundAdvanceInFlight=false}
 }
 async function submitChoice(choice){await submitGameAnswer(choice)}
 async function submitWrittenAnswer(){const answer=document.getElementById("answerInput").value.trim();if(!answer){showMessage("Please enter an answer.");return}await submitGameAnswer(answer)}
 async function submitGameAnswer(answer){
- if(answerSubmitted)return;
- const {error}=await supabaseClient.rpc("submit_playam_answer",{p_answer:answer,p_code:currentRoomCode});
- if(error){showMessage(error.message);return}
- answerSubmitted=true;showMessage("✓ Answer submitted!");hideGameControls();
- document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="Your answer is locked in.";
- await requestRoundAdvance();
+ if(answerSubmitted||answerSubmitting||!currentRoomCode||!currentRoundId)return;
+ answerSubmitting=true;const buttonIds=["optionAButton","optionBButton","submitAnswerButton"];
+ buttonIds.forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=true});
+ const requestedRoundId=currentRoundId,requestedRoomCode=currentRoomCode;
+ try{
+  const {error}=await supabaseClient.rpc("submit_playam_answer",{p_answer:answer,p_code:requestedRoomCode});
+  if(error)throw error;
+  if(currentRoundId!==requestedRoundId||currentRoomCode!==requestedRoomCode)return;
+  answerSubmitted=true;showMessage("✓ Answer submitted!");hideGameControls();
+  document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="Your answer is locked in.";
+  await requestRoundAdvance();
+ }catch(error){showMessage(error?.message||"Your answer could not be submitted. Please try again.")}
+ finally{answerSubmitting=false;buttonIds.forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=false})}
 }
 async function loadVotePlayers(){
  const box=document.getElementById("votePlayers");box.innerHTML="Loading players...";
@@ -1929,12 +1975,19 @@ async function loadVotePlayers(){
  });
 }
 async function submitVote(){
+ if(voteSubmitting||answerSubmitted)return;
  if(!selectedVotePlayerId){showMessage("Choose a player first.");return}
- if(!currentRoomCode){showMessage("Room information is missing. Please rejoin the game.");return}
- const {error}=await supabaseClient.rpc("submit_playam_vote",{p_code:currentRoomCode,p_target_player_id:selectedVotePlayerId});
- if(error){showMessage(error.message);return}
- answerSubmitted=true;hideGameControls();document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="✓ Vote submitted. Waiting for the round...";
- await requestRoundAdvance();
+ if(!currentRoomCode||!currentRoundId){showMessage("Room information is missing. Please rejoin the game.");return}
+ voteSubmitting=true;const button=document.getElementById("submitVoteButton");if(button)button.disabled=true;
+ const requestedRoundId=currentRoundId,requestedRoomCode=currentRoomCode,targetPlayerId=selectedVotePlayerId;
+ try{
+  const {error}=await supabaseClient.rpc("submit_playam_vote",{p_code:requestedRoomCode,p_target_player_id:targetPlayerId});
+  if(error)throw error;
+  if(currentRoundId!==requestedRoundId||currentRoomCode!==requestedRoomCode)return;
+  answerSubmitted=true;hideGameControls();document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="✓ Vote submitted. Waiting for the round...";
+  await requestRoundAdvance();
+ }catch(error){showMessage(error?.message||"Your vote could not be submitted. Please try again.")}
+ finally{voteSubmitting=false;if(button)button.disabled=false}
 }
 
 
@@ -2023,7 +2076,7 @@ async function showResults(){
 }
 async function copyRoomCode(){try{await navigator.clipboard.writeText(currentRoomCode);showMessage("Room code copied!")}catch(e){showMessage("Your room code is: "+currentRoomCode)}}
 function resetGameState(){
- currentRoomCode="";currentRoomId="";currentPlayerId="";currentNickname="";currentPlayerReady=false;currentPlayerIsHost=false;currentGame="";currentRoundId="";selectedVotePlayerId="";currentRoundEndsAt=null;answerSubmitted=false;roundAdvanceRequestedFor="";roundAdvanceTimeoutRequestedFor="";
+ currentRoomCode="";currentRoomId="";currentPlayerId="";currentNickname="";currentPlayerReady=false;currentPlayerIsHost=false;currentGame="";currentRoundId="";selectedVotePlayerId="";currentRoundEndsAt=null;answerSubmitted=false;answerSubmitting=false;voteSubmitting=false;roundAdvanceInFlight=false;gameLoading=false;gameLoadSequence++;lobbyActionInFlight=false;roundAdvanceRequestedFor="";roundAdvanceTimeoutRequestedFor="";
 }
 function leaveLobbyView(){stopLobbyRefresh();stopGameRefresh();resetGameState();showHome()}
 function returnHomeFromResults(){stopGameRefresh();resetGameState();showHome()}
