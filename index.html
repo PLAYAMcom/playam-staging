@@ -715,13 +715,28 @@ async function loadDmThread(){
   if(error)throw error;area.replaceChildren();
   (data||[]).forEach(m=>{
    const bubble=dmEl("div","dm-bubble"+(m.sender_auth_user_id===dmUser.id?" mine":""));
-   bubble.append(dmEl("div","",m.body||"Attachment"));bubble.append(dmEl("small","",new Date(m.created_at).toLocaleString()+(m.sender_auth_user_id===dmUser.id?(m.read_at?" · Read":" · Sent"):"")));area.append(bubble);
+   bubble.append(dmEl("div","",m.body||"Attachment"));bubble.append(dmEl("small","",new Date(m.created_at).toLocaleString()+(m.sender_auth_user_id===dmUser.id?(m.read_at?" · Read":" · Sent"):"")));
+   if(m.sender_auth_user_id!==dmUser.id){const report=dmEl("button","secondary","REPORT MESSAGE");report.type="button";report.style.marginTop="6px";report.addEventListener("click",()=>reportDmMessage(m));bubble.append(report)}
+   area.append(bubble);
   });
   if(!data?.length)area.append(dmEl("div","dm-empty","Say hello and start the conversation."));
   area.scrollTop=area.scrollHeight;
   const unread=(data||[]).filter(m=>m.sender_auth_user_id!==dmUser.id&&!m.read_at).map(m=>m.id);
   if(unread.length){const {error:readError}=await supabaseClient.from("private_messages").update({read_at:new Date().toISOString()}).in("id",unread);if(readError)console.warn("Could not mark messages read",readError)}
  }catch(e){area.replaceChildren(dmEl("div","dm-empty",e.message||"Unable to load messages."))}
+}
+async function reportDmMessage(message){
+ const choices=["Harassment or bullying","Hate speech or abusive behaviour","Inappropriate content","Spam or disruptive behaviour","Other"];
+ const reason=prompt("Why are you reporting this message?\n"+choices.map((x,i)=>(i+1)+". "+x).join("\n")+"\nEnter a number:");
+ if(reason===null)return;const selected=choices[Number(reason.trim())-1];if(!selected){alert("Choose a valid report reason.");return}
+ const details=prompt("Add any helpful context (optional, maximum 1,500 characters):")||"";
+ if(details.length>1500){alert("Please keep details under 1,500 characters.");return}
+ try{
+  const user=await dmGetUser();
+  const {data,error}=await supabaseClient.rpc("submit_private_message_report",{p_message_id:message.id,p_reason:selected,p_details:details||null});
+  if(error)throw error;
+  alert("Thank you. Your report has been securely submitted for review.");
+ }catch(e){alert(e.message||"Your report could not be submitted. Please try again.")}
 }
 async function sendDmMessage(event){
  event.preventDefault();const input=document.getElementById("dmComposeInput"),body=input.value.trim();if(!body||!dmActiveConversation)return;
