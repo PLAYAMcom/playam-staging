@@ -48,7 +48,7 @@ if not GAME_RPC_MIGRATION.exists():
 game_rpc_migration = GAME_RPC_MIGRATION.read_text(encoding="utf-8")
 def function_definition(sql, function_name):
     match = re.search(
-        r"create\\s+or\\s+replace\\s+function\\s+public\\." + re.escape(function_name) + r"\\b.*?\\$\\$;",
+        r"create\s+or\s+replace\s+function\s+public\." + re.escape(function_name) + r"\b.*?\$\$;",
         sql, re.I | re.S
     )
     if not match:
