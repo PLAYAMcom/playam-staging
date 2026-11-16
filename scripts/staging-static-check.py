@@ -78,6 +78,11 @@ desktop_markers = (
     "#videoScreen #videoFeed",
     "#videoScreen .video-feed{max-width:none}",
     ".dm-layout",
+    ".sidebar{\n  position:sticky",
+    "#videoScreen .video-feed{max-width:none}",
+    "#bottomNav{display:none}",
+    "#bottomNav{position:fixed",
+    "#videoScreen #videoFeed{grid-template-columns:repeat(3,minmax(0,1fr))",
 )
 missing_desktop = [marker for marker in desktop_markers if marker not in source]
 if missing_desktop:
