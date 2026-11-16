@@ -457,6 +457,8 @@ input,select,textarea{font-size:16px;max-width:100%}
 @media(min-width:761px){.home-shortcuts{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){.home-shortcuts{grid-template-columns:1fr 1fr}.home-shortcuts button:last-child{grid-column:1/-1}}
 
+
+.dm-avatar{overflow:hidden;flex:0 0 42px}.dm-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}.dm-person:focus-visible{outline:2px solid #e19aff;outline-offset:3px}
 </style>
 </head>
 <body>
@@ -975,7 +977,7 @@ async function searchDmPlayers(){
   const {data:blocks,error:be}=await supabaseClient.from("player_blocks").select("blocked_auth_user_id").eq("blocker_auth_user_id",user.id);if(be)throw be;
   const blocked=new Set((blocks||[]).map(x=>x.blocked_auth_user_id));
   data.filter(p=>!blocked.has(p.user_id)).forEach(p=>{
-   const b=dmEl("button","dm-person");b.type="button";b.append(dmEl("span","dm-avatar",(p.display_name||p.username||"P")[0].toUpperCase()));
+   const b=dmEl("button","dm-person");b.type="button";const avatar=dmEl("span","dm-avatar",(p.display_name||p.username||"P")[0].toUpperCase());if(p.avatar_url){try{const photo=new URL(p.avatar_url);if(photo.protocol==="https:"){const img=document.createElement("img");img.src=photo.href;img.alt="";img.loading="lazy";img.referrerPolicy="no-referrer";img.addEventListener("error",()=>img.remove(),{once:true});avatar.textContent="";avatar.append(img)}}catch(_){}}b.append(avatar);
    const meta=dmEl("span","dm-person-meta");meta.append(dmEl("strong","",p.display_name||p.username),dmEl("small","","@"+p.username));b.append(meta);
    b.addEventListener("click",()=>startDmConversation(p));out.append(b);
   });
