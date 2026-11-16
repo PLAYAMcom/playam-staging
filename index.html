@@ -650,7 +650,7 @@ function setNav(id){
 function showScreen(id,nav=""){if(id!=="messagesScreen"&&dmRealtimeChannel){supabaseClient.removeChannel(dmRealtimeChannel);dmRealtimeChannel=null}hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome")}
 function showGames(){stopLobbyRefresh();stopGameRefresh();showScreen("gamesScreen","navGames");renderPlayamCatalogue()}
-let dmUser=null,dmActiveConversation=null,dmActivePartner=null,dmRealtimeChannel=null,dmLoading=false,dmPendingSends={},dmThreadOldest=null,dmThreadHasMore=false,dmThreadLoadingMore=false;
+let dmUser=null,dmActiveConversation=null,dmActivePartner=null,dmRealtimeChannel=null,dmRealtimeRetryTimer=null,dmRealtimeRetryCount=0,dmLoading=false,dmPendingSends={},dmThreadOldest=null,dmThreadHasMore=false,dmThreadLoadingMore=false;
 function showMessages(){stopLobbyRefresh();stopGameRefresh();showScreen("messagesScreen","navMessages");loadDmInbox()}
 async function dmGetUser(){const {data:{user},error}=await supabaseClient.auth.getUser();if(error)throw error;if(!user)throw new Error("Please sign in to use Messages.");dmUser=user;return user}
 function dmEl(tag,cls,text){const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el}
@@ -715,8 +715,7 @@ async function openDmConversation(conv,other,profile){
  const head=document.getElementById("dmThreadHead");head.replaceChildren(dmEl("strong","",profile.display_name||profile.username||"PLAYAM player"),dmEl("div","small muted","@"+(profile.username||"player")));
  const block=dmEl("button","secondary","BLOCK PLAYER");block.type="button";block.style.marginTop="8px";block.addEventListener("click",blockDmPartner);head.append(block);
  await loadDmThread();
- if(dmRealtimeChannel)await supabaseClient.removeChannel(dmRealtimeChannel);
- dmRealtimeChannel=supabaseClient.channel("playam-dm-inbox-"+dmUser.id).on("postgres_changes",{event:"*",schema:"public",table:"private_messages"},()=>{loadDmInbox();if(dmActiveConversation)loadDmThread()}).subscribe();
+ await startDmRealtimeSubscription();
  document.querySelectorAll(".dm-person").forEach(b=>b.classList.remove("active"));
 }
 function renderDmMessage(m){
@@ -798,6 +797,27 @@ async function blockDmPartner(){
 document.getElementById("dmFindButton")?.addEventListener("click",searchDmPlayers);
 document.getElementById("dmFindInput")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();searchDmPlayers()}});
 document.getElementById("dmComposeForm")?.addEventListener("submit",sendDmMessage);
+async function startDmRealtimeSubscription(){
+ if(dmRealtimeRetryTimer){clearTimeout(dmRealtimeRetryTimer);dmRealtimeRetryTimer=null}
+ if(dmRealtimeChannel){const previous=dmRealtimeChannel;dmRealtimeChannel=null;await supabaseClient.removeChannel(previous)}
+ if(!dmUser)return;
+ const channel=supabaseClient.channel("playam-dm-inbox-"+dmUser.id).on("postgres_changes",{event:"*",schema:"public",table:"private_messages"},payload=>{
+  const conversationId=payload?.new?.conversation_id||payload?.old?.conversation_id;
+  loadDmInbox();if(dmActiveConversation&&conversationId===dmActiveConversation)loadDmThread();
+ });
+ dmRealtimeChannel=channel;
+ channel.subscribe(status=>{
+  const el=document.getElementById("dmConnectionStatus");
+  if(status==="SUBSCRIBED"){dmRealtimeRetryCount=0;if(el&&navigator.onLine)el.textContent="● Connected — live message updates active"}
+  else if(["CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(status)){
+   if(el)el.textContent="● Live updates reconnecting…";
+   if(dmRealtimeRetryCount<5&&!dmRealtimeRetryTimer){
+    const delay=Math.min(30000,1000*Math.pow(2,dmRealtimeRetryCount++));
+    dmRealtimeRetryTimer=setTimeout(()=>{dmRealtimeRetryTimer=null;if(dmUser&&navigator.onLine)startDmRealtimeSubscription()},delay);
+   }else if(el)el.textContent="● Live updates unavailable — refresh Messages to retry";
+  }
+ });
+}
 function updateDmConnectionStatus(){
  const status=document.getElementById("dmConnectionStatus"),button=document.getElementById("dmSendButton");
  if(!status)return;
@@ -806,7 +826,7 @@ function updateDmConnectionStatus(){
  status.style.color=online?"#7cf0ad":"#f0b36b";
  if(button&&!button.dataset.sending)button.disabled=!online||!dmActiveConversation;
 }
-window.addEventListener("online",()=>{updateDmConnectionStatus();if(dmUser){loadDmInbox();if(dmActiveConversation)loadDmThread()}});
+window.addEventListener("online",()=>{updateDmConnectionStatus();if(dmUser){loadDmInbox();if(dmActiveConversation)loadDmThread();if(!dmRealtimeChannel)startDmRealtimeSubscription()}});
 window.addEventListener("offline",updateDmConnectionStatus);
 
 updateDmConnectionStatus();
