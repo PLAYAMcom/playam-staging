@@ -54,6 +54,7 @@ for marker in (
     "FOR UPDATE",
     "withdrawal-reserve:",
     "withdrawal_requested_and_reserved",
+    "Recheck after acquiring the wallet lock",
 ):
     if marker.lower() not in withdrawal_sql.lower():
         raise SystemExit("FAIL: withdrawal idempotency invariant missing: " + marker)
