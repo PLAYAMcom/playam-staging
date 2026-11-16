@@ -451,6 +451,12 @@ input,select,textarea{font-size:16px;max-width:100%}
 .home-notification-count{position:absolute;right:-5px;top:-5px;min-width:17px;height:17px;padding:0 4px;display:grid;place-items:center;border-radius:20px;background:#ff397e;color:white;font-size:9px;font-weight:900;border:2px solid #171426}
 .home-notification-dot{display:none}
 
+
+.home-shortcuts button{min-width:0}
+.home-shortcuts button:focus-visible{outline:2px solid #e19aff;outline-offset:3px}
+@media(min-width:761px){.home-shortcuts{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.home-shortcuts{grid-template-columns:1fr 1fr}.home-shortcuts button:last-child{grid-column:1/-1}}
+
 </style>
 </head>
 <body>
@@ -543,6 +549,7 @@ input,select,textarea{font-size:16px;max-width:100%}
    <div class="home-shortcuts">
     <button type="button" onclick="showMessages()"><span>💬</span><strong>Private Messaging</strong><small>Chat with your people</small></button>
     <button type="button" onclick="showCreatorEarnings()"><span>🏆</span><strong>PLAYAM Earn</strong><small>Explore creator tools</small></button>
+    <button type="button" onclick="openPeopleDiscovery()"><span>✨</span><strong>Discover People</strong><small>Find PLAYAM players and creators</small></button>
    </div>
    <div class="home-live-preview">
     <div><span class="home-live-pulse"></span><strong>PLAYAM LIVE</strong><small>Creator streaming preview</small></div>
@@ -957,6 +964,7 @@ async function loadDmInbox(){
   });
  }catch(e){inbox.replaceChildren(dmEl("div","dm-empty",e.message||"Unable to load inbox."))}
 }
+function openPeopleDiscovery(){showMessages();const input=document.getElementById("dmFindInput");if(input){input.focus();input.scrollIntoView({behavior:"smooth",block:"center"})}}
 async function searchDmPlayers(){
  const out=document.getElementById("dmSearchResults"),term=document.getElementById("dmFindInput").value.trim().replace(/^@/,"").toLowerCase();
  out.replaceChildren();if(term.length<2){out.append(dmEl("div","dm-empty","Enter at least 2 username characters."));return}
