@@ -446,6 +446,11 @@ input,select,textarea{font-size:16px;max-width:100%}
 .home-feature-card:active,.home-video-tile:active{transform:scale(.985)}
 @media(prefers-reduced-motion:reduce){.home-feature-card,.home-video-tile{transition:none}.home-feature-card:active,.home-video-tile:active{transform:none}}
 
+
+.home-notifications{display:grid;place-items:center}
+.home-notification-count{position:absolute;right:-5px;top:-5px;min-width:17px;height:17px;padding:0 4px;display:grid;place-items:center;border-radius:20px;background:#ff397e;color:white;font-size:9px;font-weight:900;border:2px solid #171426}
+.home-notification-dot{display:none}
+
 </style>
 </head>
 <body>
@@ -503,7 +508,7 @@ input,select,textarea{font-size:16px;max-width:100%}
   <section id="homeScreen" class="playam-home">
    <div class="home-welcome">
     <div class="home-brand-lockup"><span class="home-brand-mark">▶</span><span>PLAYAM</span></div>
-    <button class="home-notifications" type="button" onclick="showNotifications()" aria-label="Open notifications">♧<span class="home-notification-dot"></span></button>
+    <button class="home-notifications" type="button" onclick="showNotifications()" aria-label="Open notifications" title="Notifications">♧<span class="home-notification-dot hidden" id="homeNotificationDot"></span><span class="home-notification-count hidden" id="homeNotificationCount" aria-hidden="true"></span></button>
    </div>
    <div class="home-hero">
     <div class="home-hero-copy">
@@ -917,7 +922,7 @@ function setNav(id){
  document.getElementById("navLiveDesktop")?.classList.toggle("active",id==="navLive");
 }
 function showScreen(id,nav=""){if(id!=="messagesScreen"&&dmRealtimeChannel){supabaseClient.removeChannel(dmRealtimeChannel);dmRealtimeChannel=null}hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
-function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome")}
+function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome");loadHomeNotificationBadge()}
 function showGames(){stopLobbyRefresh();stopGameRefresh();showScreen("gamesScreen","navGames");renderPlayamCatalogue()}
 let dmUser=null,dmActiveConversation=null,dmActivePartner=null,dmRealtimeChannel=null,dmRealtimeRetryTimer=null,dmRealtimeRetryCount=0,dmLoading=false,dmPendingSends={},dmThreadOldest=null,dmThreadHasMore=false,dmThreadLoadingMore=false,dmDrafts={};
 function showMessages(){stopLobbyRefresh();stopGameRefresh();showScreen("messagesScreen","navMessages");loadDmInbox()}
@@ -1315,6 +1320,19 @@ async function loadPlayamWallets(){
   document.getElementById("walletCreatorBalance").textContent=cw?(cw.currency||"NGN")+" "+(Number(cw.available_balance_minor||0)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):"No cash balance";
   status.textContent=cw?"Pending: "+(cw.currency||"NGN")+" "+(Number(cw.pending_balance_minor||0)/100).toFixed(2)+" · Reserved: "+(Number(cw.reserved_withdrawal_balance_minor||0)/100).toFixed(2)+" · Withdrawn: "+(Number(cw.withdrawn_balance_minor||0)/100).toFixed(2):"Balances loaded from their separate ledgers. No wallet has been merged.";
  }catch(e){status.textContent=e.message||"Could not load wallet balances."}
+}
+
+async function loadHomeNotificationBadge(){
+ const dot=document.getElementById("homeNotificationDot"),count=document.getElementById("homeNotificationCount");
+ if(!dot||!count)return;
+ dot.classList.add("hidden");count.classList.add("hidden");
+ try{
+  const {data:{user},error:userError}=await supabaseClient.auth.getUser();
+  if(userError||!user)return;
+  const {count:unread,error}=await supabaseClient.from("player_notifications").select("id",{count:"exact",head:true}).eq("auth_user_id",user.id).eq("is_read",false);
+  if(error)throw error;
+  if(unread>0){dot.classList.remove("hidden");count.textContent=unread>99?"99+":String(unread);count.classList.remove("hidden")}
+ }catch(error){console.warn("Home notification badge unavailable:",error?.message||error)}
 }
 async function loadPlayamNotifications(){
  const list=document.getElementById("playamNotifications"),status=document.getElementById("notificationsStatus");list.replaceChildren(dmEl("div","dm-empty","Loading notifications…"));
