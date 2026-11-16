@@ -90,6 +90,24 @@ if missing_desktop:
 if "@media(max-width:760px)" not in source:
     raise SystemExit("FAIL: mobile responsive layout breakpoint is missing")
 
+# Cover the critical phone layouts, including compact screens and safe-area spacing.
+mobile_markers = (
+    "#bottomNav{position:fixed",
+    ".main{padding:14px 13px calc(105px + env(safe-area-inset-bottom))",
+    "@media(max-width:380px)",
+    "@media(max-width:360px)",
+    ".dm-layout{grid-template-columns:1fr}",
+    ".dm-thread{min-height:360px}",
+    ".video-post video{height:min(68dvh,680px)",
+    "#profileScreen,#walletScreen{padding:17px",
+    "#homeScreen .hero{padding:22px 18px",
+    "env(safe-area-inset-bottom)",
+    "@media(prefers-reduced-motion:reduce)",
+)
+missing_mobile = [marker for marker in mobile_markers if marker not in source]
+if missing_mobile:
+    raise SystemExit("FAIL: mobile layout regression marker(s) missing: " + ", ".join(missing_mobile))
+
 # The separately published Staging admin and Flow workspaces also need desktop rules.
 for page_path, marker in (
     (ADMIN_APP, "PLAYAM admin desktop workspace"),
