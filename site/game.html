@@ -463,6 +463,12 @@ input,select,textarea{font-size:16px;max-width:100%}
 #profileScreen #profileAvatar{overflow:hidden;display:grid;place-items:center;flex:0 0 62px}
 #profileScreen #profileAvatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 
+
+.dm-person .dm-avatar,.dm-thread-head .dm-avatar{overflow:hidden;flex:0 0 42px}
+.dm-person .dm-avatar img,.dm-thread-head .dm-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
+#dmThreadHead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#dmThreadHead .dm-person-meta{flex:1;min-width:100px}
+
 </style>
 </head>
 <body>
@@ -963,7 +969,7 @@ async function loadDmInbox(){
   convs.forEach(c=>{
    const other=c.user_one_auth_user_id===user.id?c.user_two_auth_user_id:c.user_one_auth_user_id,p=prof.get(other)||{},m=last.get(c.id);
    const btn=dmEl("button","dm-person"+(dmActiveConversation===c.id?" active":""));btn.type="button";
-   btn.append(dmEl("span","dm-avatar",(p.display_name||p.username||"P").slice(0,1).toUpperCase()));
+   const avatar=dmEl("span","dm-avatar",(p.display_name||p.username||"P").slice(0,1).toUpperCase());if(p.avatar_url){try{const url=new URL(p.avatar_url);if(url.protocol==="https:"){const img=document.createElement("img");img.src=url.href;img.alt="";img.loading="lazy";img.referrerPolicy="no-referrer";img.addEventListener("error",()=>img.remove(),{once:true});avatar.textContent="";avatar.append(img)}}catch(_){}}btn.append(avatar);
    const meta=dmEl("span","dm-person-meta");meta.append(dmEl("strong","",p.display_name||p.username||"PLAYAM player"),dmEl("small","",m?.body||"Start a conversation"));btn.append(meta);
    const count=counts.get(c.id)||0;if(count)btn.append(dmEl("span","badge",String(count)));
    btn.addEventListener("click",()=>openDmConversation(c,other,p));inbox.append(btn);
@@ -1004,7 +1010,7 @@ async function openDmConversation(conv,other,profile){
  dmActiveConversation=conv.id;
  if(composeInput){composeInput.value=dmDrafts[conv.id]||"";composeInput.disabled=false;}
  const delivery=document.getElementById("dmDeliveryStatus");if(delivery)delivery.textContent="";dmActivePartner={id:other,profile};document.getElementById("dmComposeInput").disabled=false;document.getElementById("dmSendButton").disabled=false;updateDmConnectionStatus();
- const head=document.getElementById("dmThreadHead");head.replaceChildren(dmEl("strong","",profile.display_name||profile.username||"PLAYAM player"),dmEl("div","small muted","@"+(profile.username||"player")));
+ const head=document.getElementById("dmThreadHead");head.replaceChildren();const headAvatar=dmEl("span","dm-avatar",(profile.display_name||profile.username||"P").slice(0,1).toUpperCase());if(profile.avatar_url){try{const url=new URL(profile.avatar_url);if(url.protocol==="https:"){const img=document.createElement("img");img.src=url.href;img.alt="";img.loading="lazy";img.referrerPolicy="no-referrer";img.addEventListener("error",()=>img.remove(),{once:true});headAvatar.textContent="";headAvatar.append(img)}}catch(_){}}const headMeta=dmEl("span","dm-person-meta");headMeta.append(dmEl("strong","",profile.display_name||profile.username||"PLAYAM player"),dmEl("div","small muted","@"+(profile.username||"player")));head.append(headAvatar,headMeta);
  const block=dmEl("button","secondary","BLOCK PLAYER");block.type="button";block.style.marginTop="8px";block.addEventListener("click",blockDmPartner);head.append(block);
  await loadDmThread();
  await startDmRealtimeSubscription();
