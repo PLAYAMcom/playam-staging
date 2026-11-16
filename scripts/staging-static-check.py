@@ -17,6 +17,7 @@ ROOT_ADMIN_APP = Path("admin-playam-staging.html")
 CATALOGUE_PAGE = Path("site/game-catalogue.html")
 FLOW_APP = Path("site/flow.html")
 LANDING_PAGE = Path("site/index.html")
+MESSAGE_IDEMPOTENCY_MIGRATION = Path("supabase/migrations/20261116081500_idempotent_private_message_delivery.sql")
 if not PUBLISHED_APP.exists():
     raise SystemExit("FAIL: published Staging game page is missing")
 if PUBLISHED_APP.read_text(encoding="utf-8") != source:
@@ -29,6 +30,12 @@ if not FLOW_APP.exists():
     raise SystemExit("FAIL: PLAYAM Flow Staging interface is missing")
 if not LANDING_PAGE.exists():
     raise SystemExit("FAIL: Staging landing page is missing")
+if not MESSAGE_IDEMPOTENCY_MIGRATION.exists():
+    raise SystemExit("FAIL: private-message idempotency migration is missing")
+message_migration = MESSAGE_IDEMPOTENCY_MIGRATION.read_text(encoding="utf-8")
+for marker in ("ON CONFLICT(sender_auth_user_id,idempotency_key)", "v_existing_conversation_id IS DISTINCT FROM p_conversation_id", "v_existing_body IS DISTINCT FROM v_body", "Idempotency key was already used for a different message"):
+    if marker not in message_migration:
+        raise SystemExit("FAIL: private-message idempotency protection missing: " + marker)
 landing_source = LANDING_PAGE.read_text(encoding="utf-8")
 for link in ('href="game.html"', 'href="admin-playam-staging.html"', 'href="game-catalogue.html"'):
     if link not in landing_source:
