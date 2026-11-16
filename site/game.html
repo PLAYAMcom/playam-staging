@@ -438,6 +438,14 @@ input,select,textarea{font-size:16px;max-width:100%}
 }
 @media(prefers-reduced-motion:reduce){.bottom-nav-btn{transition:none}.bottom-nav-btn:active{transform:none}}
 
+
+/* Home tiles are real accessible actions, not decorative dead ends */
+.home-video-tile{width:100%;color:#fff;text-align:left;cursor:pointer;font:inherit}
+.home-feature-card{cursor:pointer;transition:transform .16s ease,border-color .16s ease}
+.home-feature-card:focus-visible,.home-video-tile:focus-visible{outline:2px solid #e19aff;outline-offset:3px}
+.home-feature-card:active,.home-video-tile:active{transform:scale(.985)}
+@media(prefers-reduced-motion:reduce){.home-feature-card,.home-video-tile{transition:none}.home-feature-card:active,.home-video-tile:active{transform:none}}
+
 </style>
 </head>
 <body>
@@ -516,20 +524,20 @@ input,select,textarea{font-size:16px;max-width:100%}
 
    <div class="home-section-heading"><h3>Featured Games</h3><button type="button" onclick="showGames()">SEE ALL ›</button></div>
    <div class="home-featured-games">
-    <button class="home-feature-card" type="button" onclick="showGames()"><span class="home-feature-art court">🏀</span><strong>Friendship Court</strong><small>Play with friends</small></button>
-    <button class="home-feature-card" type="button" onclick="showGames()"><span class="home-feature-art would">❔</span><strong>Would You Rather</strong><small>Choose your side</small></button>
-    <button class="home-feature-card" type="button" onclick="showGames()"><span class="home-feature-art truth">👑</span><strong>Truth or Dare</strong><small>Take the challenge</small></button>
+    <button class="home-feature-card" type="button" onclick="openCatalogueGame('friendship-court')" aria-label="Open Friendship Court room setup"><span class="home-feature-art court">🏀</span><strong>Friendship Court</strong><small>Play with friends</small></button>
+    <button class="home-feature-card" type="button" onclick="openCatalogueGame('would-you-rather')" aria-label="Open Would You Rather room setup"><span class="home-feature-art would">❔</span><strong>Would You Rather</strong><small>Choose your side</small></button>
+    <button class="home-feature-card" type="button" onclick="openCatalogueGame('truth-or-dare')" aria-label="Open Truth or Dare room setup"><span class="home-feature-art truth">👑</span><strong>Truth or Dare</strong><small>Take the challenge</small></button>
    </div>
 
    <div class="home-section-heading"><h3>Short Videos</h3><button type="button" onclick="showVideoHub();openVideoFeed()">SEE ALL ›</button></div>
    <div class="home-video-strip">
-    <div class="home-video-tile home-video-one"><span>▶</span><strong>Discover creators</strong></div>
-    <div class="home-video-tile home-video-two"><span>▶</span><strong>Watch something fun</strong></div>
-    <div class="home-video-tile home-video-three"><span>▶</span><strong>Share your moment</strong></div>
+    <button type="button" class="home-video-tile home-video-one" onclick="showVideoHub();openVideoFeed()" aria-label="Discover approved creators"><span>▶</span><strong>Discover creators</strong></button>
+    <button type="button" class="home-video-tile home-video-two" onclick="showVideoHub();openVideoFeed()" aria-label="Watch approved PLAYAM videos"><span>▶</span><strong>Watch something fun</strong></button>
+    <button type="button" class="home-video-tile home-video-three" onclick="showVideoHub()" aria-label="Open video upload and sharing"><span>▶</span><strong>Share your moment</strong></button>
    </div>
    <div class="home-shortcuts">
     <button type="button" onclick="showMessages()"><span>💬</span><strong>Private Messaging</strong><small>Chat with your people</small></button>
-    <button type="button" onclick="showProfile()"><span>🏆</span><strong>PLAYAM Earn</strong><small>Explore creator tools</small></button>
+    <button type="button" onclick="showCreatorEarnings()"><span>🏆</span><strong>PLAYAM Earn</strong><small>Explore creator tools</small></button>
    </div>
    <div class="home-live-preview">
     <div><span class="home-live-pulse"></span><strong>PLAYAM LIVE</strong><small>Creator streaming preview</small></div>
