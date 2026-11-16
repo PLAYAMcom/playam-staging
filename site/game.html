@@ -294,6 +294,7 @@ label{display:block;margin-top:13px;font-weight:bold}
     <section class="dm-panel"><h3>Your conversations</h3><div id="dmInbox" class="dm-list"><div class="dm-empty">Loading your inbox…</div></div></section>
     <section class="dm-panel dm-thread">
      <div id="dmThreadHead" class="dm-thread-head"><strong>Choose a conversation</strong></div>
+     <button id="dmLoadEarlier" class="secondary hidden" type="button" onclick="loadEarlierDmMessages()">LOAD EARLIER MESSAGES</button>
      <div id="dmThreadMessages" class="dm-messages"><div class="dm-empty">Select a conversation or search for a player to start a message.</div></div>
      <form id="dmComposeForm" class="dm-compose">
       <textarea id="dmComposeInput" maxlength="2000" rows="2" placeholder="Write a message…" aria-label="Message text" disabled></textarea>
@@ -648,7 +649,7 @@ function setNav(id){
 function showScreen(id,nav=""){if(id!=="messagesScreen"&&dmRealtimeChannel){supabaseClient.removeChannel(dmRealtimeChannel);dmRealtimeChannel=null}hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome")}
 function showGames(){stopLobbyRefresh();stopGameRefresh();showScreen("gamesScreen","navGames");renderPlayamCatalogue()}
-let dmUser=null,dmActiveConversation=null,dmActivePartner=null,dmRealtimeChannel=null,dmLoading=false,dmPendingSend=null;
+let dmUser=null,dmActiveConversation=null,dmActivePartner=null,dmRealtimeChannel=null,dmLoading=false,dmPendingSend=null,dmThreadOldest=null,dmThreadHasMore=false,dmThreadLoadingMore=false;
 function showMessages(){stopLobbyRefresh();stopGameRefresh();showScreen("messagesScreen","navMessages");loadDmInbox()}
 async function dmGetUser(){const {data:{user},error}=await supabaseClient.auth.getUser();if(error)throw error;if(!user)throw new Error("Please sign in to use Messages.");dmUser=user;return user}
 function dmEl(tag,cls,text){const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el}
@@ -717,23 +718,42 @@ async function openDmConversation(conv,other,profile){
  dmRealtimeChannel=supabaseClient.channel("playam-dm-inbox-"+dmUser.id).on("postgres_changes",{event:"*",schema:"public",table:"private_messages"},()=>{loadDmInbox();if(dmActiveConversation)loadDmThread()}).subscribe();
  document.querySelectorAll(".dm-person").forEach(b=>b.classList.remove("active"));
 }
+function renderDmMessage(m){
+ const bubble=dmEl("div","dm-bubble"+(m.sender_auth_user_id===dmUser.id?" mine":""));
+ bubble.append(dmEl("div","",m.body||"Attachment"));bubble.append(dmEl("small","",new Date(m.created_at).toLocaleString()+(m.sender_auth_user_id===dmUser.id?(m.read_at?" · Read":" · Sent"):"")));
+ if(m.sender_auth_user_id!==dmUser.id){const report=dmEl("button","secondary","REPORT MESSAGE");report.type="button";report.style.marginTop="6px";report.addEventListener("click",()=>reportDmMessage(m));bubble.append(report)}
+ return bubble;
+}
 async function loadDmThread(){
  if(!dmActiveConversation||!dmUser)return;
- const area=document.getElementById("dmThreadMessages");
+ const area=document.getElementById("dmThreadMessages"),earlier=document.getElementById("dmLoadEarlier");
  try{
-  const {data,error}=await supabaseClient.from("private_messages").select("id,sender_auth_user_id,body,created_at,read_at").eq("conversation_id",dmActiveConversation).is("deleted_at",null).order("created_at",{ascending:true}).limit(250);
-  if(error)throw error;area.replaceChildren();
-  (data||[]).forEach(m=>{
-   const bubble=dmEl("div","dm-bubble"+(m.sender_auth_user_id===dmUser.id?" mine":""));
-   bubble.append(dmEl("div","",m.body||"Attachment"));bubble.append(dmEl("small","",new Date(m.created_at).toLocaleString()+(m.sender_auth_user_id===dmUser.id?(m.read_at?" · Read":" · Sent"):"")));
-   if(m.sender_auth_user_id!==dmUser.id){const report=dmEl("button","secondary","REPORT MESSAGE");report.type="button";report.style.marginTop="6px";report.addEventListener("click",()=>reportDmMessage(m));bubble.append(report)}
-   area.append(bubble);
-  });
-  if(!data?.length)area.append(dmEl("div","dm-empty","Say hello and start the conversation."));
+  const conversation=dmActiveConversation;
+  const {data,error}=await supabaseClient.from("private_messages").select("id,sender_auth_user_id,body,created_at,read_at").eq("conversation_id",conversation).is("deleted_at",null).order("created_at",{ascending:false}).order("id",{ascending:false}).limit(50);
+  if(error)throw error;if(conversation!==dmActiveConversation)return;
+  const messages=(data||[]).reverse();area.replaceChildren();
+  messages.forEach(m=>area.append(renderDmMessage(m)));
+  dmThreadOldest=messages.length?{created_at:messages[0].created_at,id:messages[0].id}:null;
+  dmThreadHasMore=messages.length===50;earlier.classList.toggle("hidden",!dmThreadHasMore);earlier.disabled=false;
+  if(!messages.length)area.append(dmEl("div","dm-empty","Say hello and start the conversation."));
   area.scrollTop=area.scrollHeight;
-  const hasUnread=(data||[]).some(m=>m.sender_auth_user_id!==dmUser.id&&!m.read_at);
-  if(hasUnread){const {error:readError}=await supabaseClient.rpc("mark_private_conversation_read_v1",{p_conversation_id:dmActiveConversation});if(readError)console.warn("Could not mark messages read",readError);else await loadDmInbox()}
+  const hasUnread=messages.some(m=>m.sender_auth_user_id!==dmUser.id&&!m.read_at);
+  if(hasUnread){const {error:readError}=await supabaseClient.rpc("mark_private_conversation_read_v1",{p_conversation_id:conversation});if(readError)console.warn("Could not mark messages read",readError);else await loadDmInbox()}
  }catch(e){area.replaceChildren(dmEl("div","dm-empty",e.message||"Unable to load messages."))}
+}
+async function loadEarlierDmMessages(){
+ if(!dmActiveConversation||!dmThreadOldest||!dmThreadHasMore||dmThreadLoadingMore)return;
+ dmThreadLoadingMore=true;const button=document.getElementById("dmLoadEarlier"),area=document.getElementById("dmThreadMessages"),conversation=dmActiveConversation;
+ const oldHeight=area.scrollHeight,oldTop=area.scrollTop;button.disabled=true;button.textContent="LOADING…";
+ try{
+  const cursor=dmThreadOldest,ts=cursor.created_at,id=cursor.id;
+  const {data,error}=await supabaseClient.from("private_messages").select("id,sender_auth_user_id,body,created_at,read_at").eq("conversation_id",conversation).is("deleted_at",null).or("created_at.lt."+ts+",and(created_at.eq."+ts+",id.lt."+id+")").order("created_at",{ascending:false}).order("id",{ascending:false}).limit(50);
+  if(error)throw error;if(conversation!==dmActiveConversation)return;
+  const older=(data||[]).reverse();older.forEach(m=>area.insertBefore(renderDmMessage(m),area.firstChild));
+  if(older.length){dmThreadOldest={created_at:older[0].created_at,id:older[0].id};area.scrollTop=area.scrollHeight-oldHeight+oldTop}
+  dmThreadHasMore=older.length===50;button.classList.toggle("hidden",!dmThreadHasMore);
+ }catch(e){document.getElementById("dmThreadStatus").textContent=e.message||"Couldn't load earlier messages."}
+ finally{dmThreadLoadingMore=false;button.disabled=false;button.textContent="LOAD EARLIER MESSAGES"}
 }
 async function reportDmMessage(message){
  const choices=["Harassment or bullying","Hate speech or abusive behaviour","Inappropriate content","Spam or disruptive behaviour","Other"];
