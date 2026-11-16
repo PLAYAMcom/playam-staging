@@ -648,7 +648,7 @@ function setNav(id){
 function showScreen(id,nav=""){if(id!=="messagesScreen"&&dmRealtimeChannel){supabaseClient.removeChannel(dmRealtimeChannel);dmRealtimeChannel=null}hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome")}
 function showGames(){stopLobbyRefresh();stopGameRefresh();showScreen("gamesScreen","navGames");renderPlayamCatalogue()}
-let dmUser=null,dmActiveConversation=null,dmActivePartner=null,dmRealtimeChannel=null,dmLoading=false;
+let dmUser=null,dmActiveConversation=null,dmActivePartner=null,dmRealtimeChannel=null,dmLoading=false,dmPendingSend=null;
 function showMessages(){stopLobbyRefresh();stopGameRefresh();showScreen("messagesScreen","navMessages");loadDmInbox()}
 async function dmGetUser(){const {data:{user},error}=await supabaseClient.auth.getUser();if(error)throw error;if(!user)throw new Error("Please sign in to use Messages.");dmUser=user;return user}
 function dmEl(tag,cls,text){const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el}
@@ -714,7 +714,7 @@ async function openDmConversation(conv,other,profile){
  const block=dmEl("button","secondary","BLOCK PLAYER");block.type="button";block.style.marginTop="8px";block.addEventListener("click",blockDmPartner);head.append(block);
  await loadDmThread();
  if(dmRealtimeChannel)await supabaseClient.removeChannel(dmRealtimeChannel);
- dmRealtimeChannel=supabaseClient.channel("playam-dm-"+conv.id).on("postgres_changes",{event:"*",schema:"public",table:"private_messages",filter:"conversation_id=eq."+conv.id},payload=>{if(dmActiveConversation===conv.id)loadDmThread()}).subscribe();
+ dmRealtimeChannel=supabaseClient.channel("playam-dm-inbox-"+dmUser.id).on("postgres_changes",{event:"*",schema:"public",table:"private_messages"},()=>{loadDmInbox();if(dmActiveConversation)loadDmThread()}).subscribe();
  document.querySelectorAll(".dm-person").forEach(b=>b.classList.remove("active"));
 }
 async function loadDmThread(){
@@ -752,9 +752,16 @@ async function sendDmMessage(event){
  event.preventDefault();const input=document.getElementById("dmComposeInput"),body=input.value.trim();if(!body||!dmActiveConversation)return;
  const button=document.getElementById("dmSendButton");button.disabled=true;
  try{
-  const user=await dmGetUser();const {error}=await supabaseClient.from("private_messages").insert({conversation_id:dmActiveConversation,sender_auth_user_id:user.id,body});
-  if(error)throw error;input.value="";await loadDmThread();await loadDmInbox();document.getElementById("dmThreadStatus").textContent="";
- }catch(e){document.getElementById("dmThreadStatus").textContent=e.message||"Message could not be sent."}
+  const user=await dmGetUser();
+  if(dmPendingSend&&(dmPendingSend.conversationId!==dmActiveConversation||dmPendingSend.body!==body)){
+   throw new Error("A previous send is awaiting confirmation. Retry that exact message before composing another.");
+  }
+  if(!dmPendingSend)dmPendingSend={conversationId:dmActiveConversation,body,key:crypto.randomUUID()};
+  const {data,error}=await supabaseClient.rpc("send_private_message_v1",{p_conversation_id:dmActiveConversation,p_body:body,p_idempotency_key:dmPendingSend.key});
+  if(error)throw error;
+  if(!data||!data.length)throw new Error("The send could not be confirmed. Retry the same message.");
+  dmPendingSend=null;input.value="";await loadDmThread();await loadDmInbox();document.getElementById("dmThreadStatus").textContent="";
+ }catch(e){document.getElementById("dmThreadStatus").textContent=(e.message||"Message could not be sent.")+" You can safely retry without creating a duplicate."}
  finally{button.disabled=false}
 }
 async function blockDmPartner(){
