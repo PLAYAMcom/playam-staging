@@ -663,12 +663,12 @@ async function loadDmInbox(){
   const [{data:profiles,error:pe},{data:msgs,error:me},{data:unread,error:ue}]=await Promise.all([
    supabaseClient.from("playam_profiles").select("user_id,display_name,username,avatar_url").in("user_id",others),
    supabaseClient.from("private_messages").select("id,conversation_id,sender_auth_user_id,body,created_at,read_at").in("conversation_id",ids).is("deleted_at",null).order("created_at",{ascending:false}).limit(250),
-   supabaseClient.from("private_messages").select("id,conversation_id").in("conversation_id",ids).neq("sender_auth_user_id",user.id).is("read_at",null).is("deleted_at",null)
+   supabaseClient.rpc("get_private_message_unread_counts_v1")
   ]);
   if(pe)throw pe;if(me)throw me;if(ue)throw ue;
   const prof=new Map((profiles||[]).map(p=>[p.user_id,p])),last=new Map(),counts=new Map();
   (msgs||[]).forEach(m=>{if(!last.has(m.conversation_id))last.set(m.conversation_id,m)});
-  (unread||[]).forEach(m=>counts.set(m.conversation_id,(counts.get(m.conversation_id)||0)+1));
+  (unread||[]).forEach(m=>counts.set(m.conversation_id,Number(m.unread_count)||0));
   convs.sort((a,b)=>new Date(last.get(b.id)?.created_at||b.updated_at)-new Date(last.get(a.id)?.created_at||a.updated_at));
   inbox.replaceChildren();
   convs.forEach(c=>{
@@ -731,8 +731,8 @@ async function loadDmThread(){
   });
   if(!data?.length)area.append(dmEl("div","dm-empty","Say hello and start the conversation."));
   area.scrollTop=area.scrollHeight;
-  const unread=(data||[]).filter(m=>m.sender_auth_user_id!==dmUser.id&&!m.read_at).map(m=>m.id);
-  if(unread.length){const {error:readError}=await supabaseClient.from("private_messages").update({read_at:new Date().toISOString()}).in("id",unread);if(readError)console.warn("Could not mark messages read",readError)}
+  const hasUnread=(data||[]).some(m=>m.sender_auth_user_id!==dmUser.id&&!m.read_at);
+  if(hasUnread){const {error:readError}=await supabaseClient.rpc("mark_private_conversation_read_v1",{p_conversation_id:dmActiveConversation});if(readError)console.warn("Could not mark messages read",readError);else await loadDmInbox()}
  }catch(e){area.replaceChildren(dmEl("div","dm-empty",e.message||"Unable to load messages."))}
 }
 async function reportDmMessage(message){
