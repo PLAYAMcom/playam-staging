@@ -94,6 +94,33 @@ label{display:block;margin-top:13px;font-weight:bold}
  .game-grid{grid-template-columns:1fr}
  .small-grid{grid-template-columns:1fr 1fr}
 }
+
+/* PLAYAM mobile-first five-item navigation */
+#bottomNav{display:none}
+.catalogue-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.catalogue-card{background:linear-gradient(145deg,#201d39,#151528);border:1px solid #393454;border-radius:16px;padding:15px;display:flex;flex-direction:column;min-height:164px}
+.catalogue-card .catalogue-icon{font-size:26px;margin-bottom:8px}
+.catalogue-card h3{font-size:15px;margin:0 0 7px}
+.catalogue-card p{font-size:12px;color:var(--muted);line-height:1.45;flex:1;margin:0 0 12px}
+.catalogue-card .catalogue-status{font-size:10px;letter-spacing:.5px;color:#a9f0c1;margin-bottom:8px}
+.catalogue-card.planned .catalogue-status{color:#c6b4dc}
+.catalogue-card button{width:100%;padding:10px;font-size:11px}
+@media(max-width:760px){
+ #bottomNav{position:fixed;z-index:1000;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;padding:8px 7px calc(8px + env(safe-area-inset-bottom));background:rgba(13,12,27,.97);border-top:1px solid #393454;backdrop-filter:blur(18px)}
+ .bottom-nav-btn{min-width:0;background:transparent;color:#aaaac5;border:1px solid transparent;border-radius:13px;padding:8px 2px 7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:10px;font-weight:700}
+ .bottom-nav-btn .nav-icon{font-size:19px;line-height:1.1}
+ .bottom-nav-btn.active{color:white;background:#29213f;border-color:#7048a6}
+ .bottom-nav-btn:focus-visible{outline:2px solid #ed4cbd;outline-offset:2px}
+ .sidebar{display:none!important}
+ #app{display:block;min-height:100dvh}
+ .main{padding:14px 13px calc(105px + env(safe-area-inset-bottom));max-width:760px}
+ .catalogue-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .catalogue-card{padding:12px;min-height:168px}
+ .catalogue-card h3{font-size:14px}
+ .catalogue-card p{font-size:11px}
+ .catalogue-card button{font-size:10px;padding:9px 5px}
+}
+@media(max-width:360px){.bottom-nav-btn{font-size:9px}.catalogue-card{padding:10px}}
 </style>
 </head>
 <body>
@@ -115,7 +142,10 @@ label{display:block;margin-top:13px;font-weight:bold}
   <div class="brand">PLAYAM 🎮</div>
   <div class="side-label">MAIN MENU</div>
   <button class="navbtn active" id="navHome" onclick="showHome()">🏠 Home</button>
+  <button class="navbtn" id="navGamesDesktop" onclick="showGames()">🎮 Games</button>
   <button class="navbtn" onclick="showVideoHub()">🎥 Videos</button>
+  <button class="navbtn" id="navMessagesDesktop" onclick="showMessages()">💬 Messages</button>
+  <button class="navbtn" id="navLiveDesktop" onclick="showLiveHub()">🔴 LIVE</button>
   <button class="navbtn" id="navProfile" onclick="showProfile()">👤 Profile</button>
   <button class="navbtn hidden" id="navAdminFinance" onclick="showFinanceAdmin()">💼 Finance Admin</button>
   <button class="navbtn" onclick="showSoloSetup()">🎯 Play Solo</button>
@@ -128,6 +158,13 @@ label{display:block;margin-top:13px;font-weight:bold}
    <button class="navbtn" onclick="signOut()">↪ Log Out</button>
   </div>
  </aside>
+ <nav id="bottomNav" aria-label="Main navigation">
+  <button class="bottom-nav-btn active" data-bottom-nav="navHome" onclick="showHome()"><span class="nav-icon">⌂</span><span>Home</span></button>
+  <button class="bottom-nav-btn" data-bottom-nav="navGames" onclick="showGames()"><span class="nav-icon">🎮</span><span>Games</span></button>
+  <button class="bottom-nav-btn" data-bottom-nav="navVideos" onclick="showVideoHub()"><span class="nav-icon">▶</span><span>Videos</span></button>
+  <button class="bottom-nav-btn" data-bottom-nav="navMessages" onclick="showMessages()"><span class="nav-icon">💬</span><span>Messages</span></button>
+  <button class="bottom-nav-btn" data-bottom-nav="navProfile" onclick="showProfile()"><span class="nav-icon">●</span><span>Profile</span></button>
+ </nav>
 
  <main class="main">
   <div class="topbar">
@@ -142,6 +179,9 @@ label{display:block;margin-top:13px;font-weight:bold}
    <div class="hero">
     <h2>Ready for your next challenge?</h2>
     <p>Choose your game, challenge your mind and make every round count.</p>
+   </div>
+   <div class="small-card" style="margin-top:16px;border:1px solid #7844a8;background:linear-gradient(110deg,#261c43,#321c3c)">
+    <h3>🔴 PLAYAM LIVE</h3><p class="muted">Discover live creators, join conversations and take part in LIVE Q&amp;A.</p><button class="primary" onclick="showLiveHub()">EXPLORE LIVE →</button>
    </div>
    <h3 class="section-title">Choose how you want to play</h3>
    <div class="game-grid">
@@ -210,6 +250,26 @@ label{display:block;margin-top:13px;font-weight:bold}
     <div class="small-card"><strong>🎤 LIVE Questions & Answers</strong><p class="muted">Planned interactive LIVE activity.</p></div>
     <div class="small-card"><strong>📊 Scoreboard</strong><p class="muted">Planned cross-game competition and rankings.</p></div>
    </div>
+  </section>
+
+  <section id="gamesScreen" class="hidden">
+   <div class="hero"><h2>🎮 The PLAYAM Game Universe</h2><p>Choose a challenge and play with friends. Games in development are labelled clearly.</p></div>
+   <h3 class="section-title">All 25 games</h3><div id="playamCatalogueGrid" class="catalogue-grid"></div>
+  </section>
+
+  <section id="messagesScreen" class="screen-card hidden">
+   <h2>💬 Messages</h2><p class="muted">Your private conversations, game invitations and creator messages will live here.</p>
+   <div class="small-card" style="margin-top:18px;text-align:center;padding:28px 16px"><div style="font-size:38px">✉️</div><h3>Messages are being prepared</h3><p class="muted">The current Staging app does not yet have a connected private messaging backend. We will build secure one-to-one and group messaging before presenting this inbox as live.</p><span class="small">No messages have been sent, hidden or marked as read.</span></div>
+  </section>
+
+  <section id="liveScreen" class="screen-card hidden">
+   <h2>🔴 PLAYAM LIVE</h2><p class="muted">Discover broadcasts, join LIVE conversations and participate in creator Q&amp;A.</p>
+   <div class="small-grid">
+    <div class="small-card"><strong>📹 Live broadcasts</strong><p class="muted">Creator streaming and viewer playback.</p></div>
+    <div class="small-card"><strong>💬 Live chat</strong><p class="muted">Real-time moderated interaction.</p></div>
+    <div class="small-card"><strong>🎁 Virtual gifts</strong><p class="muted">Purchased PLAYAM Coins for gifts, with separate creator and platform accounting.</p></div>
+    <div class="small-card"><strong>🎤 LIVE Q&amp;A</strong><p class="muted">Questions and audience participation.</p></div>
+   </div><p class="small muted">Staging preview only. Streaming, gifts and payouts are not being represented as enabled here.</p>
   </section>
 
   <section id="videoScreen" class="hidden">
@@ -496,13 +556,42 @@ let selectedVotePlayerId="",lobbyRefreshTimer=null,lobbyLoading=false;
 let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,roundAdvanceRequestedFor="",roundAdvanceTimeoutRequestedFor="";
 let soloQuestions=[],soloAnswers=[],soloQuestionIndex=0,soloDifficulty="starter",soloLoading=false;
 
-const screenIds=["homeScreen","profileScreen","financeAdminScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
+const screenIds=["homeScreen","gamesScreen","messagesScreen","liveScreen","videoScreen","profileScreen","financeAdminScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
 
 function showMessage(t){document.getElementById("message").innerText=t||""}
 function hideScreens(){screenIds.forEach(id=>document.getElementById(id).classList.add("hidden"))}
-function setNav(id){document.querySelectorAll(".navbtn").forEach(b=>b.classList.remove("active"));if(id)document.getElementById(id)?.classList.add("active")}
+function setNav(id){
+ document.querySelectorAll(".navbtn").forEach(b=>b.classList.remove("active"));
+ if(id)document.getElementById(id)?.classList.add("active");
+ document.querySelectorAll("[data-bottom-nav]").forEach(b=>b.classList.toggle("active",b.dataset.bottomNav===id));
+ document.getElementById("navGamesDesktop")?.classList.toggle("active",id==="navGames");
+ document.getElementById("navMessagesDesktop")?.classList.toggle("active",id==="navMessages");
+ document.getElementById("navLiveDesktop")?.classList.toggle("active",id==="navLive");
+}
 function showScreen(id,nav=""){hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome")}
+function showGames(){stopLobbyRefresh();stopGameRefresh();showScreen("gamesScreen","navGames");renderPlayamCatalogue()}
+function showMessages(){stopLobbyRefresh();stopGameRefresh();showScreen("messagesScreen","navMessages")}
+function showLiveHub(){stopLobbyRefresh();stopGameRefresh();showScreen("liveScreen","navLive")}
+const playamCatalogue=[
+ ["Friendship Court","⚖️","friendship-court",true],["Would You Rather","🤔","would-you-rather",true],["Truth or Dare","🎭","truth-or-dare",true],["Mind Battle","🧠","mind-battle",true],["Secret Confessions","🤫","secret-confessions",true],
+ ["Legend — Test","🏆","legend-test",true],["Legend — Pressure","🔥","legend-pressure",true],["Legend — Mind Game","🧩","legend-mind-game",true],["Legend — Ultimate Decision","⚖️","legend-ultimate-decision",true],["Legend — Final Trial","🏁","legend-final-trial",true],
+ ["Snooker","🎱","snooker",false],["Pool","🎱","pool",false],["Football","⚽","football",false],["Checkers","♟️","checkers",false],["Ayo","🌰","ayo",false],["Ludo","🎲","ludo",false],["CODs — Call of Dare","🎯","cods",false],["CODs — Team Deathmatch","⚔️","team-deathmatch",false],["CODs — Battle Royale","🪂","battle-royale",false],["CODs — Tactical 5v5","🛡️","tactical-5v5",false],["CODs — Survival Extraction","🌲","survival-extraction",false],["CODs — Zombie Survival","🧟","zombie-survival",false],["Cotton Ball Challenge","🧶","cotton-ball-challenge",false],["LIVE Questions & Answers","🎤","live-questions-answers",false],["Scoreboard","📊","scoreboard",false]
+];
+function renderPlayamCatalogue(){
+ const grid=document.getElementById("playamCatalogueGrid");if(!grid||grid.dataset.ready==="yes")return;grid.dataset.ready="yes";
+ playamCatalogue.forEach(([name,emoji,key,available])=>{
+  const card=document.createElement("article");card.className="catalogue-card"+(available?"":" planned");
+  const icon=document.createElement("div");icon.className="catalogue-icon";icon.textContent=emoji;
+  const title=document.createElement("h3");title.textContent=name;
+  const status=document.createElement("div");status.className="catalogue-status";status.textContent=available?"AVAILABLE IN STAGING":"IN DEVELOPMENT";
+  const desc=document.createElement("p");desc.textContent=available?"Open the room setup to create a match with friends.":"This game is in the PLAYAM roadmap and is not playable yet.";
+  const button=document.createElement("button");button.className=available?"primary":"secondary";button.textContent=available?"CREATE ROOM":"COMING SOON";button.disabled=!available;
+  if(available)button.addEventListener("click",()=>openCatalogueGame(key));
+  card.append(icon,title,status,desc,button);grid.appendChild(card);
+ });
+}
+function openCatalogueGame(key){const select=document.getElementById("game");if(!select||![...select.options].some(option=>option.value===key)){showMessage("This game is not connected to the Staging room engine yet.");return}select.value=key;showCreateRoom()}
 const financeCategories={
  expense:[
  ["payment_processing_fees","Payment processing fees"],["creator_withdrawal_fees","Creator withdrawal fees"],
@@ -700,7 +789,7 @@ async function loadCreatorEarningsDashboard(){
   if(history)history.textContent="Reward history unavailable.";
  }
 }
-function showVideoHub(){hideScreens();document.getElementById("videoScreen").classList.remove("hidden");document.querySelectorAll(".navbtn").forEach(x=>x.classList.remove("active"))}
+function showVideoHub(){stopLobbyRefresh();stopGameRefresh();showScreen("videoScreen","navVideos")}
 let videoFeedOffset=0,videoFeedLoading=false,videoFeedEnded=false;
 async function beginPlayamVideoUpload(input){
  const file=input?.files?.[0];if(!file)return;
