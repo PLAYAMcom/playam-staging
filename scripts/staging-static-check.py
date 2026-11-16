@@ -17,7 +17,7 @@ ROOT_ADMIN_APP = Path("admin-playam-staging.html")
 CATALOGUE_PAGE = Path("site/game-catalogue.html")
 FLOW_APP = Path("site/flow.html")
 LANDING_PAGE = Path("site/index.html")
-MESSAGE_IDEMPOTENCY_MIGRATION = Path("supabase/migrations/20261116081500_idempotent_private_message_delivery.sql")
+MESSAGE_IDEMPOTENCY_MIGRATION = Path("supabase/migrations/20261116162134_20261116081500_idempotent_private_message_delivery.sql")
 LOBBY_CONCURRENCY_MIGRATION = Path("supabase/migrations/20261116122845_serialize_playam_lobby_ready_updates.sql")
 if not PUBLISHED_APP.exists():
     raise SystemExit("FAIL: published Staging game page is missing")
