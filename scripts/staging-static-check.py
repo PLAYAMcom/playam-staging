@@ -40,6 +40,40 @@ for marker in ("FOR UPDATE OF r", "r.code=upper(btrim(coalesce(p_code,'')))", "G
     if marker not in lobby_migration:
         raise SystemExit("FAIL: lobby readiness concurrency protection missing: " + marker)
 
+# Verify the readiness lock coordinates with the existing join/start room locks.
+# These function definitions are in the earlier Staging RPC migration.
+GAME_RPC_MIGRATION = Path("supabase/migrations/20261113151913_scope_game_actions_and_enforce_level_eligibility.sql")
+if not GAME_RPC_MIGRATION.exists():
+    raise SystemExit("FAIL: room-scoped gameplay RPC migration is missing")
+game_rpc_migration = GAME_RPC_MIGRATION.read_text(encoding="utf-8")
+def function_definition(sql, function_name):
+    match = re.search(
+        r"create\\s+or\\s+replace\\s+function\\s+public\\." + re.escape(function_name) + r"\\b.*?\\$\\$;",
+        sql, re.I | re.S
+    )
+    if not match:
+        raise SystemExit("FAIL: required database function definition missing: " + function_name)
+    return match.group(0)
+join_rpc = function_definition(game_rpc_migration, "join_playam_room")
+start_rpc = function_definition(game_rpc_migration, "start_playam_game")
+for function_name, definition, marker in (
+    ("join_playam_room", join_rpc, "for update"),
+    ("start_playam_game", start_rpc, "for update of r"),
+):
+    if marker not in definition.lower():
+        raise SystemExit("FAIL: " + function_name + " does not serialize on the room row")
+for marker in (
+    "p.auth_user_id=v_uid",
+    "coalesce(r.game_status,r.status)='waiting'",
+    "FOR UPDATE OF r",
+    "UPDATE public.players",
+    "WHERE id=v_player_id AND room_id=v_room_id",
+    "SECURITY DEFINER",
+    "SET search_path=''",
+):
+    if marker.lower() not in lobby_migration.lower():
+        raise SystemExit("FAIL: lobby readiness authorization/locking invariant missing: " + marker)
+
 message_migration = MESSAGE_IDEMPOTENCY_MIGRATION.read_text(encoding="utf-8")
 for marker in ("ON CONFLICT(sender_auth_user_id,idempotency_key)", "v_existing_conversation_id IS DISTINCT FROM p_conversation_id", "v_existing_body IS DISTINCT FROM v_body", "Idempotency key was already used for a different message"):
     if marker not in message_migration:
