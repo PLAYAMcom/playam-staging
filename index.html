@@ -469,6 +469,150 @@ input,select,textarea{font-size:16px;max-width:100%}
 #dmThreadHead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #dmThreadHead .dm-person-meta{flex:1;min-width:100px}
 
+
+/* PLAYAM desktop and wide-screen experience */
+@media(min-width:761px){
+ html{scroll-padding-top:24px}
+ body{min-width:760px;background:radial-gradient(ellipse at 82% 0%,#241334 0%,transparent 36%),#090914}
+ #app{align-items:stretch;min-height:100vh}
+ .sidebar{
+  position:sticky;top:0;align-self:flex-start;
+  width:clamp(232px,18vw,280px);height:100vh;min-height:100vh;
+  flex:0 0 clamp(232px,18vw,280px);overflow-y:auto;
+  padding:26px 17px 20px;border-right:1px solid #302541;
+  background:linear-gradient(180deg,#121020 0%,#0d0d19 100%);
+ }
+ .brand{font-size:29px;margin:7px 10px 30px}
+ .side-label{margin-top:19px}
+ .navbtn{min-height:45px;border-radius:11px}
+ .navbtn.active{background:linear-gradient(100deg,#352044,#24203a);border-color:#68458d;box-shadow:inset 3px 0 #c34bff}
+ .main{width:auto;max-width:none;min-width:0;flex:1;margin:0;padding:clamp(24px,3vw,48px) clamp(24px,3.4vw,58px) 54px}
+ .topbar{max-width:1540px;margin:0 auto 30px;padding-bottom:18px;border-bottom:1px solid #28243a}
+ .welcome{font-size:clamp(27px,2.2vw,36px)}
+ .online{white-space:nowrap}
+ .playam-home{max-width:1320px}
+ .home-hero{min-height:300px;padding:clamp(28px,3vw,44px)}
+ .home-hero h2{font-size:clamp(34px,3.2vw,48px);max-width:18ch}
+ .home-hero p{font-size:15px}
+ .home-hero-art{min-height:230px;transform:scale(1.12)}
+ .home-featured-games{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+ .home-feature-art{min-height:145px;font-size:56px}
+ .home-feature-card strong{font-size:15px;padding:13px 14px 3px}
+ .home-feature-card small{font-size:12px;padding:0 14px 14px}
+ .home-video-strip{gap:14px}
+ .home-video-tile{min-height:155px;padding:17px}
+ .home-video-tile strong{font-size:14px}
+ .home-shortcuts{gap:13px}
+ .home-shortcuts button{padding:17px}
+ #gamesScreen{max-width:1320px}
+ #gamesScreen>.hero{padding:30px}
+ #gamesScreen>.hero h2{font-size:34px}
+ #gamesScreen .catalogue-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+ #gamesScreen .catalogue-card{min-height:190px;padding:17px}
+ #gamesScreen .catalogue-card h3{font-size:16px}
+ #liveScreen{max-width:1120px;padding:30px}
+ #liveScreen .small-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+ #liveScreen .small-card{padding:21px}
+ #videoScreen{max-width:1320px}
+ #videoScreen .video-feed{max-width:none}
+ #videoScreen>.hero{padding:30px}
+ #videoScreen #videoFeed{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:20px}
+ #videoScreen .video-post{min-width:0;max-width:none}
+ #videoScreen .video-post video{height:min(66vh,650px);max-height:650px;object-fit:contain}
+ #videoScreen .video-post-meta{padding:17px}
+ #profileScreen,#walletScreen{max-width:1120px;padding:30px}
+ #profileScreen>.small-card:first-of-type{padding:23px}
+ #profileScreen #profileAvatar{width:76px;height:76px;flex-basis:76px}
+ #profileScreen #profilePreviewName{font-size:21px}
+ #profileScreen .grid-two{gap:12px!important}
+ #profileScreen .grid-two button{min-height:52px;font-size:13px}
+ #profileScreen #creatorEarningsPanel{padding:22px}
+ #profileScreen #creatorEarningsPanel .small-card{padding:17px}
+ .wallet-ledgers{gap:15px}
+ .wallet-ledger{padding:21px;min-height:150px}
+ #notificationsScreen,#settingsScreen{max-width:1000px;padding:30px}
+ .dm-layout{grid-template-columns:minmax(260px,.82fr) minmax(0,1.65fr);gap:18px;min-height:560px}
+ .dm-panel{padding:17px}
+ .dm-list{max-height:560px}
+ .dm-thread{min-height:520px}
+ .dm-messages{max-height:430px}
+ .screen-card{max-width:1050px;padding:30px}
+ .game-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+ .small-grid{gap:14px}
+}
+@media(min-width:1180px){
+ .main{padding-left:clamp(36px,4vw,72px);padding-right:clamp(36px,4vw,72px)}
+ #gamesScreen .catalogue-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+ #videoScreen #videoFeed{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #videoScreen .video-post video{height:min(62vh,590px)}
+ .home-section-heading{margin-top:32px}
+}
+@media(min-width:761px) and (max-width:980px){
+ .sidebar{width:218px;flex-basis:218px;padding:20px 12px}
+ .brand{font-size:24px}
+ .main{padding:24px 22px 42px}
+ #gamesScreen .catalogue-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #videoScreen #videoFeed{grid-template-columns:1fr;max-width:680px;margin:0 auto}
+ #liveScreen .small-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(min-width:761px) and (max-width:1100px){
+ .home-hero{grid-template-columns:minmax(0,1.2fr) minmax(160px,.8fr);padding:25px}
+ .home-hero-art{transform:scale(.9)}
+ .home-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(min-width:761px){
+ .sidebar::-webkit-scrollbar,.dm-list::-webkit-scrollbar,.dm-messages::-webkit-scrollbar{width:7px}
+ .sidebar::-webkit-scrollbar-thumb,.dm-list::-webkit-scrollbar-thumb,.dm-messages::-webkit-scrollbar-thumb{background:#49345f;border-radius:8px}
+ button{transition:filter .16s ease,border-color .16s ease,transform .16s ease}
+ button:hover:not(:disabled){filter:brightness(1.12)}
+ .home-feature-card:hover,.catalogue-card:hover{transform:translateY(-3px);border-color:#9360c0}
+}
+@media(prefers-reduced-motion:reduce){
+ .home-feature-card,.catalogue-card,button{transition:none!important}
+}
+
+
+/* PLAYAM Stage 1: visual alignment with the approved mobile reference */
+@media(max-width:760px){
+ body{background:radial-gradient(ellipse at 88% 0%,#32134c 0%,transparent 34%),#090914}
+ .main{padding-top:12px}
+ .topbar{margin-bottom:15px;padding:4px 2px 10px;border-bottom:1px solid #302541}
+ .home-welcome{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 15px}
+ .home-brand-lockup{display:flex;align-items:center;gap:9px;font-size:22px;font-weight:900;letter-spacing:.5px}
+ .home-brand-mark{display:grid;place-items:center;width:31px;height:31px;border-radius:10px;background:linear-gradient(135deg,#b43cff,#ed35b8);color:#fff;box-shadow:0 5px 18px #a42cff55}
+ .home-notifications{position:relative;width:42px;height:42px;border:1px solid #49345f;border-radius:14px;background:#21182f;color:#fff}
+ .home-hero{border-radius:20px;border-color:#63417e;background:radial-gradient(ellipse at 100% 0%,#8534b544,transparent 42%),linear-gradient(135deg,#29183d,#17162c 68%,#251438);padding:19px 17px;box-shadow:0 12px 32px #0004}
+ .home-eyebrow{font-size:10px;letter-spacing:1.25px}
+ .home-hero h2{font-size:clamp(23px,6vw,29px);line-height:1.12}
+ .home-hero p{font-size:13px;line-height:1.5;max-width:34ch}
+ .home-hero-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ .home-hero-actions button{min-width:0;min-height:46px;padding:10px 8px;font-size:11px}
+ .home-featured-games{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ .home-feature-card{min-width:0;overflow:hidden;border-radius:15px;background:linear-gradient(150deg,#29203d,#171528);border:1px solid #49345f}
+ .home-feature-art{min-height:88px;display:grid;place-items:center;font-size:36px}
+ .home-feature-card strong{display:block;padding:9px 8px 3px;font-size:11px;line-height:1.25}
+ .home-feature-card small{display:block;padding:0 8px 10px;font-size:10px}
+ .home-section-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:22px 0 10px}
+ .home-section-heading h3{font-size:16px}
+ .home-section-heading button{padding:7px 9px;min-height:36px;font-size:10px}
+ .home-video-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ .home-video-tile{min-width:0;min-height:112px;padding:10px;border-radius:14px}
+ .home-video-tile strong{font-size:10px;line-height:1.3}
+ .home-shortcuts{gap:8px;margin-top:14px}
+ .home-shortcuts button{padding:13px 10px;border-radius:14px}
+ .home-live-preview{margin-top:14px;border-radius:15px;padding:13px}
+ #bottomNav{box-shadow:0 -8px 28px #0006}
+}
+@media(max-width:380px){
+ .home-hero-actions{grid-template-columns:1fr}
+ .home-feature-art{min-height:76px;font-size:31px}
+ .home-feature-card strong{font-size:10px}
+ .home-video-tile{min-height:100px}
+}
+@media(prefers-reduced-motion:reduce){
+ .home-feature-card,.home-video-tile,.home-hero-actions button{transition:none!important}
+}
+
 </style>
 </head>
 <body>
@@ -924,8 +1068,8 @@ const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let currentRoomCode="",currentRoomId="",currentPlayerId="",currentNickname="";
 let availablePlayamMarkets=[];
 let currentPlayerReady=false,currentPlayerIsHost=false,currentGame="",currentRoundId="";
-let selectedVotePlayerId="",lobbyRefreshTimer=null,lobbyLoading=false;
-let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,roundAdvanceRequestedFor="",roundAdvanceTimeoutRequestedFor="";
+let selectedVotePlayerId="",lobbyRefreshTimer=null,lobbyLoading=false,lobbyActionInFlight=false;
+let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,answerSubmitting=false,voteSubmitting=false,roundAdvanceInFlight=false,gameLoading=false,gameLoadSequence=0,roundAdvanceRequestedFor="",roundAdvanceTimeoutRequestedFor="";
 let soloQuestions=[],soloAnswers=[],soloQuestionIndex=0,soloDifficulty="starter",soloLoading=false;
 
 const screenIds=["homeScreen","gamesScreen","messagesScreen","liveScreen","videoScreen","walletScreen","notificationsScreen","profileScreen","financeAdminScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
@@ -1132,7 +1276,7 @@ updateDmConnectionStatus();
 function showLiveHub(){stopLobbyRefresh();stopGameRefresh();showScreen("liveScreen","navLive")}
 const playamCatalogue=[
  ["Friendship Court","⚖️","friendship-court",true],["Would You Rather","🤔","would-you-rather",true],["Truth or Dare","🎭","truth-or-dare",true],["Mind Battle","🧠","mind-battle",true],["Secret Confessions","🤫","secret-confessions",true],
- ["Legend — Test","🏆","legend-test",true],["Legend — Pressure","🔥","legend-pressure",true],["Legend — Mind Game","🧩","legend-mind-game",true],["Legend — Ultimate Decision","⚖️","legend-ultimate-decision",true],["Legend — Final Trial","🏁","legend-final-trial",true],
+ ["Legend — Test","🏆","legend-test",false],["Legend — Pressure","🔥","legend-pressure",false],["Legend — Mind Game","🧩","legend-mind-game",false],["Legend — Ultimate Decision","⚖️","legend-ultimate-decision",false],["Legend — Final Trial","🏁","legend-final-trial",false],
  ["Snooker","🎱","snooker",false],["Pool","🎱","pool",false],["Football","⚽","football",false],["Checkers","♟️","checkers",false],["Ayo","🌰","ayo",false],["Ludo","🎲","ludo",false],["CODs — Call of Dare","🎯","cods",false],["CODs — Team Deathmatch","⚔️","team-deathmatch",false],["CODs — Battle Royale","🪂","battle-royale",false],["CODs — Tactical 5v5","🛡️","tactical-5v5",false],["CODs — Survival Extraction","🌲","survival-extraction",false],["CODs — Zombie Survival","🧟","zombie-survival",false],["Cotton Ball Challenge","🧶","cotton-ball-challenge",false],["LIVE Questions & Answers","🎤","live-questions-answers",false],["Scoreboard","📊","scoreboard",false]
 ];
 function renderPlayamCatalogue(){
@@ -1666,6 +1810,16 @@ function showAuthMessage(message){
  const target=document.getElementById("authMessage");
  if(target)target.textContent=message||"";
 }
+async function ensurePlayamProfile(user){
+ if(!user?.id)throw new Error("A signed-in account is required to create your profile.");
+ const localPart=(user.email||"player").split("@")[0];
+ const displayName=(localPart.replace(/[._+-]+/g," ").trim().slice(0,40)||"PLAYAM Player");
+ const username="player_"+user.id.replace(/-/g,"").slice(0,12).toLowerCase();
+ const {error}=await supabaseClient.from("playam_profiles").upsert({
+  user_id:user.id,display_name:displayName,username,bio:""
+ },{onConflict:"user_id",ignoreDuplicates:true});
+ if(error)throw error;
+}
 async function signUp(){
  const email=document.getElementById("email").value.trim(),password=document.getElementById("password").value;
  if(!email||!password){showAuthMessage("Please enter your email and password.");return}
@@ -1673,7 +1827,7 @@ async function signUp(){
  try{
   const {data,error}=await supabaseClient.auth.signUp({email,password});
   if(error){showAuthMessage(error.message);return}
-  if(data.session){showAuthMessage("");showHome();}
+  if(data.session){await ensurePlayamProfile(data.session.user);showAuthMessage("");showHome();}
   else showAuthMessage("Account created. Check your email if confirmation is required, then log in here.");
  }catch(error){
   showAuthMessage(error?.message||"We could not create your account. Please try again.");
@@ -1686,7 +1840,7 @@ async function signIn(){
  try{
   const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
   if(error){showAuthMessage(error.message);return}
-  if(data.session){showAuthMessage("");showHome();}
+  if(data.session){await ensurePlayamProfile(data.session.user);showAuthMessage("");showHome();}
   else showAuthMessage("Login completed without an active session. Check whether email confirmation is required.");
  }catch(error){
   showAuthMessage(error?.message||"We could not log you in. Check your connection and try again.");
@@ -1757,22 +1911,34 @@ function cancelSoloGame(){if(!confirm("Exit this Solo game? Your current answers
 
 /* CREATE / JOIN */
 async function createRoom(){
+ if(lobbyActionInFlight)return;
+ const button=document.querySelector("#createScreen button.primary");
  const nickname=document.getElementById("nickname").value.trim(),game=document.getElementById("game").value,level=document.getElementById("level").value,rounds=Number(document.getElementById("rounds").value);
  if(!nickname){showMessage("Please enter a nickname.");return}
- showMessage("Creating your PLAYAM room...");
- const {data,error}=await supabaseClient.rpc("create_playam_room",{p_nickname:nickname,p_rounds:rounds,p_game:game,p_level_key:level});
- if(error){showMessage(error.message);return}
- if(!data||!data.length||!data[0].room_code){showMessage("Room was created, but its details were not returned.");return}
- currentRoomCode=data[0].room_code;currentPlayerId=data[0].player_id;currentNickname=nickname;openLobby();
+ lobbyActionInFlight=true;if(button)button.disabled=true;
+ try{
+  showMessage("Creating your PLAYAM room...");
+  const {data,error}=await supabaseClient.rpc("create_playam_room",{p_nickname:nickname,p_rounds:rounds,p_game:game,p_level_key:level});
+  if(error)throw error;
+  if(!data||!data.length||!data[0].room_code)throw new Error("Room was created, but its details were not returned.");
+  currentRoomCode=data[0].room_code;currentPlayerId=data[0].player_id;currentNickname=nickname;openLobby();
+ }catch(error){showMessage(error?.message||"Could not create the room. Please try again.")}
+ finally{lobbyActionInFlight=false;if(button)button.disabled=false}
 }
 async function joinRoom(){
+ if(lobbyActionInFlight)return;
+ const button=document.querySelector("#joinScreen button.primary");
  const code=document.getElementById("joinCode").value.trim().toUpperCase(),nickname=document.getElementById("joinNickname").value.trim();
  if(!code||!nickname){showMessage("Enter your room code and nickname.");return}
- showMessage("Joining room...");
- const {data,error}=await supabaseClient.rpc("join_playam_room",{p_code:code,p_nickname:nickname});
- if(error){showMessage(error.message);return}
- if(!data||!data.length||!data[0].room_code){showMessage("You joined, but room details were not returned.");return}
- currentRoomCode=data[0].room_code;currentPlayerId=data[0].player_id;currentNickname=nickname;openLobby();
+ lobbyActionInFlight=true;if(button)button.disabled=true;
+ try{
+  showMessage("Joining room...");
+  const {data,error}=await supabaseClient.rpc("join_playam_room",{p_code:code,p_nickname:nickname});
+  if(error)throw error;
+  if(!data||!data.length||!data[0].room_code)throw new Error("You joined, but room details were not returned.");
+  currentRoomCode=data[0].room_code;currentPlayerId=data[0].player_id;currentNickname=nickname;openLobby();
+ }catch(error){showMessage(error?.message||"Could not join the room. Please try again.")}
+ finally{lobbyActionInFlight=false;if(button)button.disabled=false}
 }
 
 /* LOBBY */
@@ -1783,7 +1949,10 @@ function openLobby(){
 function stopLobbyRefresh(){if(lobbyRefreshTimer){clearInterval(lobbyRefreshTimer);lobbyRefreshTimer=null}}
 async function loadLobby(){
  if(!currentRoomCode||lobbyLoading)return;lobbyLoading=true;
- const {data,error}=await supabaseClient.rpc("get_playam_lobby",{p_code:currentRoomCode});lobbyLoading=false;
+ const requestedRoomCode=currentRoomCode;
+ try{
+ const {data,error}=await supabaseClient.rpc("get_playam_lobby",{p_code:requestedRoomCode});
+ if(currentRoomCode!==requestedRoomCode)return;
  if(error){showMessage(error.message);return}
  if(!data||!data.length){showMessage("No players found in this room.");return}
  if(data[0].game_status==="playing"){stopLobbyRefresh();openGame();return}
@@ -1803,37 +1972,57 @@ async function loadLobby(){
  document.getElementById("lobbyRound").innerText="Current round: "+data[0].current_round+" | Total rounds: "+data[0].total_rounds;
  const ready=document.getElementById("readyButton");ready.innerText=currentPlayerReady?"CANCEL READY":"I'M READY";ready.disabled=data[0].game_status!=="waiting";
  document.getElementById("startButton").classList.toggle("hidden",!(currentPlayerIsHost&&data[0].game_status==="waiting"));
+ }catch(error){showMessage(error?.message||"Unable to refresh the lobby.")}
+ finally{lobbyLoading=false}
 }
 async function toggleReady(){
- const next=!currentPlayerReady;showMessage("Updating your readiness...");
- const {error}=await supabaseClient.rpc("set_playam_ready",{p_ready:next,p_code:currentRoomCode});
- if(error){showMessage(error.message);return}
- showMessage(next?"You are ready!":"You are no longer ready.");await loadLobby();
+ if(lobbyActionInFlight||!currentRoomCode)return;
+ lobbyActionInFlight=true;const button=document.getElementById("readyButton");if(button)button.disabled=true;
+ const next=!currentPlayerReady,requestedRoomCode=currentRoomCode;
+ try{
+  showMessage("Updating your readiness...");
+  const {error}=await supabaseClient.rpc("set_playam_ready",{p_ready:next,p_code:requestedRoomCode});
+  if(error)throw error;
+  showMessage(next?"You are ready!":"You are no longer ready.");await loadLobby();
+ }catch(error){showMessage(error?.message||"Could not update readiness.")}
+ finally{lobbyActionInFlight=false;if(button)button.disabled=false}
 }
 async function startGame(){
+ if(lobbyActionInFlight||!currentRoomCode)return;
  if(!currentPlayerIsHost){showMessage("Only the room host can start the game.");return}
- showMessage("Starting PLAYAM game...");
- const {error}=await supabaseClient.rpc("start_playam_game",{p_code:currentRoomCode});
- if(error){showMessage(error.message);return}
- showMessage("PLAYAM has started!");stopLobbyRefresh();setTimeout(openGame,500);
+ lobbyActionInFlight=true;const button=document.getElementById("startButton");if(button)button.disabled=true;
+ const requestedRoomCode=currentRoomCode;
+ try{
+  showMessage("Starting PLAYAM game...");
+  const {error}=await supabaseClient.rpc("start_playam_game",{p_code:requestedRoomCode});
+  if(error)throw error;
+  if(currentRoomCode!==requestedRoomCode)return;
+  showMessage("PLAYAM has started!");stopLobbyRefresh();setTimeout(openGame,500);
+ }catch(error){showMessage(error?.message||"Could not start the game.")}
+ finally{lobbyActionInFlight=false;if(button)button.disabled=false}
 }
 
 /* MULTIPLAYER GAME */
 function openGame(){
- stopLobbyRefresh();stopGameRefresh();showScreen("gameScreen");answerSubmitted=false;selectedVotePlayerId="";
+ stopLobbyRefresh();stopGameRefresh();gameLoadSequence++;gameLoading=false;showScreen("gameScreen");answerSubmitted=false;answerSubmitting=false;voteSubmitting=false;selectedVotePlayerId="";
  loadGame();gameRefreshTimer=setInterval(loadGame,2000);
 }
 function stopGameRefresh(){
  if(gameRefreshTimer){clearInterval(gameRefreshTimer);gameRefreshTimer=null}
  if(gameTimerInterval){clearInterval(gameTimerInterval);gameTimerInterval=null}
+ gameLoadSequence++;gameLoading=false;
 }
 async function loadGame(){
- if(!currentRoomCode)return;
- const {data:room,error:roomError}=await supabaseClient.from("rooms").select("*").eq("code",currentRoomCode).single();
- if(roomError){showMessage(roomError.message);return}if(!room)return;
+ if(!currentRoomCode||gameLoading)return;
+ gameLoading=true;const requestedRoomCode=currentRoomCode,sequence=gameLoadSequence;
+ try{
+ const {data:room,error:roomError}=await supabaseClient.from("rooms").select("*").eq("code",requestedRoomCode).single();
+ if(sequence!==gameLoadSequence||currentRoomCode!==requestedRoomCode)return;
+ if(roomError)throw roomError;if(!room)return;
  currentRoomId=room.id;currentGame=room.game;
  if(room.status==="finished"||room.game_status==="finished"){stopGameRefresh();showResults();return}
  const {data:round,error:roundError}=await supabaseClient.from("game_rounds").select("*,questions(id,text,question_type,option_a,option_b)").eq("room_id",room.id).eq("round_number",room.current_round).single();
+ if(sequence!==gameLoadSequence||currentRoomCode!==requestedRoomCode)return;
  if(roundError||!round){document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="Preparing the next round...";return}
  if(currentRoundId!==round.id){
   currentRoundId=round.id;answerSubmitted=false;selectedVotePlayerId="";roundAdvanceRequestedFor="";roundAdvanceTimeoutRequestedFor="";
@@ -1848,6 +2037,8 @@ async function loadGame(){
  if(legendStage[room.game]) document.getElementById("gameRoundNumber").innerText+=" • "+legendStage[room.game];
  document.getElementById("questionBox").innerText=round.questions.text;
  currentRoundEndsAt=round.ends_at;startRoundTimer();await renderGameControls(round,room);
+ }catch(error){if(sequence===gameLoadSequence)showMessage(error?.message||"Unable to refresh the game.")}
+ finally{if(sequence===gameLoadSequence)gameLoading=false}
 }
 function getGameTitle(g){return({"friendship-court":"⚖️ Friendship Court","would-you-rather":"🤔 Would You Rather?","truth-or-dare":"🎭 Truth or Dare","mind-battle":"🧠 Mind Battle","secret-confessions":"🤫 Secret Confessions","legend-test":"🏆 Legend: Test","legend-pressure":"🔥 Legend: Pressure","legend-mind-game":"🧩 Legend: Mind Game","legend-ultimate-decision":"⚖️ Legend: Ultimate Decision","legend-final-trial":"🏁 Legend: Final Trial"})[g]||"PLAYAM"}
 function hideGameControls(){["choiceArea","answerArea","voteArea","gameWaiting"].forEach(id=>document.getElementById(id).classList.add("hidden"))}
@@ -1889,12 +2080,13 @@ function updateTimer(){
  }
 }
 async function requestRoundAdvance(force=false){
- if(!currentRoundId||!currentRoomCode)return;
+ if(!currentRoundId||!currentRoomCode||roundAdvanceInFlight)return;
  if(!force&&roundAdvanceRequestedFor===currentRoundId)return;
- const requestedRoundId=currentRoundId;
- roundAdvanceRequestedFor=requestedRoundId;
- const {data,error}=await supabaseClient.rpc("advance_playam_round",{p_code:currentRoomCode});
- if(currentRoundId!==requestedRoundId)return;
+ const requestedRoundId=currentRoundId,requestedRoomCode=currentRoomCode;
+ roundAdvanceRequestedFor=requestedRoundId;roundAdvanceInFlight=true;
+ try{
+ const {data,error}=await supabaseClient.rpc("advance_playam_round",{p_code:requestedRoomCode});
+ if(currentRoundId!==requestedRoundId||currentRoomCode!==requestedRoomCode)return;
  if(error){
   roundAdvanceRequestedFor="";
   showMessage("Round could not advance: "+error.message);
@@ -1905,16 +2097,25 @@ async function requestRoundAdvance(force=false){
   return;
  }
  if(data==="waiting")roundAdvanceRequestedFor="";
+ }catch(error){if(currentRoundId===requestedRoundId){roundAdvanceRequestedFor="";showMessage(error?.message||"Round could not advance.")}}
+ finally{roundAdvanceInFlight=false}
 }
 async function submitChoice(choice){await submitGameAnswer(choice)}
 async function submitWrittenAnswer(){const answer=document.getElementById("answerInput").value.trim();if(!answer){showMessage("Please enter an answer.");return}await submitGameAnswer(answer)}
 async function submitGameAnswer(answer){
- if(answerSubmitted)return;
- const {error}=await supabaseClient.rpc("submit_playam_answer",{p_answer:answer,p_code:currentRoomCode});
- if(error){showMessage(error.message);return}
- answerSubmitted=true;showMessage("✓ Answer submitted!");hideGameControls();
- document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="Your answer is locked in.";
- await requestRoundAdvance();
+ if(answerSubmitted||answerSubmitting||!currentRoomCode||!currentRoundId)return;
+ answerSubmitting=true;const buttonIds=["optionAButton","optionBButton","submitAnswerButton"];
+ buttonIds.forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=true});
+ const requestedRoundId=currentRoundId,requestedRoomCode=currentRoomCode;
+ try{
+  const {error}=await supabaseClient.rpc("submit_playam_answer",{p_answer:answer,p_code:requestedRoomCode});
+  if(error)throw error;
+  if(currentRoundId!==requestedRoundId||currentRoomCode!==requestedRoomCode)return;
+  answerSubmitted=true;showMessage("✓ Answer submitted!");hideGameControls();
+  document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="Your answer is locked in.";
+  await requestRoundAdvance();
+ }catch(error){showMessage(error?.message||"Your answer could not be submitted. Please try again.")}
+ finally{answerSubmitting=false;buttonIds.forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=false})}
 }
 async function loadVotePlayers(){
  const box=document.getElementById("votePlayers");box.innerHTML="Loading players...";
@@ -1929,12 +2130,19 @@ async function loadVotePlayers(){
  });
 }
 async function submitVote(){
+ if(voteSubmitting||answerSubmitted)return;
  if(!selectedVotePlayerId){showMessage("Choose a player first.");return}
- if(!currentRoomCode){showMessage("Room information is missing. Please rejoin the game.");return}
- const {error}=await supabaseClient.rpc("submit_playam_vote",{p_code:currentRoomCode,p_target_player_id:selectedVotePlayerId});
- if(error){showMessage(error.message);return}
- answerSubmitted=true;hideGameControls();document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="✓ Vote submitted. Waiting for the round...";
- await requestRoundAdvance();
+ if(!currentRoomCode||!currentRoundId){showMessage("Room information is missing. Please rejoin the game.");return}
+ voteSubmitting=true;const button=document.getElementById("submitVoteButton");if(button)button.disabled=true;
+ const requestedRoundId=currentRoundId,requestedRoomCode=currentRoomCode,targetPlayerId=selectedVotePlayerId;
+ try{
+  const {error}=await supabaseClient.rpc("submit_playam_vote",{p_code:requestedRoomCode,p_target_player_id:targetPlayerId});
+  if(error)throw error;
+  if(currentRoundId!==requestedRoundId||currentRoomCode!==requestedRoomCode)return;
+  answerSubmitted=true;hideGameControls();document.getElementById("gameWaiting").classList.remove("hidden");document.getElementById("gameStatus").innerText="✓ Vote submitted. Waiting for the round...";
+  await requestRoundAdvance();
+ }catch(error){showMessage(error?.message||"Your vote could not be submitted. Please try again.")}
+ finally{voteSubmitting=false;if(button)button.disabled=false}
 }
 
 
@@ -2023,7 +2231,7 @@ async function showResults(){
 }
 async function copyRoomCode(){try{await navigator.clipboard.writeText(currentRoomCode);showMessage("Room code copied!")}catch(e){showMessage("Your room code is: "+currentRoomCode)}}
 function resetGameState(){
- currentRoomCode="";currentRoomId="";currentPlayerId="";currentNickname="";currentPlayerReady=false;currentPlayerIsHost=false;currentGame="";currentRoundId="";selectedVotePlayerId="";currentRoundEndsAt=null;answerSubmitted=false;roundAdvanceRequestedFor="";roundAdvanceTimeoutRequestedFor="";
+ currentRoomCode="";currentRoomId="";currentPlayerId="";currentNickname="";currentPlayerReady=false;currentPlayerIsHost=false;currentGame="";currentRoundId="";selectedVotePlayerId="";currentRoundEndsAt=null;answerSubmitted=false;answerSubmitting=false;voteSubmitting=false;roundAdvanceInFlight=false;gameLoading=false;gameLoadSequence++;lobbyActionInFlight=false;roundAdvanceRequestedFor="";roundAdvanceTimeoutRequestedFor="";
 }
 function leaveLobbyView(){stopLobbyRefresh();stopGameRefresh();resetGameState();showHome()}
 function returnHomeFromResults(){stopGameRefresh();resetGameState();showHome()}

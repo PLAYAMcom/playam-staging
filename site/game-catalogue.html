@@ -2,6 +2,20 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0b0714"><title>PLAYAM Game Catalogue & Roadmap · Staging</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#0b0714;color:#f7f2ff;font:15px/1.6 system-ui,-apple-system,Segoe UI,sans-serif}main{width:min(1100px,100%);margin:auto;padding:24px}.brand{color:#e7a8ff;font-weight:800;letter-spacing:2px}h1{font-size:clamp(30px,6vw,48px);line-height:1.1;margin:12px 0}h2{font-size:22px;margin:0 0 12px}h3{font-size:17px;margin:0 0 8px}p{color:#c7b8d3}.muted,small{color:#b9adc5}.panel,.game{background:#171022;border:1px solid #49345b;border-radius:16px;padding:18px}.panel{margin:18px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}.game{min-height:140px}.game p{margin:6px 0}.tag{display:inline-block;border:1px solid #604779;border-radius:99px;padding:2px 9px;margin:5px 5px 0 0;color:#e6c8f8;font-size:12px}a{color:#e7a8ff}.toplinks{display:flex;gap:16px;flex-wrap:wrap;margin:14px 0 22px}ol{padding-left:22px;color:#d9c8e8}li{margin:7px 0}.note{border-left:3px solid #a83de0;padding:10px 14px;background:#20142e;border-radius:8px}footer{padding:25px 0;color:#8f819c;font-size:13px}
+
+/* PLAYAM game catalogue mobile layout */
+@media(max-width:760px){
+ main{padding:18px 13px calc(28px + env(safe-area-inset-bottom))}
+ h1{font-size:clamp(29px,8vw,40px)}
+ h2{font-size:20px}
+ .toplinks{gap:12px}
+ .grid{grid-template-columns:minmax(0,1fr);gap:10px}
+ .game,.panel{min-width:0;padding:15px;overflow-wrap:anywhere}
+ .game{min-height:0}
+ .tag{line-height:1.5}
+ ol,ul{padding-left:20px}
+}
+@media(max-width:360px){main{padding-left:11px;padding-right:11px}.game,.panel{padding:13px}}
 </style></head><body><main>
 <div class="brand">PLAYAM · STAGING</div><h1>Complete game catalogue</h1>
 <p>This is the master catalogue and development tracker for the PLAYAM game ecosystem. Every agreed game remains on the roadmap. A listing records the plan; it does not claim an unbuilt game is already playable.</p>
