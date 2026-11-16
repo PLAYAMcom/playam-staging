@@ -635,7 +635,7 @@ function setNav(id){
  document.getElementById("navMessagesDesktop")?.classList.toggle("active",id==="navMessages");
  document.getElementById("navLiveDesktop")?.classList.toggle("active",id==="navLive");
 }
-function showScreen(id,nav=""){hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
+function showScreen(id,nav=""){if(id!=="messagesScreen"&&dmRealtimeChannel){supabaseClient.removeChannel(dmRealtimeChannel);dmRealtimeChannel=null}hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome")}
 function showGames(){stopLobbyRefresh();stopGameRefresh();showScreen("gamesScreen","navGames");renderPlayamCatalogue()}
 let dmUser=null,dmActiveConversation=null,dmActivePartner=null,dmRealtimeChannel=null,dmLoading=false;
@@ -652,8 +652,8 @@ async function loadDmInbox(){
   const ids=convs.map(c=>c.id),others=convs.map(c=>c.user_one_auth_user_id===user.id?c.user_two_auth_user_id:c.user_one_auth_user_id);
   const [{data:profiles,error:pe},{data:msgs,error:me},{data:unread,error:ue}]=await Promise.all([
    supabaseClient.from("playam_profiles").select("user_id,display_name,username,avatar_url").in("user_id",others),
-   supabaseClient.from("private_messages").select("id,conversation_id,sender_auth_user_id,body,created_at,read_at").in("conversation_id",ids).order("created_at",{ascending:false}).limit(250),
-   supabaseClient.from("private_messages").select("id,conversation_id").in("conversation_id",ids).neq("sender_auth_user_id",user.id).is("read_at",null)
+   supabaseClient.from("private_messages").select("id,conversation_id,sender_auth_user_id,body,created_at,read_at").in("conversation_id",ids).is("deleted_at",null).order("created_at",{ascending:false}).limit(250),
+   supabaseClient.from("private_messages").select("id,conversation_id").in("conversation_id",ids).neq("sender_auth_user_id",user.id).is("read_at",null).is("deleted_at",null)
   ]);
   if(pe)throw pe;if(me)throw me;if(ue)throw ue;
   const prof=new Map((profiles||[]).map(p=>[p.user_id,p])),last=new Map(),counts=new Map();
@@ -711,7 +711,7 @@ async function loadDmThread(){
  if(!dmActiveConversation||!dmUser)return;
  const area=document.getElementById("dmThreadMessages");
  try{
-  const {data,error}=await supabaseClient.from("private_messages").select("id,sender_auth_user_id,body,created_at,read_at").eq("conversation_id",dmActiveConversation).order("created_at",{ascending:true}).limit(250);
+  const {data,error}=await supabaseClient.from("private_messages").select("id,sender_auth_user_id,body,created_at,read_at").eq("conversation_id",dmActiveConversation).is("deleted_at",null).order("created_at",{ascending:true}).limit(250);
   if(error)throw error;area.replaceChildren();
   (data||[]).forEach(m=>{
    const bubble=dmEl("div","dm-bubble"+(m.sender_auth_user_id===dmUser.id?" mine":""));
