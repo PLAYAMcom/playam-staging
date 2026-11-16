@@ -7,6 +7,7 @@ on:
       - "index.html"
       - "site/**"
       - "scripts/staging-static-check.py"
+      - "supabase/migrations/**"
       - ".github/workflows/staging-static-check.yml"
   pull_request:
     branches: [main]
