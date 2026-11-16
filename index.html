@@ -241,6 +241,91 @@ input,select,textarea{font-size:16px;max-width:100%}
  #gamesScreen .catalogue-card{min-height:0}
 }
 
+
+/* PLAYAM reference-led Home screen: purple-black mobile social app */
+.playam-home{max-width:1060px;margin:0 auto;min-width:0}
+.home-welcome{display:flex;align-items:center;justify-content:space-between;margin:2px 0 17px}
+.home-brand-lockup{display:flex;align-items:center;gap:9px;font-weight:900;font-size:21px;letter-spacing:.6px}
+.home-brand-mark{display:grid;place-items:center;width:31px;height:31px;border-radius:10px;background:linear-gradient(140deg,#d32cff,#702bff);font-size:18px;color:white;box-shadow:0 0 22px #a52cff66}
+.home-notifications{position:relative;background:#201a31;color:white;border:1px solid #45315e;border-radius:50%;width:42px;height:42px;padding:0;font-size:20px}
+.home-notification-dot{position:absolute;right:8px;top:7px;width:7px;height:7px;border-radius:50%;background:#ff4c9b}
+.home-hero{position:relative;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(220px,.9fr);align-items:center;gap:14px;min-height:260px;padding:28px 30px;border:1px solid #573176;border-radius:23px;overflow:hidden;background:radial-gradient(ellipse at 82% 45%,#59218d 0%,transparent 38%),linear-gradient(115deg,#21132f,#15142a 62%,#26123b);box-shadow:inset 0 1px #ffffff12,0 16px 44px #0005}
+.home-eyebrow{font-size:10px;letter-spacing:1.6px;font-weight:800;color:#d9a5ff}
+.home-hero h2{font-size:clamp(27px,4vw,38px);line-height:1.08;margin:13px 0 10px;max-width:17ch}
+.home-hero p{font-size:14px;line-height:1.55;color:#d4c9e5;max-width:42ch}
+.home-hero-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
+.home-live-button,.home-ghost-button{min-height:44px;padding:11px 17px;border-radius:30px}
+.home-live-button{background:linear-gradient(100deg,#bb16df,#6d28ff);color:#fff;box-shadow:0 6px 24px #a319e655}
+.home-live-button small{font-size:9px;opacity:.8;margin-left:4px}
+.home-ghost-button{background:#ffffff0d;color:#fff;border:1px solid #8b64b2}
+.home-hero-art{position:relative;min-height:190px;display:grid;place-items:center}
+.home-art-orb{position:absolute;border-radius:50%;filter:blur(1px)}
+.home-art-orb-one{width:180px;height:180px;background:radial-gradient(circle,#b52bff66,transparent 68%)}
+.home-art-orb-two{width:120px;height:120px;border:1px solid #d99aff55;box-shadow:0 0 45px #b32aff55}
+.home-art-tile{position:absolute;display:grid;place-items:center;border:1px solid #ffffff30;background:linear-gradient(145deg,#ffffff2b,#21142fdd);box-shadow:0 15px 35px #0008;backdrop-filter:blur(8px)}
+.home-art-game{width:75px;height:75px;border-radius:20px;font-size:39px;transform:rotate(-12deg);left:8%}
+.home-art-play{width:105px;height:105px;border-radius:28px;color:#fff;font-size:58px;background:linear-gradient(145deg,#d22bff,#5d26eb);box-shadow:0 0 45px #a12cff88;z-index:1}
+.home-art-video{width:70px;height:70px;border-radius:19px;font-size:36px;right:7%;transform:rotate(12deg)}
+.home-art-spark{position:absolute;right:22%;top:8%;font-size:25px;color:#f2b9ff}
+.home-section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:24px 0 11px}
+.home-section-heading h3{font-size:18px;margin:0}
+.home-section-heading button{padding:7px 0;background:transparent;color:#dba4ff;font-size:11px;min-height:36px}
+.home-featured-games{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.home-feature-card{display:flex;flex-direction:column;align-items:stretch;text-align:left;overflow:hidden;min-width:0;padding:0;background:#191729;color:white;border:1px solid #3d3152;border-radius:16px}
+.home-feature-art{display:grid;place-items:center;min-height:112px;font-size:48px;background:radial-gradient(circle at 50% 30%,#9d55c7,#302043 72%)}
+.home-feature-art.would{background:radial-gradient(circle at 50% 30%,#6548a9,#262344 72%)}
+.home-feature-art.truth{background:radial-gradient(circle at 50% 30%,#b36a28,#3b2435 72%)}
+.home-feature-card strong{font-size:13px;padding:10px 10px 2px}
+.home-feature-card small{font-size:11px;color:#aaa1bd;padding:0 10px 11px}
+.home-video-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.home-video-tile{min-height:125px;display:flex;flex-direction:column;justify-content:space-between;padding:12px;border-radius:15px;border:1px solid #514064;background:linear-gradient(145deg,#56306d,#211b35)}
+.home-video-tile span{align-self:flex-end;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#ffffff30}
+.home-video-tile strong{font-size:12px;text-shadow:0 1px 6px #000}
+.home-video-two{background:linear-gradient(145deg,#304f74,#211b35)}
+.home-video-three{background:linear-gradient(145deg,#743d6b,#211b35)}
+.home-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:15px}
+.home-shortcuts button{display:grid;grid-template-columns:38px 1fr;grid-template-rows:auto auto;align-items:center;text-align:left;column-gap:9px;background:#1b192b;border:1px solid #3e3153;color:white;padding:13px;border-radius:15px}
+.home-shortcuts button span{grid-row:1/3;font-size:25px}
+.home-shortcuts button strong{font-size:12px}
+.home-shortcuts button small{font-size:10px;color:#aaa1bd;margin-top:3px}
+.home-live-preview{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:15px;padding:14px 16px;border:1px solid #67358d;border-radius:15px;background:linear-gradient(100deg,#2b1740,#1a172b)}
+.home-live-preview>div{display:grid;grid-template-columns:10px auto;align-items:center;column-gap:8px}
+.home-live-preview strong{font-size:13px}
+.home-live-preview small{grid-column:2;color:#b8a9c8;font-size:10px;margin-top:3px}
+.home-live-preview button{background:transparent;color:#e2b0ff;padding:8px;font-size:11px}
+.home-live-pulse{width:8px;height:8px;border-radius:50%;background:#ff397e;box-shadow:0 0 0 4px #ff397e22}
+.home-footnote{font-size:10px;color:#8e849e;margin:9px 2px 0}
+@media(max-width:760px){
+ .playam-home{width:100%}
+ .home-welcome{margin:0 2px 13px}
+ .home-hero{grid-template-columns:minmax(0,1fr) 120px;min-height:225px;padding:20px 17px;border-radius:18px;gap:4px}
+ .home-hero h2{font-size:clamp(23px,6vw,29px)}
+ .home-hero p{font-size:12px;max-width:31ch}
+ .home-hero-art{min-height:145px;transform:scale(.8);transform-origin:center}
+ .home-art-game{left:-4%}.home-art-video{right:-7%}
+ .home-hero-actions{gap:7px}.home-live-button,.home-ghost-button{font-size:10px;padding:10px 12px}
+ .home-featured-games{gap:8px}
+ .home-feature-art{min-height:91px;font-size:39px}
+ .home-feature-card strong{font-size:11px;padding:8px 7px 2px}
+ .home-feature-card small{font-size:9px;padding:0 7px 9px}
+ .home-video-strip{gap:7px}
+ .home-video-tile{min-height:105px;padding:9px}
+ .home-video-tile strong{font-size:10px}
+ .home-shortcuts button{padding:10px;grid-template-columns:30px 1fr;column-gap:6px}
+ .home-shortcuts button span{font-size:21px}
+ .home-shortcuts button strong{font-size:10px}
+ .home-shortcuts button small{font-size:9px}
+}
+@media(max-width:380px){
+ .home-hero{grid-template-columns:minmax(0,1fr) 84px;padding:17px 13px}
+ .home-hero-art{transform:scale(.62);margin-left:-20px}
+ .home-featured-games{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .home-feature-art{min-height:75px;font-size:32px}
+ .home-feature-card strong{font-size:10px}
+ .home-video-tile{min-height:92px}
+ .home-shortcuts{grid-template-columns:1fr}
+}
+
 </style>
 </head>
 <body>
@@ -295,81 +380,50 @@ input,select,textarea{font-size:16px;max-width:100%}
    <div class="online">● ACCOUNT ONLINE</div>
   </div>
 
-  <section id="homeScreen">
-   <div class="hero">
-    <h2>Ready for your next challenge?</h2>
-    <p>Choose your game, challenge your mind and make every round count.</p>
+  <section id="homeScreen" class="playam-home">
+   <div class="home-welcome">
+    <div class="home-brand-lockup"><span class="home-brand-mark">▶</span><span>PLAYAM</span></div>
+    <button class="home-notifications" type="button" onclick="showNotifications()" aria-label="Open notifications">♧<span class="home-notification-dot"></span></button>
    </div>
-   <div class="small-card" style="margin-top:16px;border:1px solid #7844a8;background:linear-gradient(110deg,#261c43,#321c3c)">
-    <h3>🔴 PLAYAM LIVE</h3><p class="muted">Discover live creators, join conversations and take part in LIVE Q&amp;A.</p><button class="primary" onclick="showLiveHub()">EXPLORE LIVE →</button>
-   </div>
-   <h3 class="section-title">Choose how you want to play</h3>
-   <div class="game-grid">
-    <div class="game-card">
-     <div class="emoji">🎯</div>
-     <h3>PLAY SOLO</h3>
-     <p>Play Friendship Court alone. Answer open-ended questions and discover your PLAYAM personality.</p>
-     <button class="primary" onclick="showSoloSetup()">PLAY SOLO →</button>
+   <div class="home-hero">
+    <div class="home-hero-copy">
+     <span class="home-eyebrow">PLAY • CONNECT • SHARE • EARN</span>
+     <h2>Welcome to PLAYAM!</h2>
+     <p>Play games, watch videos, connect with friends and discover your community.</p>
+     <div class="home-hero-actions">
+      <button class="home-live-button" type="button" onclick="showLiveHub()">◉ &nbsp; GO LIVE <small>PREVIEW</small></button>
+      <button class="home-ghost-button" type="button" onclick="showGames()">EXPLORE GAMES</button>
+     </div>
     </div>
-    <div class="game-card">
-     <div class="emoji">⚔️</div>
-     <h3>FIND AN ACTIVE PLAYER</h3>
-     <p>Look for another player and prepare for a Friendship Court challenge at Hard difficulty.</p>
-     <button class="primary" onclick="showFindPlayer()">FIND PLAYER →</button>
+    <div class="home-hero-art" aria-hidden="true">
+     <div class="home-art-orb home-art-orb-one"></div><div class="home-art-orb home-art-orb-two"></div>
+     <div class="home-art-tile home-art-game">🎮</div><div class="home-art-tile home-art-play">▶</div><div class="home-art-tile home-art-video">🎬</div>
+     <span class="home-art-spark">✦</span>
     </div>
    </div>
-   <h3 class="section-title">Play with friends</h3>
-   <div class="small-grid">
-    <div class="small-card">
-     <h3>🎉 Create a Room</h3>
-     <p class="muted">Start a game and invite others with your room code.</p>
-     <button class="secondary" style="width:100%" onclick="showCreateRoom()">CREATE ROOM</button>
-    </div>
-    <div class="small-card">
-     <h3>🔗 Join a Room</h3>
-     <p class="muted">Enter a room code to join your friends.</p>
-     <button class="secondary" style="width:100%" onclick="showJoinRoom()">JOIN ROOM</button>
-    </div>
+
+   <div class="home-section-heading"><h3>Featured Games</h3><button type="button" onclick="showGames()">SEE ALL ›</button></div>
+   <div class="home-featured-games">
+    <button class="home-feature-card" type="button" onclick="showGames()"><span class="home-feature-art court">🏀</span><strong>Friendship Court</strong><small>Play with friends</small></button>
+    <button class="home-feature-card" type="button" onclick="showGames()"><span class="home-feature-art would">❔</span><strong>Would You Rather</strong><small>Choose your side</small></button>
+    <button class="home-feature-card" type="button" onclick="showGames()"><span class="home-feature-art truth">👑</span><strong>Truth or Dare</strong><small>Take the challenge</small></button>
    </div>
-   <h3 class="section-title">PLAYAM game universe</h3>
-   <div class="small-grid">
-    <div class="small-card"><strong>⚖️ Friendship Court</strong><p class="muted">Playable now — social voting multiplayer.</p></div>
-    <div class="small-card"><strong>🤔 Would You Rather?</strong><p class="muted">Playable now — answer and compare choices.</p></div>
-    <div class="small-card"><strong>🎭 Truth or Dare</strong><p class="muted">Playable now — social challenge rounds.</p></div>
-    <div class="small-card"><strong>🧠 Mind Battle</strong><p class="muted">Playable now — competitive open-answer rounds.</p></div>
-    <div class="small-card"><strong>🤫 Secret Confessions</strong><p class="muted">Playable now — social confession rounds.</p></div>
+
+   <div class="home-section-heading"><h3>Short Videos</h3><button type="button" onclick="showVideoHub();openVideoFeed()">SEE ALL ›</button></div>
+   <div class="home-video-strip">
+    <div class="home-video-tile home-video-one"><span>▶</span><strong>Discover creators</strong></div>
+    <div class="home-video-tile home-video-two"><span>▶</span><strong>Watch something fun</strong></div>
+    <div class="home-video-tile home-video-three"><span>▶</span><strong>Share your moment</strong></div>
    </div>
-   <h3 class="section-title">Legend series — playable in Staging</h3>
-   <div class="small-grid">
-    <div class="small-card"><strong>🏆 Legend: Test</strong><p class="muted">Playable multiplayer challenge mode.</p></div>
-    <div class="small-card"><strong>🔥 Legend: Pressure</strong><p class="muted">Playable timed multiplayer challenge mode.</p></div>
-    <div class="small-card"><strong>🧩 Legend: Mind Game</strong><p class="muted">Playable strategy and mind challenge mode.</p></div>
-    <div class="small-card"><strong>⚖️ Legend: Ultimate Decision</strong><p class="muted">Playable multiplayer decision mode.</p></div>
-    <div class="small-card"><strong>🏁 Legend: Final Trial</strong><p class="muted">Playable multiplayer final-trial mode.</p></div>
+   <div class="home-shortcuts">
+    <button type="button" onclick="showMessages()"><span>💬</span><strong>Private Messaging</strong><small>Chat with your people</small></button>
+    <button type="button" onclick="showProfile()"><span>🏆</span><strong>PLAYAM Earn</strong><small>Explore creator tools</small></button>
    </div>
-   <h3 class="section-title">Sports, board & action games</h3>
-   <div class="small-grid">
-    <div class="small-card"><strong>🎱 Snooker</strong><p class="muted">Planned multiplayer table game.</p></div>
-    <div class="small-card"><strong>🎱 Pool</strong><p class="muted">Planned multiplayer table game.</p></div>
-    <div class="small-card"><strong>⚽ Football</strong><p class="muted">Planned competitive football mode.</p></div>
-    <div class="small-card"><strong>♟️ Checkers</strong><p class="muted">Planned turn-based board game.</p></div>
-    <div class="small-card"><strong>🌰 Ayo</strong><p class="muted">Planned traditional strategy board game.</p></div>
-    <div class="small-card"><strong>🎲 Ludo</strong><p class="muted">Planned multiplayer board game.</p></div>
+   <div class="home-live-preview">
+    <div><span class="home-live-pulse"></span><strong>PLAYAM LIVE</strong><small>Creator streaming preview</small></div>
+    <button type="button" onclick="showLiveHub()">EXPLORE ›</button>
    </div>
-   <h3 class="section-title">CODs — competitive action</h3>
-   <div class="small-grid">
-    <div class="small-card"><strong>🎯 CODs: Team Deathmatch</strong><p class="muted">Planned free-to-play team mode.</p></div>
-    <div class="small-card"><strong>🪂 CODs: Battle Royale</strong><p class="muted">Planned free-to-play survival competition.</p></div>
-    <div class="small-card"><strong>🛡️ CODs: Tactical 5v5</strong><p class="muted">Planned objective-based team mode.</p></div>
-    <div class="small-card"><strong>🌲 CODs: Survival Extraction</strong><p class="muted">Planned extraction and survival mode.</p></div>
-    <div class="small-card"><strong>🧟 CODs: Zombie Survival</strong><p class="muted">Planned cooperative survival mode.</p></div>
-   </div>
-   <h3 class="section-title">Challenges & community</h3>
-   <div class="small-grid">
-    <div class="small-card"><strong>🧶 Cotton Ball Challenge</strong><p class="muted">Planned community challenge.</p></div>
-    <div class="small-card"><strong>🎤 LIVE Questions & Answers</strong><p class="muted">Planned interactive LIVE activity.</p></div>
-    <div class="small-card"><strong>📊 Scoreboard</strong><p class="muted">Planned cross-game competition and rankings.</p></div>
-   </div>
+   <p class="home-footnote">LIVE streaming, virtual gifts and creator payouts are not enabled in this Staging preview.</p>
   </section>
 
   <section id="gamesScreen" class="hidden">
