@@ -571,6 +571,48 @@ input,select,textarea{font-size:16px;max-width:100%}
  .home-feature-card,.catalogue-card,button{transition:none!important}
 }
 
+
+/* PLAYAM Stage 1: visual alignment with the approved mobile reference */
+@media(max-width:760px){
+ body{background:radial-gradient(ellipse at 88% 0%,#32134c 0%,transparent 34%),#090914}
+ .main{padding-top:12px}
+ .topbar{margin-bottom:15px;padding:4px 2px 10px;border-bottom:1px solid #302541}
+ .home-welcome{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 15px}
+ .home-brand-lockup{display:flex;align-items:center;gap:9px;font-size:22px;font-weight:900;letter-spacing:.5px}
+ .home-brand-mark{display:grid;place-items:center;width:31px;height:31px;border-radius:10px;background:linear-gradient(135deg,#b43cff,#ed35b8);color:#fff;box-shadow:0 5px 18px #a42cff55}
+ .home-notifications{position:relative;width:42px;height:42px;border:1px solid #49345f;border-radius:14px;background:#21182f;color:#fff}
+ .home-hero{border-radius:20px;border-color:#63417e;background:radial-gradient(ellipse at 100% 0%,#8534b544,transparent 42%),linear-gradient(135deg,#29183d,#17162c 68%,#251438);padding:19px 17px;box-shadow:0 12px 32px #0004}
+ .home-eyebrow{font-size:10px;letter-spacing:1.25px}
+ .home-hero h2{font-size:clamp(23px,6vw,29px);line-height:1.12}
+ .home-hero p{font-size:13px;line-height:1.5;max-width:34ch}
+ .home-hero-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ .home-hero-actions button{min-width:0;min-height:46px;padding:10px 8px;font-size:11px}
+ .home-featured-games{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ .home-feature-card{min-width:0;overflow:hidden;border-radius:15px;background:linear-gradient(150deg,#29203d,#171528);border:1px solid #49345f}
+ .home-feature-art{min-height:88px;display:grid;place-items:center;font-size:36px}
+ .home-feature-card strong{display:block;padding:9px 8px 3px;font-size:11px;line-height:1.25}
+ .home-feature-card small{display:block;padding:0 8px 10px;font-size:10px}
+ .home-section-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:22px 0 10px}
+ .home-section-heading h3{font-size:16px}
+ .home-section-heading button{padding:7px 9px;min-height:36px;font-size:10px}
+ .home-video-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ .home-video-tile{min-width:0;min-height:112px;padding:10px;border-radius:14px}
+ .home-video-tile strong{font-size:10px;line-height:1.3}
+ .home-shortcuts{gap:8px;margin-top:14px}
+ .home-shortcuts button{padding:13px 10px;border-radius:14px}
+ .home-live-preview{margin-top:14px;border-radius:15px;padding:13px}
+ #bottomNav{box-shadow:0 -8px 28px #0006}
+}
+@media(max-width:380px){
+ .home-hero-actions{grid-template-columns:1fr}
+ .home-feature-art{min-height:76px;font-size:31px}
+ .home-feature-card strong{font-size:10px}
+ .home-video-tile{min-height:100px}
+}
+@media(prefers-reduced-motion:reduce){
+ .home-feature-card,.home-video-tile,.home-hero-actions button{transition:none!important}
+}
+
 </style>
 </head>
 <body>
