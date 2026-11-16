@@ -11,22 +11,19 @@ This file is documentation only. It is **not** a SQL migration and must not be e
 - The private-message baseline and related report/read-receipt migrations were reapplied idempotently after checking their live schema effects. Their repository filenames now match the actual Staging migration versions.
 - The combined market-foundation reference SQL was removed from the migration queue because the same schema is already represented by separate applied market migrations.
 
-## Historical source files missing from this repository
+## Historical source files recovered
 
-The following migrations are recorded as applied in Staging but their original SQL files are not present in the repository tree. They were not recreated as empty placeholders because doing so would falsely imply that the original SQL is recoverable.
+Seven original SQL files were recovered byte-for-byte from the existing `codex/flow-worker-lease-heartbeat` branch and restored to this PR branch: `20261113164616`, `20261113164758`, `20261113164906`, `20261113165033`, `20261113165218`, `20261113165358`, and `20261113180943`.
+
+## Historical source files still missing
+
+The following 26 migrations are recorded as applied in Staging but their original SQL files were not found on any currently accessible branch or in the repository code search. They were not recreated as empty placeholders because that would falsely imply that the original SQL is recoverable.
 
 | Applied version | Recorded migration name |
 |---|---|
 | 20261113160631 | secure_flow_media_staging_storage_access |
-| 20261113164616 | reconcile_playam_flow_schema_baseline |
-| 20261113164758 | secure_flow_admin_review_atomic |
-| 20261113164906 | secure_flow_upload_intents_and_quotas |
-| 20261113165033 | add_flow_trusted_media_processing_queue |
 | 20261113165153 | add_flow_atomic_media_job_claim |
-| 20261113165218 | deploy_flow_worker_claim_complete_and_fail_rpc |
-| 20261113165358 | flow_worker_recover_expired_leases |
 | 20261113165700 | recover_stale_flow_media_worker_jobs |
-| 20261113180943 | flow_worker_lease_heartbeat_and_expiry_guards |
 | 20261113231823 | harden_financial_ledger_privileges |
 | 20261113231939 | restrict_payment_and_coin_wallet_mutations |
 | 20261113232024 | tighten_social_privacy_and_message_policies |
