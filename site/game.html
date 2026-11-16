@@ -167,6 +167,39 @@ input,select,textarea{font-size:16px;max-width:100%}
  #bottomNav{padding-bottom:calc(8px + env(safe-area-inset-bottom))}
 }
 
+
+/* Creator profile and vertical-video mobile layout */
+.video-feed{width:100%;max-width:680px;min-width:0}
+.video-post{width:100%;min-width:0;scroll-margin-top:12px}
+.video-post video{width:100%;height:min(72dvh,760px);max-height:760px;aspect-ratio:9/16;object-fit:contain}
+.video-post-meta{overflow-wrap:anywhere}
+.video-post-meta input{width:100%;min-width:0;margin-top:8px}
+.video-post-meta button{min-height:44px}
+#profileScreen{width:100%;min-width:0}
+#profileScreen>.small-card:first-of-type{display:flex;align-items:center;min-height:88px}
+#profileScreen .feed-author-wrap{display:flex;align-items:center;gap:12px;min-width:0}
+#profileScreen .feed-author-wrap>div:last-child{min-width:0;overflow-wrap:anywhere}
+#profileScreen input,#profileScreen textarea{width:100%;min-width:0}
+#profileScreen>.primary{width:100%;margin-top:12px}
+@media(max-width:760px){
+ .video-feed{max-width:none;margin:12px auto}
+ .video-post{border-radius:14px}
+ .video-post video{height:min(68dvh,680px);max-height:680px}
+ .video-post-meta{padding:12px}
+ .video-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px!important}
+ .video-actions button{min-width:0;padding:9px 4px;font-size:12px;overflow-wrap:anywhere}
+ #profileScreen{padding:17px 14px}
+ #profileScreen .grid-two{grid-template-columns:1fr 1fr!important}
+ #creatorEarningsPanel .grid-two{grid-template-columns:1fr 1fr!important}
+ #creatorEarningsPanel .small-card{padding:10px}
+ #creatorEarningsPanel strong{overflow-wrap:anywhere}
+}
+@media(max-width:380px){
+ #profileScreen .grid-two{grid-template-columns:1fr!important}
+ #creatorEarningsPanel .grid-two{grid-template-columns:1fr!important}
+ .video-actions{grid-template-columns:1fr!important}
+}
+
 </style>
 </head>
 <body>
