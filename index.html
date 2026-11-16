@@ -376,6 +376,55 @@ input,select,textarea{font-size:16px;max-width:100%}
  #liveScreen .small-grid{grid-template-columns:1fr}
 }
 
+
+/* PLAYAM creator identity, wallet ledgers and approved-video experience */
+#profileScreen,#walletScreen{max-width:850px;margin:0 auto;background:radial-gradient(ellipse at 95% 0%,#702d9230,transparent 36%),linear-gradient(145deg,#1d1a30,#151426);border:1px solid #443454;border-radius:20px}
+#profileScreen>h2,#walletScreen>h2{font-size:clamp(23px,4vw,30px);margin-bottom:7px}
+#profileScreen>.small-card:first-of-type{background:linear-gradient(115deg,#46205e,#211a35);border:1px solid #69418a;border-radius:17px;padding:18px}
+#profileScreen .feed-author-wrap{align-items:center;gap:14px}
+#profileScreen #profileAvatar{width:62px;height:62px;border:2px solid #c77bff;background:linear-gradient(145deg,#a82ee6,#5326a5);font-size:24px;box-shadow:0 0 22px #a42cff55}
+#profileScreen #profilePreviewName{font-size:18px;font-weight:800}
+#profileScreen #profilePreviewHandle{font-size:12px;color:#d3b4ed}
+#profileScreen label{display:block;margin:14px 0 6px;font-size:12px;color:#d7c9e6}
+#profileScreen input,#profileScreen textarea{border:1px solid #514064;background:#111020;color:#fff;border-radius:12px;min-height:46px;padding:12px}
+#profileScreen textarea{min-height:94px}
+#profileScreen>button.primary{width:100%;min-height:47px;border-radius:13px;margin-top:13px;background:linear-gradient(100deg,#bd20df,#6c2aff)}
+#profileScreen .grid-two button{min-height:48px;border-radius:12px;background:#282039;border:1px solid #4e3967}
+#profileScreen #creatorEarningsPanel{background:linear-gradient(145deg,#251c39,#181627);border:1px solid #51396b;border-radius:17px;padding:16px}
+#profileScreen #creatorEarningsPanel h3{margin-top:0}
+#profileScreen #creatorEarningsPanel .small-card{background:#1b192c;border:1px solid #403354;border-radius:13px;padding:12px}
+#profileScreen #creatorEarningsPanel .small-card strong{display:block;font-size:19px;margin-top:6px;color:#e4b2ff}
+.wallet-ledgers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:19px 0}
+.wallet-ledger{min-width:0;padding:16px;border-radius:16px;border:1px solid #4d3866;background:linear-gradient(145deg,#2a2040,#191627);display:flex;flex-direction:column;gap:10px}
+.wallet-ledger>div{font-size:13px;font-weight:750}
+.wallet-ledger>strong{font-size:clamp(19px,3vw,26px);overflow-wrap:anywhere;color:#e4b2ff}
+.wallet-ledger>small{font-size:11px;line-height:1.5}
+#walletScreen #walletStatus{padding:12px;border-radius:12px;background:#211b31;border:1px solid #403253;line-height:1.5}
+#walletScreen>.back{min-height:46px;border-radius:12px;margin-top:8px}
+#videoScreen{max-width:920px;margin:0 auto}
+#videoScreen>.hero{background:radial-gradient(ellipse at 90% 0%,#8037a344,transparent 40%),linear-gradient(120deg,#21152f,#151426);border:1px solid #553575;border-radius:20px;padding:22px}
+#videoScreen>.hero h2{font-size:clamp(24px,4vw,31px)}
+#videoScreen>.hero p{line-height:1.55;color:#d2c4e1}
+#videoScreen>.hero button{min-height:44px;border-radius:12px}
+#videoScreen #videoFeedStatus,#videoScreen #playamUploadStatus{border:1px solid #45345a;background:#211b31;border-radius:13px;padding:13px;line-height:1.5}
+#videoScreen #videoFeed{gap:15px}
+#videoScreen #videoFeedMore{min-height:46px;border-radius:13px;width:100%}
+@media(max-width:760px){
+ #profileScreen,#walletScreen{padding:17px;border-radius:17px}
+ #profileScreen .grid-two{gap:8px!important}
+ #profileScreen .grid-two button{font-size:11px;padding:9px 5px}
+ .wallet-ledgers{grid-template-columns:1fr;gap:9px}
+ .wallet-ledger{display:grid;grid-template-columns:1fr auto;align-items:center;gap:7px 10px;padding:14px}
+ .wallet-ledger>strong{grid-column:2;grid-row:1;font-size:21px;text-align:right}
+ .wallet-ledger>small{grid-column:1/-1}
+ #videoScreen>.hero{padding:17px;border-radius:17px}
+ #videoScreen>.hero button{width:100%;margin:5px 0}
+}
+@media(max-width:380px){
+ #profileScreen .grid-two{grid-template-columns:1fr 1fr!important}
+ #profileScreen .grid-two button{font-size:10px}
+}
+
 </style>
 </head>
 <body>
