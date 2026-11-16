@@ -1810,6 +1810,16 @@ function showAuthMessage(message){
  const target=document.getElementById("authMessage");
  if(target)target.textContent=message||"";
 }
+async function ensurePlayamProfile(user){
+ if(!user?.id)throw new Error("A signed-in account is required to create your profile.");
+ const localPart=(user.email||"player").split("@")[0];
+ const displayName=(localPart.replace(/[._+-]+/g," ").trim().slice(0,40)||"PLAYAM Player");
+ const username="player_"+user.id.replace(/-/g,"").slice(0,12).toLowerCase();
+ const {error}=await supabaseClient.from("playam_profiles").upsert({
+  user_id:user.id,display_name:displayName,username,bio:""
+ },{onConflict:"user_id",ignoreDuplicates:true});
+ if(error)throw error;
+}
 async function signUp(){
  const email=document.getElementById("email").value.trim(),password=document.getElementById("password").value;
  if(!email||!password){showAuthMessage("Please enter your email and password.");return}
@@ -1817,7 +1827,7 @@ async function signUp(){
  try{
   const {data,error}=await supabaseClient.auth.signUp({email,password});
   if(error){showAuthMessage(error.message);return}
-  if(data.session){showAuthMessage("");showHome();}
+  if(data.session){await ensurePlayamProfile(data.session.user);showAuthMessage("");showHome();}
   else showAuthMessage("Account created. Check your email if confirmation is required, then log in here.");
  }catch(error){
   showAuthMessage(error?.message||"We could not create your account. Please try again.");
@@ -1830,7 +1840,7 @@ async function signIn(){
  try{
   const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
   if(error){showAuthMessage(error.message);return}
-  if(data.session){showAuthMessage("");showHome();}
+  if(data.session){await ensurePlayamProfile(data.session.user);showAuthMessage("");showHome();}
   else showAuthMessage("Login completed without an active session. Check whether email confirmation is required.");
  }catch(error){
   showAuthMessage(error?.message||"We could not log you in. Check your connection and try again.");
