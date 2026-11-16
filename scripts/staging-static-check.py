@@ -70,6 +70,20 @@ if missing:
 if "erjxmesxmmmaxivvmbsi" in source:
     raise SystemExit("FAIL: Production Supabase project reference found in Staging app")
 
+# Keep responsive desktop and mobile layouts covered by the Staging gate.
+desktop_markers = (
+    "PLAYAM desktop and wide-screen experience",
+    "@media(min-width:761px)",
+    "#gamesScreen .catalogue-grid",
+    "#videoScreen #videoFeed",
+    ".dm-layout",
+)
+missing_desktop = [marker for marker in desktop_markers if marker not in source]
+if missing_desktop:
+    raise SystemExit("FAIL: desktop layout regression marker(s) missing: " + ", ".join(missing_desktop))
+if "@media(max-width:760px)" not in source:
+    raise SystemExit("FAIL: mobile responsive layout breakpoint is missing")
+
 if re.search(r"service_role|sb_secret_[A-Za-z0-9_-]+", source, re.I):
     raise SystemExit("FAIL: server-only Supabase credential marker found in browser app")
 
