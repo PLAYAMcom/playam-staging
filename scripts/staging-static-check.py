@@ -34,8 +34,10 @@ for link in ('href="game.html"', 'href="admin-playam-staging.html"', 'href="game
     if link not in landing_source:
         raise SystemExit("FAIL: Staging landing page is missing a required link: " + link)
 admin_source = ADMIN_APP.read_text(encoding="utf-8")
-if "pwnjrdedeoxbmtfywhkk" not in admin_source or "erjxmesxmmmaxivvmbsi" in admin_source:
-    raise SystemExit("FAIL: admin dashboard is not isolated to Staging")
+root_admin_source = ROOT_ADMIN_APP.read_text(encoding="utf-8")
+for page_name, page_source in (("published admin", admin_source), ("root admin", root_admin_source)):
+    if "pwnjrdedeoxbmtfywhkk" not in page_source or "erjxmesxmmmaxivvmbsi" in page_source:
+        raise SystemExit("FAIL: " + page_name + " dashboard is not isolated to Staging")
 for page_name, page_source in (("published admin", admin_source), ("root admin", root_admin_source)):
     for marker in ("mfa.verify", "get_playam_admin_overview", "admin_list_player_reports", "admin_review_player_report"):
         if marker not in page_source:
