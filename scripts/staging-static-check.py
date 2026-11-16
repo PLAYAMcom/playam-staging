@@ -98,6 +98,12 @@ for page_path, marker in (
     page_text = page_path.read_text(encoding="utf-8")
     if marker not in page_text or "@media(min-width:900px)" not in page_text:
         raise SystemExit("FAIL: published desktop workspace rules missing from " + str(page_path))
+    if "@media(min-width:1450px)" not in page_text:
+        raise SystemExit("FAIL: wide-screen workspace rules missing from " + str(page_path))
+if "@media(max-width:520px)" not in admin_source:
+    raise SystemExit("FAIL: admin mobile layout breakpoint is missing")
+if "max-width:1440px" not in admin_source or "max-width:1200px" not in flow_source:
+    raise SystemExit("FAIL: desktop workspace content widths are missing")
 
 if re.search(r"service_role|sb_secret_[A-Za-z0-9_-]+", source, re.I):
     raise SystemExit("FAIL: server-only Supabase credential marker found in browser app")
