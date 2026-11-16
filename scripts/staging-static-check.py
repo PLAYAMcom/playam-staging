@@ -41,6 +41,23 @@ for marker in ("FOR UPDATE OF r", "r.code=upper(btrim(coalesce(p_code,'')))", "G
         raise SystemExit("FAIL: lobby readiness concurrency protection missing: " + marker)
 
 
+
+# Withdrawal retries must match the original amount and payout destination.
+WITHDRAWAL_IDEMPOTENCY_MIGRATION = Path("supabase/migrations/20261116134500_bind_withdrawal_idempotency_to_request_payload.sql")
+if not WITHDRAWAL_IDEMPOTENCY_MIGRATION.exists():
+    raise SystemExit("FAIL: withdrawal idempotency migration is missing")
+withdrawal_sql = WITHDRAWAL_IDEMPOTENCY_MIGRATION.read_text(encoding="utf-8")
+for marker in (
+    "v_existing_amount<>p_amount_minor",
+    "v_existing_destination IS DISTINCT FROM p_destination_id",
+    "ON CONFLICT(idempotency_key) DO NOTHING",
+    "FOR UPDATE",
+    "withdrawal-reserve:",
+    "withdrawal_requested_and_reserved",
+):
+    if marker.lower() not in withdrawal_sql.lower():
+        raise SystemExit("FAIL: withdrawal idempotency invariant missing: " + marker)
+
 # Verify financial ledger idempotency is safe under concurrent retries.
 FINANCIAL_IDEMPOTENCY_MIGRATION = Path("supabase/migrations/20261116133000_make_financial_entry_idempotency_concurrency_safe.sql")
 if not FINANCIAL_IDEMPOTENCY_MIGRATION.exists():
