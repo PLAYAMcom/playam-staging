@@ -300,6 +300,7 @@ label{display:block;margin-top:13px;font-weight:bold}
       <textarea id="dmComposeInput" maxlength="2000" rows="2" placeholder="Write a message…" aria-label="Message text" disabled></textarea>
       <button class="primary" type="submit" id="dmSendButton" disabled>SEND</button>
      </form>
+     <div id="dmConnectionStatus" class="small muted" role="status" aria-live="polite">Checking connection…</div>
      <div id="dmThreadStatus" class="small muted" role="status" aria-live="polite"></div>
     </section>
    </div>
@@ -649,7 +650,7 @@ function setNav(id){
 function showScreen(id,nav=""){if(id!=="messagesScreen"&&dmRealtimeChannel){supabaseClient.removeChannel(dmRealtimeChannel);dmRealtimeChannel=null}hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome")}
 function showGames(){stopLobbyRefresh();stopGameRefresh();showScreen("gamesScreen","navGames");renderPlayamCatalogue()}
-let dmUser=null,dmActiveConversation=null,dmActivePartner=null,dmRealtimeChannel=null,dmLoading=false,dmPendingSend=null,dmThreadOldest=null,dmThreadHasMore=false,dmThreadLoadingMore=false;
+let dmUser=null,dmActiveConversation=null,dmActivePartner=null,dmRealtimeChannel=null,dmLoading=false,dmPendingSends={},dmThreadOldest=null,dmThreadHasMore=false,dmThreadLoadingMore=false;
 function showMessages(){stopLobbyRefresh();stopGameRefresh();showScreen("messagesScreen","navMessages");loadDmInbox()}
 async function dmGetUser(){const {data:{user},error}=await supabaseClient.auth.getUser();if(error)throw error;if(!user)throw new Error("Please sign in to use Messages.");dmUser=user;return user}
 function dmEl(tag,cls,text){const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el}
@@ -773,16 +774,19 @@ async function sendDmMessage(event){
  const button=document.getElementById("dmSendButton");button.disabled=true;
  try{
   const user=await dmGetUser();
-  if(dmPendingSend&&(dmPendingSend.conversationId!==dmActiveConversation||dmPendingSend.body!==body)){
-   throw new Error("A previous send is awaiting confirmation. Retry that exact message before composing another.");
+  if(!navigator.onLine)throw new Error("You're offline. Your message is still in the composer. Reconnect and press SEND to retry.");
+  const pending=dmPendingSends[dmActiveConversation];
+  if(pending&&pending.body!==body){
+   throw new Error("A previous send in this conversation is awaiting confirmation. Retry that exact message before composing another.");
   }
-  if(!dmPendingSend)dmPendingSend={conversationId:dmActiveConversation,body,key:crypto.randomUUID()};
-  const {data,error}=await supabaseClient.rpc("send_private_message_v1",{p_conversation_id:dmActiveConversation,p_body:body,p_idempotency_key:dmPendingSend.key});
+  if(!pending)dmPendingSends[dmActiveConversation]={body,key:crypto.randomUUID()};
+  const request=dmPendingSends[dmActiveConversation];
+  const {data,error}=await supabaseClient.rpc("send_private_message_v1",{p_conversation_id:dmActiveConversation,p_body:body,p_idempotency_key:request.key});
   if(error)throw error;
   if(!data||!data.length)throw new Error("The send could not be confirmed. Retry the same message.");
-  dmPendingSend=null;input.value="";await loadDmThread();await loadDmInbox();document.getElementById("dmThreadStatus").textContent="";
- }catch(e){document.getElementById("dmThreadStatus").textContent=(e.message||"Message could not be sent.")+" You can safely retry without creating a duplicate."}
- finally{button.disabled=false}
+  delete dmPendingSends[dmActiveConversation];input.value="";await loadDmThread();await loadDmInbox();document.getElementById("dmThreadStatus").textContent="";
+ }catch(e){document.getElementById("dmThreadStatus").textContent=(e.message||"Message could not be sent.")+" Your text remains in the composer; retrying uses the same request key."}
+ finally{button.disabled=!navigator.onLine}
 }
 async function blockDmPartner(){
  if(!dmActivePartner||!confirm("Block this player? You will no longer be able to access this conversation."))return;
@@ -794,6 +798,18 @@ async function blockDmPartner(){
 document.getElementById("dmFindButton")?.addEventListener("click",searchDmPlayers);
 document.getElementById("dmFindInput")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();searchDmPlayers()}});
 document.getElementById("dmComposeForm")?.addEventListener("submit",sendDmMessage);
+function updateDmConnectionStatus(){
+ const status=document.getElementById("dmConnectionStatus"),button=document.getElementById("dmSendButton");
+ if(!status)return;
+ const online=navigator.onLine;
+ status.textContent=online?"● Connected — messages can be sent":"● Offline — your unsent text stays in the composer. Reconnect to retry.";
+ status.style.color=online?"#7cf0ad":"#f0b36b";
+ if(button&&!button.dataset.sending)button.disabled=!online||!dmActiveConversation;
+}
+window.addEventListener("online",()=>{updateDmConnectionStatus();if(dmUser){loadDmInbox();if(dmActiveConversation)loadDmThread()}});
+window.addEventListener("offline",updateDmConnectionStatus);
+
+updateDmConnectionStatus();
 function showLiveHub(){stopLobbyRefresh();stopGameRefresh();showScreen("liveScreen","navLive")}
 const playamCatalogue=[
  ["Friendship Court","⚖️","friendship-court",true],["Would You Rather","🤔","would-you-rather",true],["Truth or Dare","🎭","truth-or-dare",true],["Mind Battle","🧠","mind-battle",true],["Secret Confessions","🤫","secret-confessions",true],
