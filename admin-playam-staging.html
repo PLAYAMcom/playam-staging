@@ -35,6 +35,24 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#d9c8e8}
 .report small{color:#b9adc5}
 .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
 @media(max-width:520px){main{padding:16px}}
+
+/* PLAYAM admin mobile workspace */
+@media(max-width:760px){
+ body{min-height:100svh;overflow-x:hidden}
+ main{width:100%;padding:16px 13px calc(28px + env(safe-area-inset-bottom))}
+ #app{width:100%;min-width:0}
+ #app>.panel{padding:15px}
+ .section{margin-top:22px}
+ .section>.grid,.grid{grid-template-columns:minmax(0,1fr);gap:10px}
+ .metric,.panel,.report{min-width:0;overflow-wrap:anywhere}
+ .metric strong{font-size:23px}
+ input,select,textarea{font-size:16px;max-width:100%}
+ button{min-height:44px;max-width:100%;white-space:normal}
+ .actions{gap:7px}
+ .actions button{flex:1 1 130px;min-width:0}
+ pre{max-width:100%;overflow-wrap:anywhere}
+}
+@media(max-width:360px){main{padding-left:11px;padding-right:11px}.panel{padding:13px}}
 </style>
 </head>
 <body>
