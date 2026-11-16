@@ -459,6 +459,10 @@ input,select,textarea{font-size:16px;max-width:100%}
 
 
 .dm-avatar{overflow:hidden;flex:0 0 42px}.dm-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}.dm-person:focus-visible{outline:2px solid #e19aff;outline-offset:3px}
+
+#profileScreen #profileAvatar{overflow:hidden;display:grid;place-items:center;flex:0 0 62px}
+#profileScreen #profileAvatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+
 </style>
 </head>
 <body>
@@ -1359,6 +1363,19 @@ async function loadPlayamNotifications(){
   });
  }catch(e){list.replaceChildren(dmEl("div","dm-empty",e.message||"Unable to load notifications."))}
 }
+function renderProfileAvatar(avatarUrl,displayName){
+ const el=document.getElementById("profileAvatar");if(!el)return;
+ const initial=(displayName||"P").trim().charAt(0).toUpperCase()||"P";
+ el.replaceChildren();el.textContent=initial;
+ if(!avatarUrl)return;
+ try{
+  const url=new URL(avatarUrl);
+  if(url.protocol!=="https:")return;
+  const img=document.createElement("img");img.src=url.href;img.alt="";img.loading="lazy";img.referrerPolicy="no-referrer";
+  img.addEventListener("error",()=>{img.remove();el.textContent=initial},{once:true});
+  el.textContent="";el.append(img);
+ }catch(_){}
+}
 async function loadProfile(){
  const status=document.getElementById("profileStatus");status.textContent="Loading profile...";
  try{
@@ -1375,7 +1392,7 @@ async function loadProfile(){
   document.getElementById("profileBio").value=data?.bio||"";
   document.getElementById("profilePreviewName").textContent=display;
   document.getElementById("profilePreviewHandle").textContent="@"+username;
-  document.getElementById("profileAvatar").textContent=(display[0]||"P").toUpperCase();
+  renderProfileAvatar(data?.avatar_url,display);
   status.textContent="";
   loadCreatorEarningsDashboard();
  }catch(error){status.textContent=error?.message||"Unable to load your profile."}
@@ -1396,7 +1413,6 @@ async function saveProfile(){
   if(error)throw error;
   document.getElementById("profilePreviewName").textContent=display_name;
   document.getElementById("profilePreviewHandle").textContent="@"+username;
-  document.getElementById("profileAvatar").textContent=(display_name[0]||"P").toUpperCase();
   status.textContent="✓ Profile saved.";
  }catch(error){status.textContent="Unable to save: "+(error?.message||"Please try again.")}
 }
