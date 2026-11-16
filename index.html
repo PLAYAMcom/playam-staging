@@ -142,6 +142,11 @@ label{display:block;margin-top:13px;font-weight:bold}
 .dm-empty{color:#aaa8c0;text-align:center;padding:30px 12px;font-size:13px}
 .dm-search-results{display:flex;flex-direction:column;gap:7px;margin-top:8px}
 @media(max-width:760px){.dm-layout{grid-template-columns:1fr}.dm-thread{min-height:360px}.dm-list{max-height:260px}.dm-messages{max-height:300px}}
+
+.wallet-ledgers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.wallet-ledger{background:#211f35;border:1px solid #393550;border-radius:14px;padding:14px;min-width:0}
+.wallet-ledger strong{display:block;font-size:20px;margin:8px 0;overflow-wrap:anywhere}
+@media(max-width:760px){.wallet-ledgers{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -322,6 +327,24 @@ label{display:block;margin-top:13px;font-weight:bold}
    <button id="videoFeedMore" class="secondary hidden" onclick="openVideoFeed(true)">LOAD MORE</button>
   </section>
 
+  <section id="walletScreen" class="screen-card hidden">
+   <h2>👛 PLAYAM Wallet</h2><p class="muted">Three separate balances. These are not interchangeable.</p>
+   <div class="wallet-ledgers">
+    <article class="wallet-ledger"><div>🪙 Free gameplay coins</div><strong id="walletFreeBalance">—</strong><small class="muted">For eligible free gameplay only. Not cash-withdrawable.</small></article>
+    <article class="wallet-ledger"><div>💎 Purchased PLAYAM Coins</div><strong id="walletPurchasedBalance">—</strong><small class="muted">For LIVE virtual gifts only at launch.</small></article>
+    <article class="wallet-ledger"><div>💵 Creator cash earnings</div><strong id="walletCreatorBalance">—</strong><small class="muted">Separate cash ledger, subject to eligibility and approved withdrawal.</small></article>
+   </div>
+   <p id="walletStatus" class="small muted" role="status" aria-live="polite">Loading your separate wallet ledgers…</p>
+   <button class="back" onclick="showProfile()">← BACK TO PROFILE</button>
+  </section>
+
+  <section id="notificationsScreen" class="screen-card hidden">
+   <h2>🔔 Notifications</h2><p class="muted">Game invitations, friend activity, creator updates and account notices.</p>
+   <div id="playamNotifications" class="dm-list"><div class="dm-empty">Loading notifications…</div></div>
+   <p id="notificationsStatus" class="small muted" role="status" aria-live="polite"></p>
+   <button class="back" onclick="showProfile()">← BACK TO PROFILE</button>
+  </section>
+
   <section id="profileScreen" class="screen-card hidden">
    <h2>👤 My PLAYAM Profile</h2>
    <p class="muted">Your identity across PLAYAM games and the community.</p>
@@ -332,6 +355,12 @@ label{display:block;margin-top:13px;font-weight:bold}
    <label>Username</label><input id="profileUsername" maxlength="30" placeholder="lowercase_username">
    <label>Bio</label><textarea id="profileBio" maxlength="300" placeholder="Tell the PLAYAM community about yourself..."></textarea>
    <button class="primary" onclick="saveProfile()">SAVE PROFILE</button>
+   <div class="grid-two" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0">
+    <button class="secondary" onclick="showWallet()">👛 WALLET</button>
+    <button class="secondary" onclick="showCreatorEarnings()">💰 PLAYAM EARN</button>
+    <button class="secondary" onclick="showNotifications()">🔔 NOTIFICATIONS</button>
+    <button class="secondary" onclick="showSettings()">⚙️ SETTINGS</button>
+   </div>
    <div id="profileStatus" class="small" role="status" aria-live="polite"></div>
    <section class="small-card" id="creatorEarningsPanel" style="margin-top:18px">
     <h3>💰 Creator Earnings</h3>
@@ -594,7 +623,7 @@ let selectedVotePlayerId="",lobbyRefreshTimer=null,lobbyLoading=false;
 let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,roundAdvanceRequestedFor="",roundAdvanceTimeoutRequestedFor="";
 let soloQuestions=[],soloAnswers=[],soloQuestionIndex=0,soloDifficulty="starter",soloLoading=false;
 
-const screenIds=["homeScreen","gamesScreen","messagesScreen","liveScreen","videoScreen","profileScreen","financeAdminScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
+const screenIds=["homeScreen","gamesScreen","messagesScreen","liveScreen","videoScreen","walletScreen","notificationsScreen","profileScreen","financeAdminScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
 
 function showMessage(t){document.getElementById("message").innerText=t||""}
 function hideScreens(){screenIds.forEach(id=>document.getElementById(id).classList.add("hidden"))}
@@ -856,6 +885,42 @@ async function recordFinanceEntry(){
  await loadFinanceSummary();
 }
 function showProfile(){stopLobbyRefresh();stopGameRefresh();showScreen("profileScreen","navProfile");loadProfile()}
+function showWallet(){stopLobbyRefresh();stopGameRefresh();showScreen("walletScreen","navProfile");loadPlayamWallets()}
+function showCreatorEarnings(){showProfile();setTimeout(()=>document.getElementById("creatorEarningsPanel")?.scrollIntoView({behavior:"smooth",block:"start"}),80)}
+function showNotifications(){stopLobbyRefresh();stopGameRefresh();showScreen("notificationsScreen","navProfile");loadPlayamNotifications()}
+async function loadPlayamWallets(){
+ const status=document.getElementById("walletStatus");
+ for(const id of ["walletFreeBalance","walletPurchasedBalance","walletCreatorBalance"])document.getElementById(id).textContent="—";
+ try{
+  const {data:{user},error:ue}=await supabaseClient.auth.getUser();if(ue)throw ue;if(!user)throw new Error("Please sign in to view your wallets.");
+  const [free,purchased,creator]=await Promise.all([
+   supabaseClient.from("playam_wallets").select("balance").eq("auth_user_id",user.id).maybeSingle(),
+   supabaseClient.from("playam_purchased_coin_wallets").select("balance").eq("auth_user_id",user.id).maybeSingle(),
+   supabaseClient.from("playam_creator_earnings_wallets").select("available_balance_minor,pending_balance_minor,withdrawn_balance_minor,reserved_withdrawal_balance_minor,currency").eq("auth_user_id",user.id).maybeSingle()
+  ]);
+  if(free.error)throw free.error;if(purchased.error)throw purchased.error;if(creator.error)throw creator.error;
+  document.getElementById("walletFreeBalance").textContent=Number(free.data?.balance||0).toLocaleString();
+  document.getElementById("walletPurchasedBalance").textContent=Number(purchased.data?.balance||0).toLocaleString();
+  const cw=creator.data;
+  document.getElementById("walletCreatorBalance").textContent=cw?(cw.currency||"NGN")+" "+(Number(cw.available_balance_minor||0)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):"No cash balance";
+  status.textContent=cw?"Pending: "+(cw.currency||"NGN")+" "+(Number(cw.pending_balance_minor||0)/100).toFixed(2)+" · Reserved: "+(Number(cw.reserved_withdrawal_balance_minor||0)/100).toFixed(2)+" · Withdrawn: "+(Number(cw.withdrawn_balance_minor||0)/100).toFixed(2):"Balances loaded from their separate ledgers. No wallet has been merged.";
+ }catch(e){status.textContent=e.message||"Could not load wallet balances."}
+}
+async function loadPlayamNotifications(){
+ const list=document.getElementById("playamNotifications"),status=document.getElementById("notificationsStatus");list.replaceChildren(dmEl("div","dm-empty","Loading notifications…"));
+ try{
+  const user=await dmGetUser();
+  const {data,error}=await supabaseClient.from("player_notifications").select("id,notification_type,title,body,related_id,is_read,created_at").eq("auth_user_id",user.id).order("created_at",{ascending:false}).limit(60);
+  if(error)throw error;list.replaceChildren();
+  if(!data?.length){list.append(dmEl("div","dm-empty","You are all caught up. No notifications yet."));return}
+  data.forEach(n=>{
+   const item=dmEl("article","dm-panel");item.style.opacity=n.is_read?".72":"1";
+   item.append(dmEl("strong","",n.title||"PLAYAM notification"),dmEl("p","muted",n.body||""),dmEl("small","muted",new Date(n.created_at).toLocaleString()));
+   if(!n.is_read){const b=dmEl("button","secondary","MARK AS READ");b.type="button";b.style.marginTop="8px";b.addEventListener("click",async()=>{b.disabled=true;const {error:e}=await supabaseClient.from("player_notifications").update({is_read:true}).eq("id",n.id).eq("auth_user_id",user.id);if(e){status.textContent=e.message;b.disabled=false}else{item.style.opacity=".72";b.remove()}});item.append(b)}
+   list.append(item);
+  });
+ }catch(e){list.replaceChildren(dmEl("div","dm-empty",e.message||"Unable to load notifications."))}
+}
 async function loadProfile(){
  const status=document.getElementById("profileStatus");status.textContent="Loading profile...";
  try{
