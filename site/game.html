@@ -301,6 +301,7 @@ label{display:block;margin-top:13px;font-weight:bold}
       <button class="primary" type="submit" id="dmSendButton" disabled>SEND</button>
      </form>
      <div id="dmConnectionStatus" class="small muted" role="status" aria-live="polite">Checking connection…</div>
+     <div id="dmDeliveryStatus" class="small muted" role="status" aria-live="polite"></div>
      <div id="dmThreadStatus" class="small muted" role="status" aria-live="polite"></div>
     </section>
    </div>
@@ -770,7 +771,7 @@ async function reportDmMessage(message){
 }
 async function sendDmMessage(event){
  event.preventDefault();const input=document.getElementById("dmComposeInput"),body=input.value.trim();if(!body||!dmActiveConversation)return;
- const button=document.getElementById("dmSendButton");button.dataset.sending="true";button.disabled=true;
+ const button=document.getElementById("dmSendButton"),delivery=document.getElementById("dmDeliveryStatus"),originalLabel=button.textContent;button.dataset.sending="true";button.disabled=true;button.textContent="SENDING…";if(delivery)delivery.textContent="Sending message…";
  try{
   const user=await dmGetUser();
   if(!navigator.onLine)throw new Error("You're offline. Your message is still in the composer. Reconnect and press SEND to retry.");
@@ -783,9 +784,9 @@ async function sendDmMessage(event){
   const {data,error}=await supabaseClient.rpc("send_private_message_v1",{p_conversation_id:dmActiveConversation,p_body:body,p_idempotency_key:request.key});
   if(error)throw error;
   if(!data||!data.length)throw new Error("The send could not be confirmed. Retry the same message.");
-  delete dmPendingSends[dmActiveConversation];input.value="";await loadDmThread();await loadDmInbox();document.getElementById("dmThreadStatus").textContent="";
- }catch(e){document.getElementById("dmThreadStatus").textContent=(e.message||"Message could not be sent.")+" Your text remains in the composer; retrying uses the same request key."}
- finally{delete button.dataset.sending;button.disabled=!navigator.onLine||!dmActiveConversation}
+  delete dmPendingSends[dmActiveConversation];input.value="";if(delivery)delivery.textContent="Message sent and saved.";await loadDmThread();await loadDmInbox();document.getElementById("dmThreadStatus").textContent="";
+ }catch(e){if(delivery)delivery.textContent="Message not confirmed — your text is still in the composer.";document.getElementById("dmThreadStatus").textContent=(e.message||"Message could not be sent.")+" Your text remains in the composer; retrying uses the same request key."}
+ finally{delete button.dataset.sending;button.textContent=originalLabel;button.disabled=!navigator.onLine||!dmActiveConversation}
 }
 async function blockDmPartner(){
  if(!dmActivePartner||!confirm("Block this player? You will no longer be able to access this conversation."))return;
