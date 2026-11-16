@@ -4,7 +4,7 @@
  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6190689513280728"
      crossorigin="anonymous"></script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>PLAYAM 🎮</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
@@ -147,6 +147,26 @@ label{display:block;margin-top:13px;font-weight:bold}
 .wallet-ledger{background:#211f35;border:1px solid #393550;border-radius:14px;padding:14px;min-width:0}
 .wallet-ledger strong{display:block;font-size:20px;margin:8px 0;overflow-wrap:anywhere}
 @media(max-width:760px){.wallet-ledgers{grid-template-columns:1fr}}
+
+/* Mobile usability hardening */
+html{overflow-x:hidden;scroll-padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+body{overflow-x:hidden}
+button,input,select,textarea{touch-action:manipulation}
+button{min-height:44px}
+input,select,textarea{font-size:16px;max-width:100%}
+:focus-visible{outline:2px solid #ed4cbd;outline-offset:2px}
+@media(max-width:760px){
+ .topbar{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px}
+ .topbar>div{min-width:0}
+ .welcome{overflow-wrap:anywhere;line-height:1.2}
+ .online{font-size:10px}
+ .main{width:100%;min-width:0}
+ .hero,.small-card,.game-card,.screen-card{min-width:0;overflow-wrap:anywhere}
+ .dm-compose{position:sticky;bottom:calc(68px + env(safe-area-inset-bottom));background:#171629;padding:10px 0 calc(8px + env(safe-area-inset-bottom));z-index:5}
+ .dm-compose button{min-width:76px}
+ #bottomNav{padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+}
+
 </style>
 </head>
 <body>
