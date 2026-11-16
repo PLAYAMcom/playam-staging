@@ -200,6 +200,47 @@ input,select,textarea{font-size:16px;max-width:100%}
  .video-actions{grid-template-columns:1fr!important}
 }
 
+
+/* Home, game catalogue, notifications and settings mobile pass */
+#homeScreen{min-width:0}
+#homeScreen .hero{position:relative;overflow:hidden}
+#homeScreen .hero h2{max-width:18ch;line-height:1.12}
+#homeScreen .hero p{max-width:48ch;line-height:1.55}
+#homeScreen .section-title{margin:24px 0 12px}
+#homeScreen .game-grid{align-items:stretch}
+#homeScreen .game-card,#homeScreen .small-card{min-width:0;display:flex;flex-direction:column}
+#homeScreen .game-card p,#homeScreen .small-card p{line-height:1.5}
+#homeScreen .game-card button,#homeScreen .small-card button{margin-top:auto}
+#homeScreen .catalogue-grid{margin-bottom:14px}
+#gamesScreen{min-width:0}
+#gamesScreen .hero{margin-bottom:16px}
+#playamCatalogueGrid{align-items:stretch}
+#notificationsScreen .dm-list{max-height:none}
+#settingsScreen .panel{min-width:0}
+#settingsScreen select,#settingsScreen button{width:100%;min-width:0}
+@media(max-width:760px){
+ #homeScreen .hero{padding:22px 18px;border-radius:18px}
+ #homeScreen .hero h2{font-size:clamp(23px,6vw,30px)}
+ #homeScreen .game-grid{grid-template-columns:1fr!important;gap:11px}
+ #homeScreen .game-card{padding:17px}
+ #homeScreen .small-grid{grid-template-columns:1fr 1fr;gap:9px}
+ #homeScreen .small-card{padding:13px}
+ #homeScreen .small-card h3{font-size:14px;line-height:1.3}
+ #homeScreen .small-card button{font-size:11px;padding:10px 6px}
+ #homeScreen .catalogue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #gamesScreen .hero{padding:19px 15px}
+ #gamesScreen .catalogue-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ #gamesScreen .catalogue-card{min-height:174px}
+ #notificationsScreen,#settingsScreen{padding:17px 13px}
+ #notificationsScreen .dm-person{min-width:0}
+ #settingsScreen .panel{padding:13px!important}
+}
+@media(max-width:380px){
+ #homeScreen .small-grid,#homeScreen .catalogue-grid,#gamesScreen .catalogue-grid{grid-template-columns:1fr}
+ #homeScreen .small-card{padding:15px}
+ #gamesScreen .catalogue-card{min-height:0}
+}
+
 </style>
 </head>
 <body>
