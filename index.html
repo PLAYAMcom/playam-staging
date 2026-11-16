@@ -771,7 +771,7 @@ async function reportDmMessage(message){
 }
 async function sendDmMessage(event){
  event.preventDefault();const input=document.getElementById("dmComposeInput"),body=input.value.trim();if(!body||!dmActiveConversation)return;
- const button=document.getElementById("dmSendButton");button.disabled=true;
+ const button=document.getElementById("dmSendButton");button.dataset.sending="true";button.disabled=true;
  try{
   const user=await dmGetUser();
   if(!navigator.onLine)throw new Error("You're offline. Your message is still in the composer. Reconnect and press SEND to retry.");
@@ -786,7 +786,7 @@ async function sendDmMessage(event){
   if(!data||!data.length)throw new Error("The send could not be confirmed. Retry the same message.");
   delete dmPendingSends[dmActiveConversation];input.value="";await loadDmThread();await loadDmInbox();document.getElementById("dmThreadStatus").textContent="";
  }catch(e){document.getElementById("dmThreadStatus").textContent=(e.message||"Message could not be sent.")+" Your text remains in the composer; retrying uses the same request key."}
- finally{button.disabled=!navigator.onLine}
+ finally{delete button.dataset.sending;button.disabled=!navigator.onLine||!dmActiveConversation}
 }
 async function blockDmPartner(){
  if(!dmActivePartner||!confirm("Block this player? You will no longer be able to access this conversation."))return;
