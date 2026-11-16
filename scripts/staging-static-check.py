@@ -84,6 +84,15 @@ if missing_desktop:
 if "@media(max-width:760px)" not in source:
     raise SystemExit("FAIL: mobile responsive layout breakpoint is missing")
 
+# The separately published Staging admin and Flow workspaces also need desktop rules.
+for page_path, marker in (
+    (ADMIN_APP, "PLAYAM admin desktop workspace"),
+    (FLOW_APP, "PLAYAM Flow desktop workspace"),
+):
+    page_text = page_path.read_text(encoding="utf-8")
+    if marker not in page_text or "@media(min-width:900px)" not in page_text:
+        raise SystemExit("FAIL: published desktop workspace rules missing from " + str(page_path))
+
 if re.search(r"service_role|sb_secret_[A-Za-z0-9_-]+", source, re.I):
     raise SystemExit("FAIL: server-only Supabase credential marker found in browser app")
 
