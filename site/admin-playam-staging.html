@@ -35,6 +35,22 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#d9c8e8}
 .report small{color:#b9adc5}
 .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
 @media(max-width:520px){main{padding:16px}}
+
+/* PLAYAM admin desktop workspace */
+@media(min-width:900px){
+ main{max-width:1440px;padding:clamp(28px,3vw,52px)}
+ #app>.panel{padding:clamp(22px,2vw,32px)}
+ .section{margin-top:30px}
+ .section>.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+ .metric,.panel{border-radius:18px}
+ .report{padding:19px;margin:14px 0}
+ .actions{gap:9px}
+}
+@media(min-width:1450px){
+ .section>.grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(prefers-reduced-motion:reduce){button{scroll-behavior:auto}}
+
 </style>
 </head>
 <body>
