@@ -412,6 +412,16 @@ label{display:block;margin-top:13px;font-weight:bold}
     <div id="financeEntryStatus" class="small muted" role="status" aria-live="polite"></div>
    </div>
    <p class="small muted">Important: this ledger does not yet automatically import Paystack fees, LIVE gift revenue, refunds or infrastructure invoices. Record or integrate those sources before treating net operating results as complete. Purchased-coin top-ups are not platform revenue.</p>
+   <div class="small-card" style="margin-top:18px">
+    <h3>🛡️ Private-message reports</h3>
+    <p class="small muted">AAL2 super-admin access only. Open the report, inspect its referenced message, then record a reasoned moderation decision.</p>
+    <label for="privateReportFilter">Report status</label>
+    <select id="privateReportFilter"><option value="open">Open</option><option value="reviewing">Reviewing</option><option value="resolved">Resolved</option><option value="dismissed">Dismissed</option><option value="">All statuses</option></select>
+    <button class="primary" onclick="loadPrivateMessageReports()">LOAD REPORTS</button>
+    <div id="privateReportStatus" class="small muted" role="status" aria-live="polite">Reports have not been loaded.</div>
+    <div id="privateReportList"></div>
+    <div id="privateReportEvidence" class="small-card hidden" style="margin-top:12px" aria-live="polite"></div>
+   </div>
    <button class="back" onclick="showHome()">← BACK TO HOME</button>
   </section>
 
@@ -830,6 +840,54 @@ async function showFinanceAdmin(){
  document.getElementById("financeTo").value=today;
  document.getElementById("financeOccurredOn").value=today;
  updateFinanceCategories();await loadFinanceSummary();await loadFinanceActivity();
+}
+async function loadPrivateMessageReports(){
+ const status=document.getElementById("privateReportStatus"),list=document.getElementById("privateReportList"),evidence=document.getElementById("privateReportEvidence");
+ status.textContent="Verifying moderator access…";list.replaceChildren();evidence.classList.add("hidden");
+ const {data:{session},error:sessionError}=await supabaseClient.auth.getSession();
+ if(sessionError||!session){status.textContent="Please sign in again.";return}
+ const {data:aal,error:aalError}=await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
+ if(aalError||aal?.currentLevel!=="aal2"){status.textContent="Moderator access requires MFA verification (AAL2).";return}
+ const filter=document.getElementById("privateReportFilter").value||null;
+ const {data,error}=await supabaseClient.rpc("admin_list_player_reports",{p_status:filter,p_limit:100});
+ if(error){status.textContent="Could not load reports: "+error.message;return}
+ const reports=data||[];
+ if(!reports.length){status.textContent="No reports found for this status.";return}
+ status.textContent=reports.length+" report(s) loaded.";
+ reports.forEach(report=>{
+  const card=dmEl("article","small-card");card.style.marginTop="10px";
+  const title=dmEl("strong","",report.reason+" · "+report.status.toUpperCase());
+  const date=dmEl("div","small muted",new Date(report.created_at).toLocaleString());
+  const details=dmEl("p","small",report.details||"No additional details.");
+  const evidenceButton=dmEl("button","secondary","VIEW REPORTED MESSAGE");evidenceButton.type="button";evidenceButton.addEventListener("click",()=>loadPrivateReportEvidence(report.report_id,evidence));
+  const reviewButton=dmEl("button","secondary","REVIEW / DECIDE");reviewButton.type="button";reviewButton.style.marginLeft="6px";reviewButton.addEventListener("click",()=>reviewPrivateMessageReport(report));
+  card.append(title,date,details,evidenceButton,reviewButton);list.append(card);
+ });
+}
+async function loadPrivateReportEvidence(reportId,container){
+ container.classList.remove("hidden");container.replaceChildren(dmEl("div","small muted","Loading restricted evidence…"));
+ const {data,error}=await supabaseClient.rpc("admin_get_reported_private_message",{p_report_id:reportId});
+ if(error){container.replaceChildren(dmEl("div","small", "Evidence unavailable: "+error.message));return}
+ const item=Array.isArray(data)?data[0]:data;
+ if(!item){container.replaceChildren(dmEl("div","small","No message evidence was returned."));return}
+ container.replaceChildren();
+ container.append(dmEl("h4","","Reported private message"));
+ container.append(dmEl("div","small muted","Sender ID: "+item.sender_auth_user_id));
+ container.append(dmEl("div","small muted",new Date(item.message_created_at).toLocaleString()));
+ const body=dmEl("p","",item.message_body||"[Message has no text body]");body.style.whiteSpace="pre-wrap";container.append(body);
+}
+async function reviewPrivateMessageReport(report){
+ const next=prompt("Choose decision: reviewing, resolved, or dismissed");
+ if(next===null)return;
+ const status=next.trim().toLowerCase();
+ if(!["reviewing","resolved","dismissed"].includes(status)){alert("Invalid moderation decision.");return}
+ const reason=prompt("Explain your moderation decision (5–1000 characters):");
+ if(reason===null)return;
+ if(reason.trim().length<5||reason.trim().length>1000){alert("Decision reason must be 5–1000 characters.");return}
+ const {error}=await supabaseClient.rpc("admin_review_player_report",{p_report_id:report.report_id,p_new_status:status,p_reason:reason.trim()});
+ if(error){alert("Moderation decision failed: "+error.message);return}
+ alert("Report updated to "+status+". The decision was recorded in the audit trail.");
+ await loadPrivateMessageReports();
 }
 function formatFinanceMinor(value,currency){
  const n=Number(value||0)/100;
