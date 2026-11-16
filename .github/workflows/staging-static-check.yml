@@ -8,6 +8,7 @@ on:
       - "site/**"
       - "scripts/staging-static-check.py"
       - ".github/workflows/staging-static-check.yml"
+      - ".github/workflows/deploy-pages.yml"
   pull_request:
     branches: [main]
     paths:
