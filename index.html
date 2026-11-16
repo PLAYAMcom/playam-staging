@@ -713,7 +713,6 @@ async function blockDmPartner(){
 document.getElementById("dmFindButton")?.addEventListener("click",searchDmPlayers);
 document.getElementById("dmFindInput")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();searchDmPlayers()}});
 document.getElementById("dmComposeForm")?.addEventListener("submit",sendDmMessage);
-const playamCatalogue=[
 function showLiveHub(){stopLobbyRefresh();stopGameRefresh();showScreen("liveScreen","navLive")}
 const playamCatalogue=[
  ["Friendship Court","⚖️","friendship-court",true],["Would You Rather","🤔","would-you-rather",true],["Truth or Dare","🎭","truth-or-dare",true],["Mind Battle","🧠","mind-battle",true],["Secret Confessions","🤫","secret-confessions",true],
