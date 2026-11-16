@@ -15,6 +15,7 @@ on:
       - "index.html"
       - "site/**"
       - "scripts/staging-static-check.py"
+      - "supabase/migrations/**"
       - ".github/workflows/staging-static-check.yml"
 
 permissions:
