@@ -18,6 +18,7 @@ CATALOGUE_PAGE = Path("site/game-catalogue.html")
 FLOW_APP = Path("site/flow.html")
 LANDING_PAGE = Path("site/index.html")
 MESSAGE_IDEMPOTENCY_MIGRATION = Path("supabase/migrations/20261116081500_idempotent_private_message_delivery.sql")
+LOBBY_CONCURRENCY_MIGRATION = Path("supabase/migrations/20261116121500_serialize_playam_lobby_ready_updates.sql")
 if not PUBLISHED_APP.exists():
     raise SystemExit("FAIL: published Staging game page is missing")
 if PUBLISHED_APP.read_text(encoding="utf-8") != source:
@@ -32,6 +33,13 @@ if not LANDING_PAGE.exists():
     raise SystemExit("FAIL: Staging landing page is missing")
 if not MESSAGE_IDEMPOTENCY_MIGRATION.exists():
     raise SystemExit("FAIL: private-message idempotency migration is missing")
+if not LOBBY_CONCURRENCY_MIGRATION.exists():
+    raise SystemExit("FAIL: lobby concurrency migration is missing")
+lobby_migration = LOBBY_CONCURRENCY_MIGRATION.read_text(encoding="utf-8")
+for marker in ("FOR UPDATE OF r", "r.code=upper(btrim(coalesce(p_code,'')))", "GRANT EXECUTE ON FUNCTION public.set_playam_ready(boolean,text) TO authenticated"):
+    if marker not in lobby_migration:
+        raise SystemExit("FAIL: lobby readiness concurrency protection missing: " + marker)
+
 message_migration = MESSAGE_IDEMPOTENCY_MIGRATION.read_text(encoding="utf-8")
 for marker in ("ON CONFLICT(sender_auth_user_id,idempotency_key)", "v_existing_conversation_id IS DISTINCT FROM p_conversation_id", "v_existing_body IS DISTINCT FROM v_body", "Idempotency key was already used for a different message"):
     if marker not in message_migration:
