@@ -7,6 +7,8 @@ on:
       - "index.html"
       - "site/**"
       - "scripts/staging-static-check.py"
+      - "tests/**"
+      - "playwright.config.js"
       - "supabase/migrations/**"
       - ".github/workflows/staging-static-check.yml"
   pull_request:
@@ -15,6 +17,8 @@ on:
       - "index.html"
       - "site/**"
       - "scripts/staging-static-check.py"
+      - "tests/**"
+      - "playwright.config.js"
       - "supabase/migrations/**"
       - ".github/workflows/staging-static-check.yml"
 
@@ -34,3 +38,19 @@ jobs:
           node-version: "22"
       - name: Check Staging isolation and browser JavaScript
         run: python3 scripts/staging-static-check.py
+      - name: Install Playwright test runner
+        run: npm install --no-save @playwright/test
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run responsive browser tests
+        run: npx playwright test
+      - name: Upload browser test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playam-staging-browser-test-results
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
