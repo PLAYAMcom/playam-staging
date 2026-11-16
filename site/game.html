@@ -788,7 +788,7 @@ async function sendDmMessage(event){
   const {data,error}=await supabaseClient.rpc("send_private_message_v1",{p_conversation_id:conversationId,p_body:body,p_idempotency_key:request.key});
   if(error)throw error;
   if(!data||!data.length)throw new Error("The send could not be confirmed. Retry the same message.");
-  delete dmPendingSends[conversationId];delete dmDrafts[conversationId];if(dmActiveConversation===conversationId){input.value="";if(delivery)delivery.textContent="Message sent and saved.";await loadDmThread();document.getElementById("dmThreadStatus").textContent="";}await loadDmInbox();
+  delete dmPendingSends[conversationId];if(dmActiveConversation===conversationId){if(input.value.trim()===body){input.value="";delete dmDrafts[conversationId];}else{dmDrafts[conversationId]=input.value;}if(delivery)delivery.textContent="Message sent and saved.";await loadDmThread();document.getElementById("dmThreadStatus").textContent="";}else if((dmDrafts[conversationId]||"").trim()===body){delete dmDrafts[conversationId];}await loadDmInbox();
  }catch(e){if(dmActiveConversation===conversationId){if(delivery)delivery.textContent="Message not confirmed — your text is still in the composer.";document.getElementById("dmThreadStatus").textContent=(e.message||"Message could not be sent.")+" Your text remains in the composer; retrying uses the same request key."}}
  finally{delete button.dataset.sending;button.textContent=originalLabel;button.disabled=!navigator.onLine||!dmActiveConversation}
 }
