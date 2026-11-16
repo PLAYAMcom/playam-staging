@@ -711,7 +711,7 @@ async function startDmConversation(partner){
  }catch(e){document.getElementById("dmThreadStatus").textContent=e.message||"Unable to start conversation."}
 }
 async function openDmConversation(conv,other,profile){
- dmActiveConversation=conv.id;dmActivePartner={id:other,profile};document.getElementById("dmComposeInput").disabled=false;document.getElementById("dmSendButton").disabled=false;
+ dmActiveConversation=conv.id;dmActivePartner={id:other,profile};document.getElementById("dmComposeInput").disabled=false;document.getElementById("dmSendButton").disabled=false;updateDmConnectionStatus();
  const head=document.getElementById("dmThreadHead");head.replaceChildren(dmEl("strong","",profile.display_name||profile.username||"PLAYAM player"),dmEl("div","small muted","@"+(profile.username||"player")));
  const block=dmEl("button","secondary","BLOCK PLAYER");block.type="button";block.style.marginTop="8px";block.addEventListener("click",blockDmPartner);head.append(block);
  await loadDmThread();
