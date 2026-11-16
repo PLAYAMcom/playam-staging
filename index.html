@@ -1692,8 +1692,17 @@ async function signIn(){
   showAuthMessage(error?.message||"We could not log you in. Check your connection and try again.");
  }
 }
+function resetDmSession(){
+ if(dmRealtimeRetryTimer){clearTimeout(dmRealtimeRetryTimer);dmRealtimeRetryTimer=null}
+ if(dmRealtimeChannel){supabaseClient.removeChannel(dmRealtimeChannel);dmRealtimeChannel=null}
+ dmRealtimeRetryCount=0;dmActiveConversation=null;dmActivePartner=null;dmPendingSends={};dmDrafts={};dmUser=null;
+ const compose=document.getElementById("dmComposeInput");if(compose){compose.value="";compose.disabled=false}
+ const delivery=document.getElementById("dmDeliveryStatus");if(delivery)delivery.textContent="";
+ const thread=document.getElementById("dmMessages");if(thread)thread.replaceChildren();
+ const head=document.getElementById("dmThreadHead");if(head)head.replaceChildren();
+}
 async function signOut(){
- stopLobbyRefresh();stopGameRefresh();await supabaseClient.auth.signOut();
+ stopLobbyRefresh();stopGameRefresh();resetDmSession();await supabaseClient.auth.signOut();
  resetGameState();resetSoloGame();document.getElementById("app").classList.add("hidden");
  document.getElementById("authScreen").classList.remove("hidden");showMessage("You have logged out.");
 }
@@ -2027,7 +2036,7 @@ async function checkLogin(){
  else{document.getElementById("app").classList.add("hidden");document.getElementById("authScreen").classList.remove("hidden")}
 }
 supabaseClient.auth.onAuthStateChange((event,session)=>{
- if(event==="SIGNED_OUT"){resetGameState();resetSoloGame();document.getElementById("navAdminFinance")?.classList.add("hidden");document.getElementById("app").classList.add("hidden");document.getElementById("authScreen").classList.remove("hidden")}
+ if(event==="SIGNED_OUT"){resetDmSession();resetGameState();resetSoloGame();document.getElementById("navAdminFinance")?.classList.add("hidden");document.getElementById("app").classList.add("hidden");document.getElementById("authScreen").classList.remove("hidden")}
  if(event==="SIGNED_IN"&&session){document.getElementById("authScreen").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showHome();setTimeout(()=>refreshFinanceAdminVisibility(),0)}
 });
 checkLogin();
