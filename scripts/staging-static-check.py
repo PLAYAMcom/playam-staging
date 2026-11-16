@@ -74,10 +74,10 @@ if re.search(r"service_role|sb_secret_[A-Za-z0-9_-]+", source, re.I):
     raise SystemExit("FAIL: server-only Supabase credential marker found in browser app")
 
 scoped_calls = [
-    r'rpc\(["\']set_playam_ready["\']\s*,\s*\{[^}]*p_code\s*:\s*currentRoomCode',
-    r'rpc\(["\']start_playam_game["\']\s*,\s*\{[^}]*p_code\s*:\s*currentRoomCode',
-    r'rpc\(["\']submit_playam_answer["\']\s*,\s*\{[^}]*p_code\s*:\s*currentRoomCode',
-    r'rpc\(["\']advance_playam_round["\']\s*,\s*\{[^}]*p_code\s*:\s*currentRoomCode',
+    r'rpc\(["\']set_playam_ready["\']\s*,\s*\{[^}]*p_code\s*:\s*(?:currentRoomCode|requestedRoomCode)',
+    r'rpc\(["\']start_playam_game["\']\s*,\s*\{[^}]*p_code\s*:\s*(?:currentRoomCode|requestedRoomCode)',
+    r'rpc\(["\']submit_playam_answer["\']\s*,\s*\{[^}]*p_code\s*:\s*(?:currentRoomCode|requestedRoomCode)',
+    r'rpc\(["\']advance_playam_round["\']\s*,\s*\{[^}]*p_code\s*:\s*(?:currentRoomCode|requestedRoomCode)',
 ]
 for pattern in scoped_calls:
     if not re.search(pattern, source):
