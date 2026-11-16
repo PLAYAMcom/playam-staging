@@ -18,7 +18,7 @@ CATALOGUE_PAGE = Path("site/game-catalogue.html")
 FLOW_APP = Path("site/flow.html")
 LANDING_PAGE = Path("site/index.html")
 MESSAGE_IDEMPOTENCY_MIGRATION = Path("supabase/migrations/20261116081500_idempotent_private_message_delivery.sql")
-LOBBY_CONCURRENCY_MIGRATION = Path("supabase/migrations/20261116121500_serialize_playam_lobby_ready_updates.sql")
+LOBBY_CONCURRENCY_MIGRATION = Path("supabase/migrations/20261116122845_serialize_playam_lobby_ready_updates.sql")
 if not PUBLISHED_APP.exists():
     raise SystemExit("FAIL: published Staging game page is missing")
 if PUBLISHED_APP.read_text(encoding="utf-8") != source:
@@ -43,7 +43,7 @@ for marker in ("FOR UPDATE OF r", "r.code=upper(btrim(coalesce(p_code,'')))", "G
 
 
 # Withdrawal retries must match the original amount and payout destination.
-WITHDRAWAL_IDEMPOTENCY_MIGRATION = Path("supabase/migrations/20261116134500_bind_withdrawal_idempotency_to_request_payload.sql")
+WITHDRAWAL_IDEMPOTENCY_MIGRATION = Path("supabase/migrations/20261116133638_bind_withdrawal_idempotency_to_request_payload.sql")
 if not WITHDRAWAL_IDEMPOTENCY_MIGRATION.exists():
     raise SystemExit("FAIL: withdrawal idempotency migration is missing")
 withdrawal_sql = WITHDRAWAL_IDEMPOTENCY_MIGRATION.read_text(encoding="utf-8")
@@ -60,7 +60,7 @@ for marker in (
         raise SystemExit("FAIL: withdrawal idempotency invariant missing: " + marker)
 
 # Verify financial ledger idempotency is safe under concurrent retries.
-FINANCIAL_IDEMPOTENCY_MIGRATION = Path("supabase/migrations/20261116133000_make_financial_entry_idempotency_concurrency_safe.sql")
+FINANCIAL_IDEMPOTENCY_MIGRATION = Path("supabase/migrations/20261116131808_make_financial_entry_idempotency_concurrency_safe.sql")
 if not FINANCIAL_IDEMPOTENCY_MIGRATION.exists():
     raise SystemExit("FAIL: financial idempotency migration is missing")
 financial_sql = FINANCIAL_IDEMPOTENCY_MIGRATION.read_text(encoding="utf-8")
