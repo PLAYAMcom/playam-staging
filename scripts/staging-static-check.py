@@ -13,14 +13,18 @@ if not APP.exists():
 source = APP.read_text(encoding="utf-8")
 PUBLISHED_APP = Path("site/game.html")
 ADMIN_APP = Path("site/admin-playam-staging.html")
+ROOT_ADMIN_APP = Path("admin-playam-staging.html")
+CATALOGUE_PAGE = Path("site/game-catalogue.html")
 FLOW_APP = Path("site/flow.html")
 LANDING_PAGE = Path("site/index.html")
 if not PUBLISHED_APP.exists():
     raise SystemExit("FAIL: published Staging game page is missing")
 if PUBLISHED_APP.read_text(encoding="utf-8") != source:
     raise SystemExit("FAIL: published game page is not identical to the reviewed root app")
-if not ADMIN_APP.exists():
+if not ADMIN_APP.exists() or not ROOT_ADMIN_APP.exists():
     raise SystemExit("FAIL: existing Staging admin dashboard is missing")
+if not CATALOGUE_PAGE.exists():
+    raise SystemExit("FAIL: Staging game catalogue is missing")
 if not FLOW_APP.exists():
     raise SystemExit("FAIL: PLAYAM Flow Staging interface is missing")
 if not LANDING_PAGE.exists():
@@ -118,8 +122,14 @@ for page_path, marker in (
         raise SystemExit("FAIL: published desktop workspace rules missing from " + str(page_path))
     if "@media(min-width:1450px)" not in page_text:
         raise SystemExit("FAIL: wide-screen workspace rules missing from " + str(page_path))
-if "@media(max-width:520px)" not in admin_source:
+if "@media(max-width:520px)" not in admin_source or "PLAYAM admin mobile workspace" not in admin_source:
     raise SystemExit("FAIL: admin mobile layout breakpoint is missing")
+root_admin_source = ROOT_ADMIN_APP.read_text(encoding="utf-8")
+if "PLAYAM admin mobile workspace" not in root_admin_source or "@media(max-width:760px)" not in root_admin_source:
+    raise SystemExit("FAIL: root admin mobile layout regression marker is missing")
+catalogue_source = CATALOGUE_PAGE.read_text(encoding="utf-8")
+if "PLAYAM game catalogue mobile layout" not in catalogue_source or "@media(max-width:760px)" not in catalogue_source:
+    raise SystemExit("FAIL: game catalogue mobile layout regression marker is missing")
 if "max-width:1440px" not in admin_source or "max-width:1200px" not in flow_source:
     raise SystemExit("FAIL: desktop workspace content widths are missing")
 
