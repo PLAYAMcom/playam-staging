@@ -76,6 +76,7 @@ desktop_markers = (
     "@media(min-width:761px)",
     "#gamesScreen .catalogue-grid",
     "#videoScreen #videoFeed",
+    "#videoScreen .video-feed{max-width:none}",
     ".dm-layout",
 )
 missing_desktop = [marker for marker in desktop_markers if marker not in source]
