@@ -61,6 +61,22 @@ BEGIN
 
  SELECT available_balance_minor INTO v_available
  FROM public.playam_creator_earnings_wallets WHERE auth_user_id=v_user FOR UPDATE;
+
+ -- Recheck after acquiring the wallet lock: a concurrent identical request
+ -- may have committed while this request waited for the same wallet row.
+ SELECT id,auth_user_id,amount_minor,payout_destination_id
+ INTO v_request_id,v_existing_user,v_existing_amount,v_existing_destination
+ FROM public.playam_creator_withdrawal_requests WHERE idempotency_key=v_key;
+ IF FOUND THEN
+  IF v_existing_user<>v_user THEN
+   RAISE EXCEPTION 'Idempotency key already belongs to another account';
+  END IF;
+  IF v_existing_amount<>p_amount_minor OR v_existing_destination IS DISTINCT FROM p_destination_id THEN
+   RAISE EXCEPTION 'Idempotency key already used for a different withdrawal request';
+  END IF;
+  RETURN v_request_id;
+ END IF;
+
  IF v_available<p_amount_minor THEN RAISE EXCEPTION 'Insufficient available creator earnings'; END IF;
 
  INSERT INTO public.playam_creator_withdrawal_requests
