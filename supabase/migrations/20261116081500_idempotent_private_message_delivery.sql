@@ -25,6 +25,7 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO ''
 AS $function$
 DECLARE
  v_uid uuid:=auth.uid(); v_body text:=btrim(coalesce(p_body,'')); v_message_id uuid; v_created_at timestamptz;
+ v_existing_conversation_id uuid; v_existing_body text;
 BEGIN
  IF v_uid IS NULL THEN RAISE EXCEPTION 'Authentication required'; END IF;
  IF p_conversation_id IS NULL OR p_idempotency_key IS NULL THEN RAISE EXCEPTION 'Conversation and request key are required'; END IF;
@@ -40,8 +41,17 @@ BEGIN
  ON CONFLICT(sender_auth_user_id,idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING
  RETURNING id,public.private_messages.created_at INTO v_message_id,v_created_at;
  IF v_message_id IS NULL THEN
-  SELECT m.id,m.created_at INTO v_message_id,v_created_at FROM public.private_messages m
+  SELECT m.id,m.created_at,m.conversation_id,m.body
+  INTO v_message_id,v_created_at,v_existing_conversation_id,v_existing_body
+  FROM public.private_messages m
   WHERE m.sender_auth_user_id=v_uid AND m.idempotency_key=p_idempotency_key;
+
+  -- A retry may replay the original request, but a key cannot be reused to
+  -- smuggle a different conversation or payload through the idempotency path.
+  IF v_existing_conversation_id IS DISTINCT FROM p_conversation_id
+     OR v_existing_body IS DISTINCT FROM v_body THEN
+    RAISE EXCEPTION 'Idempotency key was already used for a different message';
+  END IF;
  END IF;
  RETURN QUERY SELECT v_message_id,v_created_at;
 END;
