@@ -5,17 +5,20 @@ on:
     branches: [main]
     paths:
       - "index.html"
+      - "admin-playam-staging.html"
       - "site/**"
       - "scripts/staging-static-check.py"
       - ".github/workflows/staging-static-check.yml"
-      - ".github/workflows/deploy-pages.yml"
+      - ".github/workflows/deploy-staging-pages.yml"
   pull_request:
     branches: [main]
     paths:
       - "index.html"
+      - "admin-playam-staging.html"
       - "site/**"
       - "scripts/staging-static-check.py"
       - ".github/workflows/staging-static-check.yml"
+      - ".github/workflows/deploy-staging-pages.yml"
 
 permissions:
   contents: read
