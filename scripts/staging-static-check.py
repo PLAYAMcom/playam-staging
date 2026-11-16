@@ -170,17 +170,39 @@ class InlineScripts(HTMLParser):
             self.capture = False
             self.current = []
 
-parser = InlineScripts()
-parser.feed(source)
-if not parser.scripts:
-    raise SystemExit("FAIL: no inline application JavaScript found")
+# Parse and syntax-check inline JavaScript in every interactive Staging page,
+# not only the main game page.
+checked_script_count = 0
+for page_name, page_source in (
+    ("game", source),
+    ("admin", admin_source),
+    ("Flow", flow_source),
+):
+    parser = InlineScripts()
+    parser.feed(page_source)
+    if not parser.scripts:
+        raise SystemExit("FAIL: no inline application JavaScript found in Staging " + page_name + " page")
+    for index, js in enumerate(parser.scripts, start=1):
+        with tempfile.NamedTemporaryFile("w", suffix=".js", encoding="utf-8") as handle:
+            handle.write(js)
+            handle.flush()
+            result = subprocess.run(["node", "--check", handle.name], capture_output=True, text=True)
+            if result.returncode:
+                raise SystemExit(
+                    f"FAIL: Staging {page_name} inline JavaScript block {index} has a syntax error:\\n{result.stderr}"
+                )
+        checked_script_count += 1
 
-for index, js in enumerate(parser.scripts, start=1):
-    with tempfile.NamedTemporaryFile("w", suffix=".js", encoding="utf-8") as handle:
-        handle.write(js)
-        handle.flush()
-        result = subprocess.run(["node", "--check", handle.name], capture_output=True, text=True)
-        if result.returncode:
-            raise SystemExit(f"FAIL: inline JavaScript block {index} has a syntax error:\\n{result.stderr}")
+# Keep responsive-layout regression coverage on every published Staging surface.
+for page_name, page_source, marker in (
+    ("admin", admin_source, "PLAYAM admin mobile workspace"),
+    ("Flow", flow_source, "PLAYAM Flow mobile workspace"),
+    ("catalogue", catalogue_source, "PLAYAM game catalogue mobile layout"),
+):
+    if marker not in page_source or "@media(max-width:760px)" not in page_source:
+        raise SystemExit("FAIL: mobile responsive regression marker missing from Staging " + page_name + " page")
 
-print(f"PASS: Staging-only configuration, {len(required)} required features, room-scoped gameplay calls, and {len(parser.scripts)} inline JavaScript block(s).")
+print(
+    f"PASS: Staging-only configuration, {len(required)} required features, room-scoped gameplay calls, "
+    f"mobile layout markers, and {checked_script_count} inline JavaScript block(s) across all interactive pages."
+)
