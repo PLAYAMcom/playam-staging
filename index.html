@@ -121,6 +121,27 @@ label{display:block;margin-top:13px;font-weight:bold}
  .catalogue-card button{font-size:10px;padding:9px 5px}
 }
 @media(max-width:360px){.bottom-nav-btn{font-size:9px}.catalogue-card{padding:10px}}
+
+/* Private messaging */
+.dm-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:14px;min-height:420px}
+.dm-panel{background:#171629;border:1px solid #38344f;border-radius:15px;padding:13px;min-width:0}
+.dm-list{display:flex;flex-direction:column;gap:7px;max-height:440px;overflow:auto}
+.dm-person{display:flex;align-items:center;gap:10px;text-align:left;width:100%;background:#211f35;border:1px solid #393550;border-radius:12px;padding:11px;color:inherit}
+.dm-person.active{border-color:#a35be2;background:#302342}
+.dm-avatar{width:38px;height:38px;flex:0 0 38px;border-radius:50%;display:grid;place-items:center;background:#46305e;font-weight:800}
+.dm-person-meta{min-width:0;flex:1}.dm-person-meta strong,.dm-person-meta small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dm-person-meta small{color:#aaa8c0;font-size:11px;margin-top:3px}
+.dm-thread{display:flex;flex-direction:column;min-height:390px}
+.dm-thread-head{padding-bottom:10px;border-bottom:1px solid #38344f}
+.dm-messages{display:flex;flex-direction:column;gap:8px;overflow:auto;max-height:340px;padding:12px 2px;flex:1}
+.dm-bubble{max-width:86%;padding:10px 12px;border-radius:14px;background:#28263d;align-self:flex-start;overflow-wrap:anywhere}
+.dm-bubble.mine{background:#56337a;align-self:flex-end}
+.dm-bubble small{display:block;opacity:.7;font-size:10px;margin-top:5px}
+.dm-compose{display:flex;gap:7px;align-items:flex-end;border-top:1px solid #38344f;padding-top:10px}
+.dm-compose textarea{flex:1;min-height:44px;max-height:110px;margin:0}
+.dm-empty{color:#aaa8c0;text-align:center;padding:30px 12px;font-size:13px}
+.dm-search-results{display:flex;flex-direction:column;gap:7px;margin-top:8px}
+@media(max-width:760px){.dm-layout{grid-template-columns:1fr}.dm-thread{min-height:360px}.dm-list{max-height:260px}.dm-messages{max-height:300px}}
 </style>
 </head>
 <body>
@@ -258,8 +279,25 @@ label{display:block;margin-top:13px;font-weight:bold}
   </section>
 
   <section id="messagesScreen" class="screen-card hidden">
-   <h2>💬 Messages</h2><p class="muted">Your private conversations, game invitations and creator messages will live here.</p>
-   <div class="small-card" style="margin-top:18px;text-align:center;padding:28px 16px"><div style="font-size:38px">✉️</div><h3>Messages are being prepared</h3><p class="muted">The current Staging app does not yet have a connected private messaging backend. We will build secure one-to-one and group messaging before presenting this inbox as live.</p><span class="small">No messages have been sent, hidden or marked as read.</span></div>
+   <h2>💬 Messages</h2><p class="muted">Private one-to-one text conversations. Sign in to view your inbox or find a PLAYAM player.</p>
+   <div class="dm-panel" style="margin:14px 0">
+    <label for="dmFindInput">Find a player by username</label>
+    <div class="dm-compose" style="border:0;padding:0"><input id="dmFindInput" maxlength="30" placeholder="Search username…" autocomplete="off"><button class="primary" id="dmFindButton" type="button">SEARCH</button></div>
+    <div id="dmSearchResults" class="dm-search-results" aria-live="polite"></div>
+   </div>
+   <div class="dm-layout">
+    <section class="dm-panel"><h3>Your conversations</h3><div id="dmInbox" class="dm-list"><div class="dm-empty">Loading your inbox…</div></div></section>
+    <section class="dm-panel dm-thread">
+     <div id="dmThreadHead" class="dm-thread-head"><strong>Choose a conversation</strong></div>
+     <div id="dmThreadMessages" class="dm-messages"><div class="dm-empty">Select a conversation or search for a player to start a message.</div></div>
+     <form id="dmComposeForm" class="dm-compose">
+      <textarea id="dmComposeInput" maxlength="2000" rows="2" placeholder="Write a message…" aria-label="Message text" disabled></textarea>
+      <button class="primary" type="submit" id="dmSendButton" disabled>SEND</button>
+     </form>
+     <div id="dmThreadStatus" class="small muted" role="status" aria-live="polite"></div>
+    </section>
+   </div>
+   <p class="small muted">Messages are text-only in this first Staging build. Blocking a player prevents further conversation access. Attachments, group chats and voice/video calls are not included yet.</p>
   </section>
 
   <section id="liveScreen" class="screen-card hidden">
@@ -571,7 +609,111 @@ function setNav(id){
 function showScreen(id,nav=""){hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome")}
 function showGames(){stopLobbyRefresh();stopGameRefresh();showScreen("gamesScreen","navGames");renderPlayamCatalogue()}
-function showMessages(){stopLobbyRefresh();stopGameRefresh();showScreen("messagesScreen","navMessages")}
+let dmUser=null,dmActiveConversation=null,dmActivePartner=null,dmRealtimeChannel=null,dmLoading=false;
+function showMessages(){stopLobbyRefresh();stopGameRefresh();showScreen("messagesScreen","navMessages");loadDmInbox()}
+async function dmGetUser(){const {data:{user},error}=await supabaseClient.auth.getUser();if(error)throw error;if(!user)throw new Error("Please sign in to use Messages.");dmUser=user;return user}
+function dmEl(tag,cls,text){const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el}
+async function loadDmInbox(){
+ const inbox=document.getElementById("dmInbox");inbox.replaceChildren(dmEl("div","dm-empty","Loading your conversations…"));
+ try{
+  const user=await dmGetUser();
+  const {data:convs,error}=await supabaseClient.from("private_conversations").select("id,user_one_auth_user_id,user_two_auth_user_id,updated_at").or("user_one_auth_user_id.eq."+user.id+",user_two_auth_user_id.eq."+user.id);
+  if(error)throw error;
+  if(!convs?.length){inbox.replaceChildren(dmEl("div","dm-empty","No conversations yet. Search for a player above to start one."));return}
+  const ids=convs.map(c=>c.id),others=convs.map(c=>c.user_one_auth_user_id===user.id?c.user_two_auth_user_id:c.user_one_auth_user_id);
+  const [{data:profiles,error:pe},{data:msgs,error:me},{data:unread,error:ue}]=await Promise.all([
+   supabaseClient.from("playam_profiles").select("user_id,display_name,username,avatar_url").in("user_id",others),
+   supabaseClient.from("private_messages").select("id,conversation_id,sender_auth_user_id,body,created_at,read_at").in("conversation_id",ids).order("created_at",{ascending:false}).limit(250),
+   supabaseClient.from("private_messages").select("id,conversation_id").in("conversation_id",ids).neq("sender_auth_user_id",user.id).is("read_at",null)
+  ]);
+  if(pe)throw pe;if(me)throw me;if(ue)throw ue;
+  const prof=new Map((profiles||[]).map(p=>[p.user_id,p])),last=new Map(),counts=new Map();
+  (msgs||[]).forEach(m=>{if(!last.has(m.conversation_id))last.set(m.conversation_id,m)});
+  (unread||[]).forEach(m=>counts.set(m.conversation_id,(counts.get(m.conversation_id)||0)+1));
+  convs.sort((a,b)=>new Date(last.get(b.id)?.created_at||b.updated_at)-new Date(last.get(a.id)?.created_at||a.updated_at));
+  inbox.replaceChildren();
+  convs.forEach(c=>{
+   const other=c.user_one_auth_user_id===user.id?c.user_two_auth_user_id:c.user_one_auth_user_id,p=prof.get(other)||{},m=last.get(c.id);
+   const btn=dmEl("button","dm-person"+(dmActiveConversation===c.id?" active":""));btn.type="button";
+   btn.append(dmEl("span","dm-avatar",(p.display_name||p.username||"P").slice(0,1).toUpperCase()));
+   const meta=dmEl("span","dm-person-meta");meta.append(dmEl("strong","",p.display_name||p.username||"PLAYAM player"),dmEl("small","",m?.body||"Start a conversation"));btn.append(meta);
+   const count=counts.get(c.id)||0;if(count)btn.append(dmEl("span","badge",String(count)));
+   btn.addEventListener("click",()=>openDmConversation(c,other,p));inbox.append(btn);
+  });
+ }catch(e){inbox.replaceChildren(dmEl("div","dm-empty",e.message||"Unable to load inbox."))}
+}
+async function searchDmPlayers(){
+ const out=document.getElementById("dmSearchResults"),term=document.getElementById("dmFindInput").value.trim().replace(/^@/,"").toLowerCase();
+ out.replaceChildren();if(term.length<2){out.append(dmEl("div","dm-empty","Enter at least 2 username characters."));return}
+ try{
+  const user=await dmGetUser();
+  const {data,error}=await supabaseClient.from("playam_profiles").select("user_id,display_name,username,avatar_url").ilike("username","%"+term+"%").neq("user_id",user.id).limit(12);
+  if(error)throw error;if(!data?.length){out.append(dmEl("div","dm-empty","No matching players found."));return}
+  const {data:blocks,error:be}=await supabaseClient.from("player_blocks").select("blocked_auth_user_id").eq("blocker_auth_user_id",user.id);if(be)throw be;
+  const blocked=new Set((blocks||[]).map(x=>x.blocked_auth_user_id));
+  data.filter(p=>!blocked.has(p.user_id)).forEach(p=>{
+   const b=dmEl("button","dm-person");b.type="button";b.append(dmEl("span","dm-avatar",(p.display_name||p.username||"P")[0].toUpperCase()));
+   const meta=dmEl("span","dm-person-meta");meta.append(dmEl("strong","",p.display_name||p.username),dmEl("small","","@"+p.username));b.append(meta);
+   b.addEventListener("click",()=>startDmConversation(p));out.append(b);
+  });
+  if(!out.childNodes.length)out.append(dmEl("div","dm-empty","No available matching players."));
+ }catch(e){out.append(dmEl("div","dm-empty",e.message||"Search failed."))}
+}
+async function startDmConversation(partner){
+ try{
+  const user=await dmGetUser();if(partner.user_id===user.id)throw new Error("You cannot message yourself.");
+  const [one,two]=[user.id,partner.user_id].sort();
+  let {data:conv,error}=await supabaseClient.from("private_conversations").select("id,user_one_auth_user_id,user_two_auth_user_id,updated_at").eq("user_one_auth_user_id",one).eq("user_two_auth_user_id",two).maybeSingle();
+  if(error)throw error;
+  if(!conv){const created=await supabaseClient.from("private_conversations").insert({user_one_auth_user_id:one,user_two_auth_user_id:two}).select("id,user_one_auth_user_id,user_two_auth_user_id,updated_at").single();if(created.error){const retry=await supabaseClient.from("private_conversations").select("id,user_one_auth_user_id,user_two_auth_user_id,updated_at").eq("user_one_auth_user_id",one).eq("user_two_auth_user_id",two).maybeSingle();if(retry.error||!retry.data)throw created.error;conv=retry.data}else conv=created.data}
+  document.getElementById("dmSearchResults").replaceChildren();await openDmConversation(conv,partner.user_id,partner);await loadDmInbox();
+ }catch(e){document.getElementById("dmThreadStatus").textContent=e.message||"Unable to start conversation."}
+}
+async function openDmConversation(conv,other,profile){
+ dmActiveConversation=conv.id;dmActivePartner={id:other,profile};document.getElementById("dmComposeInput").disabled=false;document.getElementById("dmSendButton").disabled=false;
+ const head=document.getElementById("dmThreadHead");head.replaceChildren(dmEl("strong","",profile.display_name||profile.username||"PLAYAM player"),dmEl("div","small muted","@"+(profile.username||"player")));
+ const block=dmEl("button","secondary","BLOCK PLAYER");block.type="button";block.style.marginTop="8px";block.addEventListener("click",blockDmPartner);head.append(block);
+ await loadDmThread();
+ if(dmRealtimeChannel)await supabaseClient.removeChannel(dmRealtimeChannel);
+ dmRealtimeChannel=supabaseClient.channel("playam-dm-"+conv.id).on("postgres_changes",{event:"*",schema:"public",table:"private_messages",filter:"conversation_id=eq."+conv.id},payload=>{if(dmActiveConversation===conv.id)loadDmThread()}).subscribe();
+ document.querySelectorAll(".dm-person").forEach(b=>b.classList.remove("active"));
+}
+async function loadDmThread(){
+ if(!dmActiveConversation||!dmUser)return;
+ const area=document.getElementById("dmThreadMessages");
+ try{
+  const {data,error}=await supabaseClient.from("private_messages").select("id,sender_auth_user_id,body,created_at,read_at").eq("conversation_id",dmActiveConversation).order("created_at",{ascending:true}).limit(250);
+  if(error)throw error;area.replaceChildren();
+  (data||[]).forEach(m=>{
+   const bubble=dmEl("div","dm-bubble"+(m.sender_auth_user_id===dmUser.id?" mine":""));
+   bubble.append(dmEl("div","",m.body||"Attachment"));bubble.append(dmEl("small","",new Date(m.created_at).toLocaleString()+(m.sender_auth_user_id===dmUser.id?(m.read_at?" · Read":" · Sent"):"")));area.append(bubble);
+  });
+  if(!data?.length)area.append(dmEl("div","dm-empty","Say hello and start the conversation."));
+  area.scrollTop=area.scrollHeight;
+  const unread=(data||[]).filter(m=>m.sender_auth_user_id!==dmUser.id&&!m.read_at).map(m=>m.id);
+  if(unread.length){const {error:readError}=await supabaseClient.from("private_messages").update({read_at:new Date().toISOString()}).in("id",unread);if(readError)console.warn("Could not mark messages read",readError)}
+ }catch(e){area.replaceChildren(dmEl("div","dm-empty",e.message||"Unable to load messages."))}
+}
+async function sendDmMessage(event){
+ event.preventDefault();const input=document.getElementById("dmComposeInput"),body=input.value.trim();if(!body||!dmActiveConversation)return;
+ const button=document.getElementById("dmSendButton");button.disabled=true;
+ try{
+  const user=await dmGetUser();const {error}=await supabaseClient.from("private_messages").insert({conversation_id:dmActiveConversation,sender_auth_user_id:user.id,body});
+  if(error)throw error;input.value="";await loadDmThread();await loadDmInbox();document.getElementById("dmThreadStatus").textContent="";
+ }catch(e){document.getElementById("dmThreadStatus").textContent=e.message||"Message could not be sent."}
+ finally{button.disabled=false}
+}
+async function blockDmPartner(){
+ if(!dmActivePartner||!confirm("Block this player? You will no longer be able to access this conversation."))return;
+ try{const user=await dmGetUser();const {error}=await supabaseClient.from("player_blocks").upsert({blocker_auth_user_id:user.id,blocked_auth_user_id:dmActivePartner.id},{onConflict:"blocker_auth_user_id,blocked_auth_user_id"});if(error)throw error;
+ if(dmRealtimeChannel){await supabaseClient.removeChannel(dmRealtimeChannel);dmRealtimeChannel=null}
+ dmActiveConversation=null;dmActivePartner=null;document.getElementById("dmComposeInput").disabled=true;document.getElementById("dmSendButton").disabled=true;document.getElementById("dmThreadHead").replaceChildren(dmEl("strong","","Player blocked"));document.getElementById("dmThreadMessages").replaceChildren(dmEl("div","dm-empty","This conversation is no longer available."));await loadDmInbox();
+ }catch(e){document.getElementById("dmThreadStatus").textContent=e.message||"Unable to block player."}
+}
+document.getElementById("dmFindButton")?.addEventListener("click",searchDmPlayers);
+document.getElementById("dmFindInput")?.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();searchDmPlayers()}});
+document.getElementById("dmComposeForm")?.addEventListener("submit",sendDmMessage);
+const playamCatalogue=[
 function showLiveHub(){stopLobbyRefresh();stopGameRefresh();showScreen("liveScreen","navLive")}
 const playamCatalogue=[
  ["Friendship Court","⚖️","friendship-court",true],["Would You Rather","🤔","would-you-rather",true],["Truth or Dare","🎭","truth-or-dare",true],["Mind Battle","🧠","mind-battle",true],["Secret Confessions","🤫","secret-confessions",true],
