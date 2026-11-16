@@ -40,6 +40,23 @@ for marker in ("FOR UPDATE OF r", "r.code=upper(btrim(coalesce(p_code,'')))", "G
     if marker not in lobby_migration:
         raise SystemExit("FAIL: lobby readiness concurrency protection missing: " + marker)
 
+
+# Verify financial ledger idempotency is safe under concurrent retries.
+FINANCIAL_IDEMPOTENCY_MIGRATION = Path("supabase/migrations/20261116133000_make_financial_entry_idempotency_concurrency_safe.sql")
+if not FINANCIAL_IDEMPOTENCY_MIGRATION.exists():
+    raise SystemExit("FAIL: financial idempotency migration is missing")
+financial_sql = FINANCIAL_IDEMPOTENCY_MIGRATION.read_text(encoding="utf-8")
+for marker in (
+    "ON CONFLICT (idempotency_key) DO NOTHING",
+    "RETURNING id INTO v_id",
+    "Idempotency key already used for a different financial entry",
+    "Verified administrator MFA (aal2) is required",
+    "Finance administrator permission required",
+    "SET search_path=''",
+):
+    if marker.lower() not in financial_sql.lower():
+        raise SystemExit("FAIL: financial idempotency invariant missing: " + marker)
+
 # Verify the readiness lock coordinates with the existing join/start room locks.
 # These function definitions are in the earlier Staging RPC migration.
 GAME_RPC_MIGRATION = Path("supabase/migrations/20261113151913_scope_game_actions_and_enforce_level_eligibility.sql")
