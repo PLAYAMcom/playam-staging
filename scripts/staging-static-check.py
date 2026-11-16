@@ -36,15 +36,16 @@ for link in ('href="game.html"', 'href="admin-playam-staging.html"', 'href="game
 admin_source = ADMIN_APP.read_text(encoding="utf-8")
 if "pwnjrdedeoxbmtfywhkk" not in admin_source or "erjxmesxmmmaxivvmbsi" in admin_source:
     raise SystemExit("FAIL: admin dashboard is not isolated to Staging")
-for marker in ("mfa.verify", "get_playam_admin_overview", "admin_list_player_reports", "admin_review_player_report"):
-    if marker not in admin_source:
-        raise SystemExit("FAIL: admin dashboard is missing a required protected workflow: " + marker)
+for page_name, page_source in (("published admin", admin_source), ("root admin", root_admin_source)):
+    for marker in ("mfa.verify", "get_playam_admin_overview", "admin_list_player_reports", "admin_review_player_report"):
+        if marker not in page_source:
+            raise SystemExit("FAIL: " + page_name + " dashboard is missing a required protected workflow: " + marker)
 flow_source = FLOW_APP.read_text(encoding="utf-8")
 if "pwnjrdedeoxbmtfywhkk" not in flow_source or "erjxmesxmmmaxivvmbsi" in flow_source:
     raise SystemExit("FAIL: Flow interface is not isolated to Staging")
 if re.search(r"service_role|sb_secret_[A-Za-z0-9_-]+|sk_(live|test)_[A-Za-z0-9]+", flow_source, re.I):
     raise SystemExit("FAIL: server-only credential marker found in Flow interface")
-for page_name, page_source in (("game", source), ("admin", admin_source), ("flow", flow_source)):
+for page_name, page_source in (("game", source), ("admin", admin_source), ("root admin", root_admin_source), ("flow", flow_source)):
     if "erjxmesxmmmaxivvmbsi" in page_source:
         raise SystemExit("FAIL: Production project reference found in Staging " + page_name + " page")
     if re.search(r"service_role|sb_secret_[A-Za-z0-9_-]+|sk_(live|test)_[A-Za-z0-9]+", page_source, re.I):
@@ -176,6 +177,7 @@ checked_script_count = 0
 for page_name, page_source in (
     ("game", source),
     ("admin", admin_source),
+    ("root admin", root_admin_source),
     ("Flow", flow_source),
 ):
     parser = InlineScripts()
