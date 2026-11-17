@@ -147,4 +147,27 @@ for index, js in enumerate(parser.scripts, start=1):
         if result.returncode:
             raise SystemExit(f"FAIL: inline JavaScript block {index} has a syntax error:\\n{result.stderr}")
 
-print(f"PASS: Staging-only configuration, {len(required)} required features, room-scoped gameplay calls, and {len(parser.scripts)} inline JavaScript block(s).")
+# Coin checkout source is intentionally committed but not deployed or enabled.
+CHECKOUT = Path("supabase/functions/paystack-coin-checkout/index.ts")
+if not CHECKOUT.exists():
+    raise SystemExit("FAIL: guarded coin checkout source is missing")
+checkout_source = CHECKOUT.read_text(encoding="utf-8")
+for marker in (
+    'PLAYAM_COIN_CHECKOUT_ENABLED',
+    '!== "true"',
+    'auth.getUser(token)',
+    'playam_purchased_coin_packages',
+    'package_amount_minor',
+    'package_coin_amount',
+    'ngn-100-per-coin-v1',
+    'crypto.randomUUID()',
+    'idempotency_key',
+    'https://api.paystack.co/transaction/initialize',
+    'checkout.paystack.com',
+):
+    if marker not in checkout_source:
+        raise SystemExit("FAIL: guarded coin checkout is missing required safeguard: " + marker)
+if re.search(r"service_role|sb_secret_[A-Za-z0-9_-]+|sk_(live|test)_[A-Za-z0-9]+", checkout_source, re.I):
+    raise SystemExit("FAIL: server credential marker found in checkout source")
+
+print(f"PASS: Staging-only configuration, {len(required)} required features, room-scoped gameplay calls, {len(parser.scripts)} inline JavaScript block(s), and guarded coin checkout source.")
