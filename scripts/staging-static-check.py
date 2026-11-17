@@ -86,6 +86,17 @@ for marker in (
     if marker not in source:
         raise SystemExit("FAIL: creator payout bank setup is missing required flow: " + marker)
 
+# Creator withdrawals require a visible fee quote and explicit confirmation.
+for marker in (
+    "withdrawalFeeConsent",
+    "confirmCreatorWithdrawalQuote",
+    "playam_confirm_creator_withdrawal_fee_quote_v1",
+    "WITHDRAWAL BLOCKED",
+    "administrator review",
+):
+    if marker not in source:
+        raise SystemExit("FAIL: creator withdrawal confirmation is missing required flow: " + marker)
+
 if re.search(r"service_role|sb_secret_[A-Za-z0-9_-]+", source, re.I):
     raise SystemExit("FAIL: server-only Supabase credential marker found in browser app")
 
