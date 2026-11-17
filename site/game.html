@@ -483,6 +483,16 @@ input,select,textarea{font-size:16px;max-width:100%}
  <button class="secondary" style="width:100%;margin-top:8px" onclick="signIn()">LOG IN TO EXISTING ACCOUNT</button>
  <p class="small">Only email and password are required.</p>
  <div id="authMessage" role="status" aria-live="polite"></div>
+ <button class="secondary" type="button" style="width:100%;margin-top:8px" onclick="sendPasswordReset()">FORGOT PASSWORD?</button>
+ <section id="passwordRecovery" class="hidden" aria-live="polite" style="margin-top:14px">
+  <h3>Reset your password</h3>
+  <p class="small">Enter a new password after opening the secure reset link sent to your email.</p>
+  <input id="newPassword" type="password" autocomplete="new-password" placeholder="New password">
+  <input id="confirmNewPassword" type="password" autocomplete="new-password" placeholder="Confirm new password">
+  <button class="primary" type="button" style="width:100%" onclick="saveNewPassword()">SAVE NEW PASSWORD</button>
+  <button class="secondary" type="button" style="width:100%;margin-top:8px" onclick="cancelPasswordRecovery()">BACK TO LOGIN</button>
+  <div id="passwordRecoveryMessage" role="status" aria-live="polite"></div>
+ </section>
 </div>
 
 <div id="app" class="hidden">
@@ -1692,6 +1702,46 @@ async function signIn(){
   showAuthMessage(error?.message||"We could not log you in. Check your connection and try again.");
  }
 }
+async function sendPasswordReset(){
+ const email=document.getElementById("email").value.trim();
+ if(!email){showAuthMessage("Enter your email address first, then choose Forgot password.");return}
+ showAuthMessage("Sending a secure password reset link...");
+ try{
+  const redirectTo=window.location.origin+window.location.pathname;
+  const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo});
+  if(error)throw error;
+  showAuthMessage("If an account exists for that email, a password reset link has been sent. Check your inbox and spam folder.");
+ }catch(error){
+  showAuthMessage(error?.message||"We could not send the reset link. Please try again.");
+ }
+}
+async function saveNewPassword(){
+ const password=document.getElementById("newPassword").value;
+ const confirm=document.getElementById("confirmNewPassword").value;
+ const status=document.getElementById("passwordRecoveryMessage");
+ if(password.length<8){status.textContent="Use a password with at least 8 characters.";return}
+ if(password!==confirm){status.textContent="The passwords do not match.";return}
+ status.textContent="Updating your password...";
+ try{
+  const {error}=await supabaseClient.auth.updateUser({password});
+  if(error)throw error;
+  status.textContent="Your password has been updated. You can now return to login.";
+  document.getElementById("newPassword").value="";
+  document.getElementById("confirmNewPassword").value="";
+ }catch(error){status.textContent=error?.message||"Password update failed. Request a new reset link and try again."}
+}
+function cancelPasswordRecovery(){
+ document.getElementById("passwordRecovery").classList.add("hidden");
+ document.getElementById("passwordRecoveryMessage").textContent="";
+}
+supabaseClient.auth.onAuthStateChange((event)=>{
+ if(event==="PASSWORD_RECOVERY"){
+  document.getElementById("passwordRecovery").classList.remove("hidden");
+  document.getElementById("passwordRecoveryMessage").textContent="Choose a new password for your account.";
+  document.getElementById("authScreen").classList.remove("hidden");
+  document.getElementById("app").classList.add("hidden");
+ }
+});
 function resetDmSession(){
  if(dmRealtimeRetryTimer){clearTimeout(dmRealtimeRetryTimer);dmRealtimeRetryTimer=null}
  if(dmRealtimeChannel){supabaseClient.removeChannel(dmRealtimeChannel);dmRealtimeChannel=null}
