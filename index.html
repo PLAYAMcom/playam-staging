@@ -480,6 +480,10 @@ input,select,textarea{font-size:16px;max-width:100%}
 .payout-destination-list{display:grid;gap:9px;margin-top:10px}
 .payout-fee-estimator{display:grid;gap:9px;margin-top:14px;background:#211b31}
 .payout-fee-estimator h4{margin:0;color:#edc6ff}
+.withdrawal-confirm-label{display:flex;align-items:flex-start;gap:9px;font-size:13px;line-height:1.5;color:#e6dff0}
+.withdrawal-confirm-label input{width:18px;height:18px;flex:0 0 18px;margin-top:1px;accent-color:#a66be8}
+#withdrawalConfirmButton:disabled{opacity:.48;cursor:not-allowed}
+
 .payout-fee-estimator label{font-size:13px;color:#c9bdd8;font-weight:700}
 #withdrawalFeePreview{white-space:pre-line;line-height:1.6;padding:10px;border-radius:9px;background:#171525}
 
@@ -686,6 +690,9 @@ input,select,textarea{font-size:16px;max-width:100%}
      <input id="withdrawalGrossAmount" type="number" min="60" step="0.01" inputmode="decimal" placeholder="e.g. 5000.00">
      <button id="withdrawalFeePreviewButton" class="secondary" type="button" onclick="previewCreatorWithdrawalFee()">CALCULATE FEE AND NET AMOUNT</button>
      <div id="withdrawalFeePreview" class="small muted" role="status" aria-live="polite">No estimate calculated.</div>
+     <label class="withdrawal-confirm-label"><input id="withdrawalFeeConsent" type="checkbox" disabled> I have reviewed the exact amount, transfer fee and bank payment above, and I authorise PLAYAM to reserve this amount from my available creator earnings for administrator review.</label>
+     <button id="withdrawalConfirmButton" class="primary" type="button" onclick="confirmCreatorWithdrawalQuote()" disabled>CONFIRM AND SUBMIT WITHDRAWAL REQUEST</button>
+     <p id="withdrawalConfirmStatus" class="small muted" role="status" aria-live="polite">A fee estimate must be calculated before you can confirm.</p>
     </section>
     <p class="small muted">A new or changed bank account has a 24-hour security waiting period. Saving a bank account does not request or initiate a withdrawal. Creator payouts remain disabled in Staging.</p>
    </section>
@@ -1507,13 +1514,24 @@ async function loadPayoutDestinations(){
   });
  }catch(error){status.textContent="Could not load payout bank details: "+(error.message||"Please try again.")}
 }
+let currentCreatorWithdrawalQuote=null;
+function resetCreatorWithdrawalConfirmation(message="Calculate a new fee estimate before confirming."){
+ currentCreatorWithdrawalQuote=null;
+ const consent=document.getElementById("withdrawalFeeConsent");
+ const confirm=document.getElementById("withdrawalConfirmButton");
+ const status=document.getElementById("withdrawalConfirmStatus");
+ if(consent){consent.checked=false;consent.disabled=true}
+ if(confirm)confirm.disabled=true;
+ if(status)status.textContent=message;
+}
 async function previewCreatorWithdrawalFee(){
  const button=document.getElementById("withdrawalFeePreviewButton");
  const output=document.getElementById("withdrawalFeePreview");
  const destinationId=document.getElementById("withdrawalDestinationSelect")?.value;
  const rawAmount=document.getElementById("withdrawalGrossAmount")?.value.trim();
+ resetCreatorWithdrawalConfirmation();
  if(!destinationId){output.textContent="Activate a verified bank account after its 24-hour waiting period before requesting a fee estimate.";return}
- if(!rawAmount||!/^\d+(\.\d{1,2})?$/.test(rawAmount)||!Number.isFinite(Number(rawAmount))||Number(rawAmount)<=0){
+ if(!rawAmount||!/^[0-9]+(\\.[0-9]{1,2})?$/.test(rawAmount)||!Number.isFinite(Number(rawAmount))||Number(rawAmount)<=0){
   output.textContent="Enter a valid NGN amount with no more than two decimal places.";return
  }
  const grossMinor=Math.round(Number(rawAmount)*100);
@@ -1526,7 +1544,8 @@ async function previewCreatorWithdrawalFee(){
   });
   if(error)throw error;
   const quote=Array.isArray(data)?data[0]:data;
-  if(!quote)throw new Error("No fee estimate was returned.");
+  if(!quote||!quote.quote_id)throw new Error("No valid fee estimate was returned.");
+  currentCreatorWithdrawalQuote=quote;
   const money=value=>"₦"+(Number(value||0)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
   const lines=[
    "Gross withdrawal: "+money(quote.gross_amount_minor),
@@ -1534,18 +1553,70 @@ async function previewCreatorWithdrawalFee(){
    "Expected amount sent to your bank: "+money(quote.net_transfer_minor),
    "Separate stamp duty: "+money(quote.stamp_duty_minor)
   ];
-  if(quote.stamp_duty_applies&&quote.stamp_duty_payer==="pending_policy"){
-   lines.push("Important: this estimate is not eligible for withdrawal yet. PLAYAM must first confirm who bears the separate stamp duty.");
+  const blocked=quote.stamp_duty_applies&&quote.stamp_duty_payer==="pending_policy";
+  if(blocked){
+   lines.push("WITHDRAWAL BLOCKED: PLAYAM must confirm who bears the separate stamp duty before this amount can be submitted.");
   }else if(!quote.stamp_duty_applies){
    lines.push("No stamp duty applies under the current Staging quote rules.");
   }else{
    lines.push("Stamp-duty payer: "+String(quote.stamp_duty_payer));
   }
   if(quote.expires_at)lines.push("Estimate expires: "+new Date(quote.expires_at).toLocaleString());
-  lines.push("Preview only — no money has been reserved and no withdrawal has been submitted.");
-  output.textContent=lines.join("\n");
- }catch(error){output.textContent=error.message||"Could not calculate the withdrawal fee."}
- finally{button.disabled=false;button.textContent="CALCULATE FEE AND NET AMOUNT"}
+  lines.push(blocked?"This is an estimate only. Submission is unavailable until the stamp-duty policy is resolved.":"Review the amounts, then tick the confirmation box to enable submission. Confirmation reserves the gross amount and sends the request for administrator review; it does not initiate a bank transfer.");
+  output.textContent=lines.join("\\n");
+  const consent=document.getElementById("withdrawalFeeConsent");
+  const confirm=document.getElementById("withdrawalConfirmButton");
+  if(consent){consent.checked=false;consent.disabled=blocked}
+  if(confirm)confirm.disabled=true;
+  const status=document.getElementById("withdrawalConfirmStatus");
+  if(status)status.textContent=blocked?"Submission is blocked by the unresolved stamp-duty policy.": "Please review and explicitly confirm the fee quote.";
+ }catch(error){
+  currentCreatorWithdrawalQuote=null;
+  output.textContent=error.message||"Could not calculate the withdrawal fee.";
+ }finally{button.disabled=false;button.textContent="CALCULATE FEE AND NET AMOUNT"}
+}
+document.addEventListener("change",event=>{
+ if(event.target?.id==="withdrawalFeeConsent"){
+  const confirm=document.getElementById("withdrawalConfirmButton");
+  if(confirm)confirm.disabled=!event.target.checked||!currentCreatorWithdrawalQuote;
+ }
+ if(["withdrawalDestinationSelect","withdrawalGrossAmount"].includes(event.target?.id)){
+  resetCreatorWithdrawalConfirmation("The amount or bank account changed. Calculate a fresh quote before confirming.");
+ }
+});
+async function confirmCreatorWithdrawalQuote(){
+ const quote=currentCreatorWithdrawalQuote;
+ const consent=document.getElementById("withdrawalFeeConsent");
+ const button=document.getElementById("withdrawalConfirmButton");
+ const status=document.getElementById("withdrawalConfirmStatus");
+ if(!quote?.quote_id||!consent?.checked){if(status)status.textContent="Review the quote and tick the confirmation box first.";return}
+ if(!quote.expires_at||new Date(quote.expires_at).getTime()<=Date.now()){
+  resetCreatorWithdrawalConfirmation("This fee estimate has expired. Calculate a new estimate.");
+  return;
+ }
+ if(quote.stamp_duty_applies&&quote.stamp_duty_payer==="pending_policy"){
+  resetCreatorWithdrawalConfirmation("This withdrawal cannot be submitted until the stamp-duty policy is resolved.");
+  return;
+ }
+ button.disabled=true;button.textContent="SUBMITTING…";
+ if(status)status.textContent="Submitting your confirmed withdrawal request securely…";
+ try{
+  const {data,error}=await supabaseClient.rpc("playam_confirm_creator_withdrawal_fee_quote_v1",{
+   p_quote_id:quote.quote_id,p_idempotency_key:"creator-withdrawal-"+crypto.randomUUID()
+  });
+  if(error)throw error;
+  const requestId=data;
+  currentCreatorWithdrawalQuote=null;
+  consent.checked=false;consent.disabled=true;
+  document.getElementById("withdrawalFeePreview").textContent="Your confirmed withdrawal request has been recorded. The gross amount has been reserved, and the request is awaiting administrator review. No bank transfer has been initiated.";
+  if(status)status.textContent="Request reference: "+String(requestId);
+  button.textContent="REQUEST SUBMITTED";
+  await loadPayoutDestinations();
+ }catch(error){
+  if(status)status.textContent=error.message||"The request could not be submitted. Your balance has not been reserved unless the server confirms success.";
+  button.textContent="CONFIRM AND SUBMIT WITHDRAWAL REQUEST";
+  button.disabled=!consent.checked;
+ }
 }
 async function loadHomeNotificationBadge(){
  const dot=document.getElementById("homeNotificationDot"),count=document.getElementById("homeNotificationCount");
