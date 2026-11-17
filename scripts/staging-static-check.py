@@ -164,6 +164,9 @@ for marker in (
     'idempotency_key',
     'https://api.paystack.co/transaction/initialize',
     'checkout.paystack.com',
+    'PAYSTACK_ENVIRONMENT',
+    '!== "test"',
+    'startsWith("sk_test_")',
 ):
     if marker not in checkout_source:
         raise SystemExit("FAIL: guarded coin checkout is missing required safeguard: " + marker)
