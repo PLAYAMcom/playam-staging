@@ -147,7 +147,21 @@ for index, js in enumerate(parser.scripts, start=1):
         if result.returncode:
             raise SystemExit(f"FAIL: inline JavaScript block {index} has a syntax error:\\n{result.stderr}")
 
-# Coin checkout source is intentionally committed but not deployed or enabled.
+# Coin checkout UI must remain wired to the guarded, test-only backend.
+for marker in (
+    "CONTINUE TO PAYSTACK",
+    "startPlayamCoinCheckout",
+    "paystack-coin-checkout",
+    "handleCoinPaymentReturn",
+    "playam_payment_transactions",
+    "coinPaymentStatus",
+    "No coins are credited until",
+):
+    if marker not in source:
+        raise SystemExit("FAIL: PLAYAM coin checkout wallet integration is incomplete: " + marker)
+
+# Coin checkout backend is deployed but must remain disabled and test-mode-only.
+
 CHECKOUT = Path("supabase/functions/paystack-coin-checkout/index.ts")
 if not CHECKOUT.exists():
     raise SystemExit("FAIL: guarded coin checkout source is missing")
@@ -167,6 +181,11 @@ for marker in (
     'PAYSTACK_ENVIRONMENT',
     '!== "test"',
     'startsWith("sk_test_")',
+    'https://playamcom.github.io',
+    'callback.protocol !== "https:"',
+    'checkout_state: "initializing"',
+    'auth.getUser(token)',
+    '.eq("auth_user_id", user.id)',
 ):
     if marker not in checkout_source:
         raise SystemExit("FAIL: guarded coin checkout is missing required safeguard: " + marker)
