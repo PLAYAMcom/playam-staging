@@ -2198,7 +2198,7 @@ function showSoloSetup(){stopLobbyRefresh();stopGameRefresh();resetSoloGame();sh
 function resetSoloGame(){soloQuestions=[];soloAnswers=[];soloQuestionIndex=0;soloLoading=false;const a=document.getElementById("soloAnswerInput");if(a)a.value=""}
 async function startSoloGame(){
  if(soloLoading)return;soloLoading=true;soloDifficulty=document.getElementById("soloDifficulty").value;showMessage("Preparing your Solo questions...");
- const {data,error}=await supabaseClient.from("questions").select("id,text,question_type").eq("game_key","friendship-court").eq("difficulty_key",soloDifficulty).eq("active",true).eq("question_type","open");
+ const {data,error}=await supabaseClient.rpc("playam_get_solo_questions_v1",{p_difficulty_key:soloDifficulty});
  soloLoading=false;
  if(error){showMessage("Unable to load Solo questions: "+error.message);return}
  if(!data||data.length<10){showMessage("Not enough active open-ended questions for this difficulty. At least 10 are needed.");return}
