@@ -498,6 +498,12 @@ input,select,textarea{font-size:16px;max-width:100%}
 .payout-destination-card strong{color:#f1d6ff}
 .payout-destination-card button{margin-top:4px}
 @media(max-width:520px){.payout-destination-panel{padding:12px}.payout-destination-card button{width:100%}}
+
+/* PLAYAM sponsored placement — reserved, Staging only */
+.playam-ad-slot{width:100%;max-width:100%;min-height:72px;margin:12px 0 14px;padding:10px 12px;border:1px solid #39304f;border-radius:14px;background:linear-gradient(110deg,#171426,#201a31);color:#d9d1e8;overflow:hidden}
+.playam-ad-slot .playam-ad-label{display:block;margin-bottom:5px;color:#bca2df;font-size:9px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}
+.playam-ad-slot .playam-ad-copy{font-size:12px;line-height:1.4}
+.playam-ad-slot.hidden{display:none!important}
 </style>
 </head>
 <body>
@@ -612,6 +618,7 @@ input,select,textarea{font-size:16px;max-width:100%}
   <section id="gamesScreen" class="hidden">
    <div class="hero"><h2>🎮 The PLAYAM Game Universe</h2><p>Choose a challenge and play with friends. Games in development are labelled clearly.</p></div>
    <h3 class="section-title">All 25 games</h3><div id="playamCatalogueGrid" class="catalogue-grid"></div>
+   <aside id="playamGamesAdSlot" class="playam-ad-slot hidden" data-playam-ad-slot="games-below" aria-label="Sponsored placement"><span class="playam-ad-label">Sponsored</span><div class="playam-ad-copy"></div></aside>
   </section>
 
   <section id="messagesScreen" class="screen-card hidden">
