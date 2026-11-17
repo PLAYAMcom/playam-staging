@@ -148,6 +148,10 @@ for index, js in enumerate(parser.scripts, start=1):
             raise SystemExit(f"FAIL: inline JavaScript block {index} has a syntax error:\\n{result.stderr}")
 
 # Failed coin payments are only marked failed after Paystack API verification.
+webhook_path = Path("supabase/functions/paystack-webhook/index.ts")
+if not webhook_path.exists():
+    raise SystemExit("FAIL: Paystack webhook source snapshot is missing")
+webhook_source = webhook_path.read_text(encoding="utf-8")
 for marker in ('charge.failed', 'verified_failed', 'coin_payment_failed'):
     if marker not in webhook_source:
         raise SystemExit("FAIL: Paystack coin webhook failure handling is incomplete: " + marker)
