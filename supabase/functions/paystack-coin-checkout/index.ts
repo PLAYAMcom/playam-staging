@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const allowedOrigins = new Set(["https://playamcom.github.io", "https://playam-mobile-staging.vercel.app"]);
+const allowedOrigins = new Set(["https://playamcom.github.io", "https://playam-mobile-staging-playam1.vercel.app"]);
 
 function headers(origin: string | null) {
   const allowed = origin && allowedOrigins.has(origin) ? origin : "";
@@ -63,8 +63,8 @@ Deno.serve(async (req: Request) => {
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const paystackKey = Deno.env.get("PAYSTACK_SECRET_KEY");
-  const callbackUrl = origin === "https://playam-mobile-staging.vercel.app"
-    ? "https://playam-mobile-staging.vercel.app/"
+  const callbackUrl = origin === "https://playam-mobile-staging-playam1.vercel.app"
+    ? "https://playam-mobile-staging-playam1.vercel.app/"
     : Deno.env.get("PLAYAM_COIN_CHECKOUT_CALLBACK_URL");
   if (!url || !anonKey || !serviceKey || !paystackKey || !callbackUrl) {
     return reply({ error: "Coin checkout is not configured for this environment" }, 503, origin);
