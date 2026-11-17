@@ -26,7 +26,7 @@ Set these in the Staging Supabase project's Edge Function secrets:
 
 The standard Supabase Edge Function environment must also provide `SUPABASE_URL`, `SUPABASE_ANON_KEY` (or `SUPABASE_PUBLISHABLE_KEY`), and `SUPABASE_SERVICE_ROLE_KEY`. These are supplied by the Supabase runtime; never copy the service-role key into browser code.
 
-The checkout function allows only these exact browser origins: `https://playamcom.github.io` and `https://playam-mobile-staging.vercel.app`. The Vercel mobile app is returned to `https://playam-mobile-staging.vercel.app/`; the GitHub Pages app uses the callback URL above. Preview deployment URLs and arbitrary origins are not allowed. The Vercel callback is selected server-side from the validated request origin; the browser cannot choose a callback URL.\n\nThe webhook uses the same Staging `PAYSTACK_SECRET_KEY`. Configure the Paystack dashboard webhook URL to the Staging `paystack-webhook` Edge Function URL. Keep the webhook secret and dashboard access private.
+The checkout function allows only these exact browser origins: `https://playamcom.github.io` and `https://playam-mobile-staging-playam1.vercel.app`. The Vercel mobile app is returned to `https://playam-mobile-staging-playam1.vercel.app/`; the GitHub Pages app uses the callback URL above. Preview deployment URLs and arbitrary origins are not allowed. The Vercel callback is selected server-side from the validated request origin; the browser cannot choose a callback URL.\n\nThe webhook uses the same Staging `PAYSTACK_SECRET_KEY`. Configure the Paystack dashboard webhook URL to the Staging `paystack-webhook` Edge Function URL. Keep the webhook secret and dashboard access private.
 
 ## Before enabling a test purchase
 
