@@ -478,6 +478,11 @@ input,select,textarea{font-size:16px;max-width:100%}
 .payout-confirm-label{display:flex;align-items:center;gap:8px;margin:12px 0;font-size:13px}
 .payout-confirm-label input{width:auto;margin:0}
 .payout-destination-list{display:grid;gap:9px;margin-top:10px}
+.payout-fee-estimator{display:grid;gap:9px;margin-top:14px;background:#211b31}
+.payout-fee-estimator h4{margin:0;color:#edc6ff}
+.payout-fee-estimator label{font-size:13px;color:#c9bdd8;font-weight:700}
+#withdrawalFeePreview{white-space:pre-line;line-height:1.6;padding:10px;border-radius:9px;background:#171525}
+
 .payout-destination-card{display:grid;gap:7px}
 .payout-destination-card strong{color:#f1d6ff}
 .payout-destination-card button{margin-top:4px}
@@ -672,6 +677,16 @@ input,select,textarea{font-size:16px;max-width:100%}
     </div>
     <div id="payoutDestinationStatus" class="small muted" role="status" aria-live="polite">No payout bank account loaded.</div>
     <div id="payoutDestinationList" class="payout-destination-list"></div>
+    <section class="payout-preview payout-fee-estimator" aria-labelledby="payoutFeeHeading">
+     <h4 id="payoutFeeHeading">Estimate a creator withdrawal</h4>
+     <p class="small muted">Preview the provider fee and expected net amount using your active verified bank account. This preview does not reserve funds or submit a withdrawal.</p>
+     <label for="withdrawalDestinationSelect">Active verified payout account</label>
+     <select id="withdrawalDestinationSelect"><option value="">No active verified account</option></select>
+     <label for="withdrawalGrossAmount">Amount to withdraw (NGN)</label>
+     <input id="withdrawalGrossAmount" type="number" min="60" step="0.01" inputmode="decimal" placeholder="e.g. 5000.00">
+     <button id="withdrawalFeePreviewButton" class="secondary" type="button" onclick="previewCreatorWithdrawalFee()">CALCULATE FEE AND NET AMOUNT</button>
+     <div id="withdrawalFeePreview" class="small muted" role="status" aria-live="polite">No estimate calculated.</div>
+    </section>
     <p class="small muted">A new or changed bank account has a 24-hour security waiting period. Saving a bank account does not request or initiate a withdrawal. Creator payouts remain disabled in Staging.</p>
    </section>
    <button class="back" onclick="showProfile()">← BACK TO PROFILE</button>
@@ -1453,8 +1468,10 @@ async function savePayoutBankAccount(){
 }
 async function loadPayoutDestinations(){
  const list=document.getElementById("payoutDestinationList"),status=document.getElementById("payoutDestinationStatus");
+ const withdrawalSelect=document.getElementById("withdrawalDestinationSelect");
  if(!list||!status)return;
  list.replaceChildren();
+ if(withdrawalSelect)withdrawalSelect.innerHTML="<option value=\"\">No active verified account</option>";
  try{
   const {data,error}=await supabaseClient.rpc("playam_get_my_payout_destinations_v1");
   if(error)throw error;
@@ -1462,6 +1479,11 @@ async function loadPayoutDestinations(){
   if(!destinations.length){status.textContent="No saved payout bank account yet.";return}
   status.textContent="Your saved payout bank account(s):";
   destinations.forEach(destination=>{
+   if(withdrawalSelect&&destination.active&&destination.verified){
+    const option=document.createElement("option");option.value=destination.destination_id;
+    option.textContent=(destination.bank_name||"Bank")+" · "+(destination.masked_account_number||"****");
+    withdrawalSelect.appendChild(option);
+   }
    const card=document.createElement("article");card.className="payout-destination-card";
    const name=document.createElement("strong");name.textContent=destination.account_name||"Verified bank account";
    const bank=document.createElement("div");bank.textContent=(destination.bank_name||"Nigerian bank")+" · "+(destination.masked_account_number||"Account ending ****");
@@ -1484,6 +1506,46 @@ async function loadPayoutDestinations(){
    list.appendChild(card);
   });
  }catch(error){status.textContent="Could not load payout bank details: "+(error.message||"Please try again.")}
+}
+async function previewCreatorWithdrawalFee(){
+ const button=document.getElementById("withdrawalFeePreviewButton");
+ const output=document.getElementById("withdrawalFeePreview");
+ const destinationId=document.getElementById("withdrawalDestinationSelect")?.value;
+ const rawAmount=document.getElementById("withdrawalGrossAmount")?.value.trim();
+ if(!destinationId){output.textContent="Activate a verified bank account after its 24-hour waiting period before requesting a fee estimate.";return}
+ if(!rawAmount||!/^\d+(\.\d{1,2})?$/.test(rawAmount)||!Number.isFinite(Number(rawAmount))||Number(rawAmount)<=0){
+  output.textContent="Enter a valid NGN amount with no more than two decimal places.";return
+ }
+ const grossMinor=Math.round(Number(rawAmount)*100);
+ if(!Number.isSafeInteger(grossMinor)){output.textContent="Enter a smaller withdrawal amount.";return}
+ button.disabled=true;button.textContent="CALCULATING…";output.textContent="Calculating the fee using the current Staging fee policy…";
+ try{
+  const {data,error}=await supabaseClient.rpc("playam_create_creator_withdrawal_fee_quote_v1",{
+   p_gross_amount_minor:grossMinor,p_destination_id:destinationId,
+   p_idempotency_key:"fee-preview-"+crypto.randomUUID()
+  });
+  if(error)throw error;
+  const quote=Array.isArray(data)?data[0]:data;
+  if(!quote)throw new Error("No fee estimate was returned.");
+  const money=value=>"₦"+(Number(value||0)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const lines=[
+   "Gross withdrawal: "+money(quote.gross_amount_minor),
+   "Estimated Paystack transfer fee: "+money(quote.creator_fee_quoted_minor),
+   "Expected amount sent to your bank: "+money(quote.net_transfer_minor),
+   "Separate stamp duty: "+money(quote.stamp_duty_minor)
+  ];
+  if(quote.stamp_duty_applies&&quote.stamp_duty_payer==="pending_policy"){
+   lines.push("Important: this estimate is not eligible for withdrawal yet. PLAYAM must first confirm who bears the separate stamp duty.");
+  }else if(!quote.stamp_duty_applies){
+   lines.push("No stamp duty applies under the current Staging quote rules.");
+  }else{
+   lines.push("Stamp-duty payer: "+String(quote.stamp_duty_payer));
+  }
+  if(quote.expires_at)lines.push("Estimate expires: "+new Date(quote.expires_at).toLocaleString());
+  lines.push("Preview only — no money has been reserved and no withdrawal has been submitted.");
+  output.textContent=lines.join("\n");
+ }catch(error){output.textContent=error.message||"Could not calculate the withdrawal fee."}
+ finally{button.disabled=false;button.textContent="CALCULATE FEE AND NET AMOUNT"}
 }
 async function loadHomeNotificationBadge(){
  const dot=document.getElementById("homeNotificationDot"),count=document.getElementById("homeNotificationCount");
