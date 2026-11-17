@@ -1553,16 +1553,17 @@ async function previewCreatorWithdrawalFee(){
    "Expected amount sent to your bank: "+money(quote.net_transfer_minor),
    "Separate stamp duty: "+money(quote.stamp_duty_minor)
   ];
-  const blocked=quote.stamp_duty_applies&&quote.stamp_duty_payer==="pending_policy";
+  const blocked=quote.stamp_duty_applies&&quote.stamp_duty_payer!=="playam";
   if(blocked){
-   lines.push("WITHDRAWAL BLOCKED: PLAYAM must confirm who bears the separate stamp duty before this amount can be submitted.");
+   lines.push("WITHDRAWAL BLOCKED: stamp-duty payer policy is not configured correctly. Please contact PLAYAM support.");
   }else if(!quote.stamp_duty_applies){
-   lines.push("No stamp duty applies under the current Staging quote rules.");
+   lines.push("No stamp duty applies to this transfer.");
   }else{
-   lines.push("Stamp-duty payer: "+String(quote.stamp_duty_payer));
+   lines.push("Stamp-duty payer: PLAYAM (absorbed as a platform expense; not deducted from your earnings).");
   }
+  lines.push("You pay only the disclosed Paystack transfer charge. PLAYAM pays any applicable ₦50 government stamp duty separately.");
   if(quote.expires_at)lines.push("Estimate expires: "+new Date(quote.expires_at).toLocaleString());
-  lines.push(blocked?"This is an estimate only. Submission is unavailable until the stamp-duty policy is resolved.":"Review the amounts, then tick the confirmation box to enable submission. Confirmation reserves the gross amount and sends the request for administrator review; it does not initiate a bank transfer.");
+  lines.push(blocked?"This is an estimate only. Submission is unavailable until the fee policy is corrected.":"Review the amounts, then tick the confirmation box to enable submission. Confirmation reserves the gross amount and sends the request for administrator review; it does not initiate a bank transfer.");
   output.textContent=lines.join("\\n");
   const consent=document.getElementById("withdrawalFeeConsent");
   const confirm=document.getElementById("withdrawalConfirmButton");
