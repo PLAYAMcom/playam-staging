@@ -121,6 +121,9 @@ Deno.serve(async (req: Request) => {
     if (existing.status === "successful") {
       return reply({ error: "This payment has already been completed", payment_id: existing.id }, 409, origin);
     }
+    if (["failed", "cancelled", "refunded"].includes(existing.status)) {
+      return reply({ error: "This payment is no longer active. Start a new checkout request.", payment_id: existing.id }, 409, origin);
+    }
     if (typeof existing.metadata?.authorization_url === "string") {
       return reply({
         ok: true, reused: true, payment_id: existing.id,
