@@ -167,7 +167,7 @@ for marker in (
 ):
     if marker not in checkout_source:
         raise SystemExit("FAIL: guarded coin checkout is missing required safeguard: " + marker)
-if re.search(r"service_role|sb_secret_[A-Za-z0-9_-]+|sk_(live|test)_[A-Za-z0-9]+", checkout_source, re.I):
+if re.search(r"sb_secret_[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_-]{20,}\\.[A-Za-z0-9_-]{20,}\\.[A-Za-z0-9_-]{20,}|sk_(live|test)_[A-Za-z0-9]+", checkout_source, re.I):
     raise SystemExit("FAIL: server credential marker found in checkout source")
 
 print(f"PASS: Staging-only configuration, {len(required)} required features, room-scoped gameplay calls, {len(parser.scripts)} inline JavaScript block(s), and guarded coin checkout source.")
