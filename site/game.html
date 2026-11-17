@@ -469,6 +469,19 @@ input,select,textarea{font-size:16px;max-width:100%}
 #dmThreadHead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #dmThreadHead .dm-person-meta{flex:1;min-width:100px}
 
+.payout-destination-panel{margin-top:18px;background:linear-gradient(145deg,#211a32,#171525);border:1px solid #49365e;border-radius:15px;padding:15px}
+.payout-destination-panel h3{margin-top:0}
+.payout-bank-fields{display:grid;grid-template-columns:1fr;gap:4px;margin:12px 0}
+.payout-bank-fields label{font-size:13px;color:#c9bdd8;font-weight:700}
+.payout-preview,.payout-destination-card{margin-top:12px;padding:13px;border:1px solid #59416e;border-radius:12px;background:#191629}
+.payout-preview>strong{display:block;color:#edc6ff;font-size:18px;margin:7px 0}
+.payout-confirm-label{display:flex;align-items:center;gap:8px;margin:12px 0;font-size:13px}
+.payout-confirm-label input{width:auto;margin:0}
+.payout-destination-list{display:grid;gap:9px;margin-top:10px}
+.payout-destination-card{display:grid;gap:7px}
+.payout-destination-card strong{color:#f1d6ff}
+.payout-destination-card button{margin-top:4px}
+@media(max-width:520px){.payout-destination-panel{padding:12px}.payout-destination-card button{width:100%}}
 </style>
 </head>
 <body>
@@ -640,6 +653,27 @@ input,select,textarea{font-size:16px;max-width:100%}
     <article class="wallet-ledger"><div>💵 Creator cash earnings</div><strong id="walletCreatorBalance">—</strong><small class="muted">Separate cash ledger, subject to eligibility and approved withdrawal.</small></article>
    </div>
    <p id="walletStatus" class="small muted" role="status" aria-live="polite">Loading your separate wallet ledgers…</p>
+   <section id="payoutDestinationPanel" class="small-card payout-destination-panel" aria-labelledby="payoutDestinationHeading">
+    <h3 id="payoutDestinationHeading">🏦 Creator payout bank account</h3>
+    <p class="muted small">Verify a Nigerian bank account for future creator payouts. Your full account number is sent securely to Paystack for verification and is not stored by PLAYAM.</p>
+    <div class="payout-bank-fields">
+     <label for="payoutBankSelect">Bank</label>
+     <select id="payoutBankSelect"><option value="">Loading supported banks…</option></select>
+     <label for="payoutAccountNumber">10-digit account number</label>
+     <input id="payoutAccountNumber" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="Enter account number">
+    </div>
+    <button id="payoutResolveButton" class="secondary" type="button" onclick="resolvePayoutBankAccount()">VERIFY ACCOUNT NAME</button>
+    <div id="payoutResolvedPreview" class="payout-preview hidden" aria-live="polite">
+     <p>Paystack verified this account:</p>
+     <strong id="payoutResolvedName"></strong>
+     <div id="payoutResolvedBank" class="small muted"></div>
+     <label class="payout-confirm-label"><input id="payoutConfirmDetails" type="checkbox"> I confirm this is my correct bank account.</label>
+     <button id="payoutSaveButton" class="primary" type="button" onclick="savePayoutBankAccount()">CONFIRM AND SAVE BANK ACCOUNT</button>
+    </div>
+    <div id="payoutDestinationStatus" class="small muted" role="status" aria-live="polite">No payout bank account loaded.</div>
+    <div id="payoutDestinationList" class="payout-destination-list"></div>
+    <p class="small muted">A new or changed bank account has a 24-hour security waiting period. Saving a bank account does not request or initiate a withdrawal. Creator payouts remain disabled in Staging.</p>
+   </section>
    <button class="back" onclick="showProfile()">← BACK TO PROFILE</button>
   </section>
 
@@ -1352,6 +1386,103 @@ async function loadPlayamWallets(){
  }catch(e){status.textContent=e.message||"Could not load wallet balances."}
 }
 
+let payoutBanksLoaded=false;
+let pendingPayoutDetails=null;
+
+async function invokePayoutDestination(body){
+ const {data,error}=await supabaseClient.functions.invoke("paystack-payout-destination",{body});
+ if(error)throw new Error(data?.error||error.message||"Payout destination request failed.");
+ if(data?.error)throw new Error(data.error);
+ return data;
+}
+async function loadPaystackPayoutBanks(){
+ const select=document.getElementById("payoutBankSelect");
+ if(!select||payoutBanksLoaded)return;
+ select.innerHTML="<option value=\"\">Loading supported banks…</option>";
+ try{
+  const data=await invokePayoutDestination({action:"banks"});
+  select.innerHTML="<option value=\"\">Choose your bank</option>";
+  (data.banks||[]).forEach(bank=>{
+   const option=document.createElement("option");option.value=bank.code;option.textContent=bank.name;select.appendChild(option);
+  });
+  payoutBanksLoaded=true;
+ }catch(error){
+  select.innerHTML="<option value=\"\">Could not load banks — tap refresh</option>";
+  const status=document.getElementById("payoutDestinationStatus");if(status)status.textContent=error.message;
+ }
+}
+async function resolvePayoutBankAccount(){
+ const button=document.getElementById("payoutResolveButton"),status=document.getElementById("payoutDestinationStatus");
+ const bankCode=document.getElementById("payoutBankSelect").value;
+ const accountNumber=document.getElementById("payoutAccountNumber").value.trim();
+ document.getElementById("payoutResolvedPreview").classList.add("hidden");
+ pendingPayoutDetails=null;
+ if(!bankCode||!/^\d{10}$/.test(accountNumber)){status.textContent="Choose a bank and enter a valid 10-digit account number.";return}
+ button.disabled=true;button.textContent="VERIFYING…";status.textContent="Checking account details with Paystack…";
+ try{
+  const data=await invokePayoutDestination({action:"resolve",bank_code:bankCode,account_number:accountNumber});
+  pendingPayoutDetails={bankCode,accountNumber,accountName:data.account_name,bankName:data.bank_name};
+  document.getElementById("payoutResolvedName").textContent=data.account_name;
+  document.getElementById("payoutResolvedBank").textContent=data.bank_name+" · "+data.masked_account_number;
+  document.getElementById("payoutConfirmDetails").checked=false;
+  document.getElementById("payoutResolvedPreview").classList.remove("hidden");
+  status.textContent="Account verified. Check the name carefully before saving.";
+ }catch(error){status.textContent=error.message}
+ finally{button.disabled=false;button.textContent="VERIFY ACCOUNT NAME"}
+}
+async function savePayoutBankAccount(){
+ const status=document.getElementById("payoutDestinationStatus"),button=document.getElementById("payoutSaveButton");
+ if(!pendingPayoutDetails){status.textContent="Verify your bank account first.";return}
+ if(!document.getElementById("payoutConfirmDetails").checked){status.textContent="Confirm that the verified account belongs to you.";return}
+ button.disabled=true;button.textContent="SAVING SECURELY…";status.textContent="Creating your secure Paystack recipient…";
+ try{
+  const data=await invokePayoutDestination({
+   action:"save",bank_code:pendingPayoutDetails.bankCode,
+   account_number:pendingPayoutDetails.accountNumber,
+   confirmed_account_name:pendingPayoutDetails.accountName
+  });
+  pendingPayoutDetails=null;
+  document.getElementById("payoutAccountNumber").value="";
+  document.getElementById("payoutResolvedPreview").classList.add("hidden");
+  status.textContent="Bank account saved and verified. It is inactive until the 24-hour security waiting period ends.";
+  await loadPayoutDestinations();
+ }catch(error){status.textContent=error.message}
+ finally{button.disabled=false;button.textContent="CONFIRM AND SAVE BANK ACCOUNT"}
+}
+async function loadPayoutDestinations(){
+ const list=document.getElementById("payoutDestinationList"),status=document.getElementById("payoutDestinationStatus");
+ if(!list||!status)return;
+ list.replaceChildren();
+ try{
+  const {data,error}=await supabaseClient.rpc("playam_get_my_payout_destinations_v1");
+  if(error)throw error;
+  const destinations=data?.destinations||[];
+  if(!destinations.length){status.textContent="No saved payout bank account yet.";return}
+  status.textContent="Your saved payout bank account(s):";
+  destinations.forEach(destination=>{
+   const card=document.createElement("article");card.className="payout-destination-card";
+   const name=document.createElement("strong");name.textContent=destination.account_name||"Verified bank account";
+   const bank=document.createElement("div");bank.textContent=(destination.bank_name||"Nigerian bank")+" · "+(destination.masked_account_number||"Account ending ****");
+   const state=document.createElement("div");state.className="small muted";
+   const eligibleAt=destination.eligible_at?new Date(destination.eligible_at):null;
+   if(destination.active){state.textContent="Active payout destination";}
+   else if(!destination.verified){state.textContent="Verification required";}
+   else if(eligibleAt&&eligibleAt.getTime()>Date.now()){state.textContent="Security waiting period until "+eligibleAt.toLocaleString();}
+   else{state.textContent="Verified · ready for your activation";}
+   card.append(name,bank,state);
+   if(!destination.active&&destination.verified&&eligibleAt&&eligibleAt.getTime()<=Date.now()){
+    const activate=document.createElement("button");activate.type="button";activate.className="secondary";activate.textContent="ACTIVATE THIS BANK ACCOUNT";
+    activate.addEventListener("click",async()=>{
+     activate.disabled=true;activate.textContent="ACTIVATING…";
+     try{await invokePayoutDestination({action:"activate",destination_id:destination.destination_id});await loadPayoutDestinations();}
+     catch(error){state.textContent=error.message;activate.disabled=false;activate.textContent="ACTIVATE THIS BANK ACCOUNT"}
+    });
+    card.appendChild(activate);
+   }
+   list.appendChild(card);
+  });
+ }catch(error){status.textContent="Could not load payout bank details: "+(error.message||"Please try again.")}
+}
 async function loadHomeNotificationBadge(){
  const dot=document.getElementById("homeNotificationDot"),count=document.getElementById("homeNotificationCount");
  if(!dot||!count)return;
