@@ -403,6 +403,8 @@ input,select,textarea{font-size:16px;max-width:100%}
 .coin-package{gap:7px}
 .coin-package .coin-package-price{font-size:19px;color:#e4b2ff;font-weight:850;margin:2px 0}
 .coin-package .coin-package-quantity{font-size:13px;margin:0}
+.coin-package button{width:100%;min-height:42px;border-radius:11px;margin-top:4px}
+#coinPaymentStatus{padding:12px;border-radius:12px;background:#211b31;border:1px solid #63447a;line-height:1.5;margin-top:10px}
 @media(max-width:520px){.coin-package-grid{grid-template-columns:1fr}}
 #walletScreen #walletStatus{padding:12px;border-radius:12px;background:#211b31;border:1px solid #403253;line-height:1.5}
 #walletScreen>.back{min-height:46px;border-radius:12px;margin-top:8px}
@@ -671,6 +673,7 @@ input,select,textarea{font-size:16px;max-width:100%}
     <p class="muted small">Launch pricing: ₦100 per coin. Purchased PLAYAM Coins can be used for LIVE virtual gifts only; they are not cash-withdrawable.</p>
     <div id="coinPackageList" class="coin-package-grid" aria-live="polite"></div>
     <p id="coinPackageStatus" class="small muted" role="status">Loading available packages…</p>
+    <p id="coinPaymentStatus" class="small muted" role="status" aria-live="polite" hidden></p>
    </section>
    <p id="walletStatus" class="small muted" role="status" aria-live="polite">Loading your separate wallet ledgers…</p>
    <section id="payoutDestinationPanel" class="small-card payout-destination-panel" aria-labelledby="payoutDestinationHeading">
@@ -1402,6 +1405,7 @@ function showCreatorEarnings(){showProfile();setTimeout(()=>document.getElementB
 function showNotifications(){stopLobbyRefresh();stopGameRefresh();showScreen("notificationsScreen","navProfile");loadPlayamNotifications()}
 async function loadPlayamWallets(){
  loadPlayamCoinPackages();
+ handleCoinPaymentReturn();
  loadPaystackPayoutBanks();
  loadPayoutDestinations();
  const status=document.getElementById("walletStatus");
@@ -1422,6 +1426,128 @@ async function loadPlayamWallets(){
  }catch(e){status.textContent=e.message||"Could not load wallet balances."}
 }
 
+let coinCheckoutInProgress=false;
+let coinPaymentReturnHandled=false;
+
+function coinPaymentMessage(message){
+ const el=document.getElementById("coinPaymentStatus");
+ if(!el)return;
+ el.hidden=false;
+ el.textContent=message;
+}
+
+function clearCoinPaymentReference(){
+ const url=new URL(window.location.href);
+ url.searchParams.delete("reference");
+ url.searchParams.delete("trxref");
+ window.history.replaceState({},document.title,url.pathname+url.search+url.hash);
+}
+
+async function startPlayamCoinCheckout(pkg,button){
+ if(coinCheckoutInProgress)return;
+ if(!pkg||typeof pkg.package_code!=="string"||!/^[a-z0-9_]{2,40}$/.test(pkg.package_code)){
+  coinPaymentMessage("This coin package could not be validated. Refresh the wallet and try again.");
+  return;
+ }
+ const {data:{user},error:userError}=await supabaseClient.auth.getUser();
+ if(userError||!user){
+  coinPaymentMessage("Please sign in again before purchasing PLAYAM Coins.");
+  return;
+ }
+ coinCheckoutInProgress=true;
+ const oldText=button.textContent;
+ button.disabled=true;
+ button.textContent="PREPARING CHECKOUT…";
+ coinPaymentMessage("Preparing a secure Paystack checkout. No coins are credited until payment is independently verified.");
+ try{
+  const storageKey="playam-coin-checkout:"+pkg.package_code;
+  let idempotencyKey=sessionStorage.getItem(storageKey);
+  if(!idempotencyKey){
+   idempotencyKey=crypto.randomUUID();
+   sessionStorage.setItem(storageKey,idempotencyKey);
+  }
+  const {data,error}=await supabaseClient.functions.invoke("paystack-coin-checkout",{
+   body:{package_code:pkg.package_code,idempotency_key:idempotencyKey}
+  });
+  if(error){
+   const status=error.context?.status||error.status;
+   if(status===503){
+    coinPaymentMessage("Secure checkout is not activated yet. No payment was started and you have not been charged.");
+   }else if(status===401){
+    coinPaymentMessage("Your sign-in session has expired. Sign in again before trying checkout.");
+   }else{
+    coinPaymentMessage(error.message||"Checkout could not be started. No coins have been deducted.");
+   }
+   return;
+  }
+  if(!data?.ok||typeof data.authorization_url!=="string"){
+   coinPaymentMessage(data?.error||"Checkout is not available yet. No payment was started.");
+   return;
+  }
+  const checkoutUrl=new URL(data.authorization_url);
+  if(checkoutUrl.protocol!=="https:"||checkoutUrl.hostname!=="checkout.paystack.com"){
+   throw new Error("Paystack returned an unapproved checkout address.");
+  }
+  button.textContent="REDIRECTING…";
+  coinPaymentMessage("Opening Paystack securely. Return to PLAYAM after completing payment.");
+  window.location.assign(checkoutUrl.toString());
+ }catch(error){
+  coinPaymentMessage(error?.message||"Checkout could not be started. No coins have been deducted.");
+ }finally{
+  coinCheckoutInProgress=false;
+  if(button.isConnected&&button.textContent!=="REDIRECTING…"){
+   button.disabled=false;
+   button.textContent=oldText;
+  }
+ }
+}
+
+async function handleCoinPaymentReturn(){
+ if(coinPaymentReturnHandled)return;
+ const params=new URLSearchParams(window.location.search);
+ const reference=params.get("reference")||params.get("trxref");
+ if(!reference)return;
+ if(!/^PLAYAM_COIN_[a-f0-9]{32}$/i.test(reference)){
+  coinPaymentMessage("The payment reference is not recognised. Your wallet has not been changed.");
+  return;
+ }
+ coinPaymentReturnHandled=true;
+ coinPaymentMessage("Payment return received. PLAYAM is checking the verified payment status; please keep this page open.");
+ try{
+  let payment=null;
+  for(let attempt=0;attempt<8;attempt++){
+   const {data,error}=await supabaseClient.from("playam_payment_transactions")
+    .select("status,amount_minor,purchased_coin_amount")
+    .eq("provider","paystack").eq("provider_transaction_id",reference).maybeSingle();
+   if(error)throw error;
+   payment=data;
+   if(payment?.status==="successful"||payment?.status==="failed"||payment?.status==="cancelled"||payment?.status==="refunded")break;
+   if(attempt<7)await new Promise(resolve=>setTimeout(resolve,1800));
+  }
+  if(!payment){
+   coinPaymentMessage("We could not find this payment under your signed-in account. No coins have been credited. Contact support if you completed payment.");
+   return;
+  }
+  if(payment.status==="successful"){
+   const {data:wallet,error}=await supabaseClient.from("playam_purchased_coin_wallets")
+    .select("balance").maybeSingle();
+   if(error)throw error;
+   if(wallet)document.getElementById("walletPurchasedBalance").textContent=Number(wallet.balance||0).toLocaleString();
+   coinPaymentMessage("Payment verified successfully. "+Number(payment.purchased_coin_amount).toLocaleString()+" PLAYAM Coins have been credited to your purchased-coin wallet.");
+   clearCoinPaymentReference();
+  }else if(payment.status==="failed"||payment.status==="cancelled"||payment.status==="refunded"){
+   coinPaymentMessage("This payment is "+payment.status+". No purchased coins were credited. You can try again with a new checkout request.");
+   clearCoinPaymentReference();
+  }else{
+   coinPaymentMessage("Your payment is still being verified by Paystack. No coins are credited until the webhook confirms success. Reopen your wallet shortly to check again.");
+   coinPaymentReturnHandled=false;
+  }
+ }catch(error){
+  coinPaymentMessage(error?.message||"We could not confirm the payment status. Your wallet has not been manually credited.");
+  coinPaymentReturnHandled=false;
+ }
+}
+
 async function loadPlayamCoinPackages(){
  const list=document.getElementById("coinPackageList");
  const status=document.getElementById("coinPackageStatus");
@@ -1440,10 +1566,12 @@ async function loadPlayamCoinPackages(){
    const quantity=document.createElement("p");quantity.className="coin-package-quantity muted";quantity.textContent=Number(pkg.coin_amount).toLocaleString()+" PLAYAM Coins";
    const price=document.createElement("p");price.className="coin-package-price";
    price.textContent=new Intl.NumberFormat("en-NG",{style:"currency",currency:pkg.currency||"NGN",maximumFractionDigits:0}).format(Number(pkg.amount_minor)/100);
-   card.append(name,quantity,price);
+   const buy=document.createElement("button");buy.type="button";buy.className="primary";buy.textContent="CONTINUE TO PAYSTACK";
+   buy.addEventListener("click",()=>startPlayamCoinCheckout(pkg,buy));
+   card.append(name,quantity,price,buy);
    list.append(card);
   }
-  status.textContent="These are the approved launch packages. Secure Paystack checkout is still being completed; no payment can be taken from this screen yet.";
+  status.textContent="Choose a package to continue. Payment remains subject to secure server-side verification; coins are credited only after the Paystack webhook confirms success.";
  }catch(error){
   status.textContent=error?.message||"Could not load coin packages.";
  }
