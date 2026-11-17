@@ -147,6 +147,11 @@ for index, js in enumerate(parser.scripts, start=1):
         if result.returncode:
             raise SystemExit(f"FAIL: inline JavaScript block {index} has a syntax error:\\n{result.stderr}")
 
+# Failed coin payments are only marked failed after Paystack API verification.
+for marker in ('charge.failed', 'verified_failed', 'coin_payment_failed'):
+    if marker not in webhook_source:
+        raise SystemExit("FAIL: Paystack coin webhook failure handling is incomplete: " + marker)
+
 # Coin checkout UI must remain wired to the guarded, test-only backend.
 for marker in (
     "CONTINUE TO PAYSTACK",
