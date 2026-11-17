@@ -67,6 +67,10 @@ Deno.serve(async (req: Request) => {
   if (!url || !anonKey || !serviceKey || !paystackKey || !callbackUrl) {
     return reply({ error: "Coin checkout is not configured for this environment" }, 503, origin);
   }
+  // Staging is test-mode only. Even if the feature flag is enabled, live Paystack keys are rejected.
+  if (Deno.env.get("PAYSTACK_ENVIRONMENT") !== "test" || !paystackKey.startsWith("sk_test_")) {
+    return reply({ error: "Staging coin checkout requires Paystack test-mode credentials" }, 503, origin);
+  }
 
   let callback: URL;
   try { callback = new URL(callbackUrl); } catch {
