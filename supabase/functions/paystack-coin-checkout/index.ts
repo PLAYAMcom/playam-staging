@@ -63,7 +63,9 @@ Deno.serve(async (req: Request) => {
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const paystackKey = Deno.env.get("PAYSTACK_SECRET_KEY");
-  const callbackUrl = origin === "https://playam-mobile-staging.vercel.app"\n    ? "https://playam-mobile-staging.vercel.app/"\n    : Deno.env.get("PLAYAM_COIN_CHECKOUT_CALLBACK_URL");
+  const callbackUrl = origin === "https://playam-mobile-staging.vercel.app"
+    ? "https://playam-mobile-staging.vercel.app/"
+    : Deno.env.get("PLAYAM_COIN_CHECKOUT_CALLBACK_URL");
   if (!url || !anonKey || !serviceKey || !paystackKey || !callbackUrl) {
     return reply({ error: "Coin checkout is not configured for this environment" }, 503, origin);
   }
