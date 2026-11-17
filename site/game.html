@@ -1368,6 +1368,8 @@ function showWallet(){stopLobbyRefresh();stopGameRefresh();showScreen("walletScr
 function showCreatorEarnings(){showProfile();setTimeout(()=>document.getElementById("creatorEarningsPanel")?.scrollIntoView({behavior:"smooth",block:"start"}),80)}
 function showNotifications(){stopLobbyRefresh();stopGameRefresh();showScreen("notificationsScreen","navProfile");loadPlayamNotifications()}
 async function loadPlayamWallets(){
+ loadPaystackPayoutBanks();
+ loadPayoutDestinations();
  const status=document.getElementById("walletStatus");
  for(const id of ["walletFreeBalance","walletPurchasedBalance","walletCreatorBalance"])document.getElementById(id).textContent="—";
  try{
