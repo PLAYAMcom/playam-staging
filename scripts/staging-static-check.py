@@ -70,6 +70,11 @@ if missing:
 if "erjxmesxmmmaxivvmbsi" in source:
     raise SystemExit("FAIL: Production Supabase project reference found in Staging app")
 
+# Account recovery is a required player authentication feature.
+for marker in ("FORGOT PASSWORD?", "resetPasswordForEmail", "PASSWORD_RECOVERY", "updateUser({password})", "BACK TO LOGIN"):
+    if marker not in source:
+        raise SystemExit("FAIL: player account recovery is missing required flow: " + marker)
+
 if re.search(r"service_role|sb_secret_[A-Za-z0-9_-]+", source, re.I):
     raise SystemExit("FAIL: server-only Supabase credential marker found in browser app")
 
