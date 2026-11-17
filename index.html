@@ -399,6 +399,11 @@ input,select,textarea{font-size:16px;max-width:100%}
 .wallet-ledger>div{font-size:13px;font-weight:750}
 .wallet-ledger>strong{font-size:clamp(19px,3vw,26px);overflow-wrap:anywhere;color:#e4b2ff}
 .wallet-ledger>small{font-size:11px;line-height:1.5}
+.coin-package-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.coin-package{gap:7px}
+.coin-package .coin-package-price{font-size:19px;color:#e4b2ff;font-weight:850;margin:2px 0}
+.coin-package .coin-package-quantity{font-size:13px;margin:0}
+@media(max-width:520px){.coin-package-grid{grid-template-columns:1fr}}
 #walletScreen #walletStatus{padding:12px;border-radius:12px;background:#211b31;border:1px solid #403253;line-height:1.5}
 #walletScreen>.back{min-height:46px;border-radius:12px;margin-top:8px}
 #videoScreen{max-width:920px;margin:0 auto}
@@ -661,6 +666,12 @@ input,select,textarea{font-size:16px;max-width:100%}
     <article class="wallet-ledger"><div>💎 Purchased PLAYAM Coins</div><strong id="walletPurchasedBalance">—</strong><small class="muted">For LIVE virtual gifts only at launch.</small></article>
     <article class="wallet-ledger"><div>💵 Creator cash earnings</div><strong id="walletCreatorBalance">—</strong><small class="muted">Separate cash ledger, subject to eligibility and approved withdrawal.</small></article>
    </div>
+   <section id="coinShopPanel" class="small-card" aria-labelledby="coinShopHeading">
+    <h3 id="coinShopHeading">💎 Buy PLAYAM Coins</h3>
+    <p class="muted small">Launch pricing: ₦100 per coin. Purchased PLAYAM Coins can be used for LIVE virtual gifts only; they are not cash-withdrawable.</p>
+    <div id="coinPackageList" class="coin-package-grid" aria-live="polite"></div>
+    <p id="coinPackageStatus" class="small muted" role="status">Loading available packages…</p>
+   </section>
    <p id="walletStatus" class="small muted" role="status" aria-live="polite">Loading your separate wallet ledgers…</p>
    <section id="payoutDestinationPanel" class="small-card payout-destination-panel" aria-labelledby="payoutDestinationHeading">
     <h3 id="payoutDestinationHeading">🏦 Creator payout bank account</h3>
@@ -1390,6 +1401,7 @@ function showWallet(){stopLobbyRefresh();stopGameRefresh();showScreen("walletScr
 function showCreatorEarnings(){showProfile();setTimeout(()=>document.getElementById("creatorEarningsPanel")?.scrollIntoView({behavior:"smooth",block:"start"}),80)}
 function showNotifications(){stopLobbyRefresh();stopGameRefresh();showScreen("notificationsScreen","navProfile");loadPlayamNotifications()}
 async function loadPlayamWallets(){
+ loadPlayamCoinPackages();
  loadPaystackPayoutBanks();
  loadPayoutDestinations();
  const status=document.getElementById("walletStatus");
@@ -1408,6 +1420,33 @@ async function loadPlayamWallets(){
   document.getElementById("walletCreatorBalance").textContent=cw?(cw.currency||"NGN")+" "+(Number(cw.available_balance_minor||0)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):"No cash balance";
   status.textContent=cw?"Pending: "+(cw.currency||"NGN")+" "+(Number(cw.pending_balance_minor||0)/100).toFixed(2)+" · Reserved: "+(Number(cw.reserved_withdrawal_balance_minor||0)/100).toFixed(2)+" · Withdrawn: "+(Number(cw.withdrawn_balance_minor||0)/100).toFixed(2):"Balances loaded from their separate ledgers. No wallet has been merged.";
  }catch(e){status.textContent=e.message||"Could not load wallet balances."}
+}
+
+async function loadPlayamCoinPackages(){
+ const list=document.getElementById("coinPackageList");
+ const status=document.getElementById("coinPackageStatus");
+ if(!list||!status)return;
+ list.replaceChildren();
+ status.textContent="Loading approved coin packages…";
+ try{
+  const {data,error}=await supabaseClient.from("playam_purchased_coin_packages")
+   .select("package_code,display_name,amount_minor,coin_amount,currency")
+   .eq("is_active",true).order("display_order",{ascending:true});
+  if(error)throw error;
+  if(!data?.length){status.textContent="No coin packages are currently available.";return}
+  for(const pkg of data){
+   const card=document.createElement("article");card.className="wallet-ledger coin-package";
+   const name=document.createElement("div");name.textContent=pkg.display_name;
+   const quantity=document.createElement("p");quantity.className="coin-package-quantity muted";quantity.textContent=Number(pkg.coin_amount).toLocaleString()+" PLAYAM Coins";
+   const price=document.createElement("p");price.className="coin-package-price";
+   price.textContent=new Intl.NumberFormat("en-NG",{style:"currency",currency:pkg.currency||"NGN",maximumFractionDigits:0}).format(Number(pkg.amount_minor)/100);
+   card.append(name,quantity,price);
+   list.append(card);
+  }
+  status.textContent="These are the approved launch packages. Secure Paystack checkout is still being completed; no payment can be taken from this screen yet.";
+ }catch(error){
+  status.textContent=error?.message||"Could not load coin packages.";
+ }
 }
 
 let payoutBanksLoaded=false;
