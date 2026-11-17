@@ -7,6 +7,7 @@ on:
       - "index.html"
       - "site/**"
       - "scripts/staging-static-check.py"
+      - "supabase/functions/paystack-coin-checkout/**"
       - ".github/workflows/staging-static-check.yml"
   pull_request:
     branches: [main]
@@ -14,6 +15,7 @@ on:
       - "index.html"
       - "site/**"
       - "scripts/staging-static-check.py"
+      - "supabase/functions/paystack-coin-checkout/**"
       - ".github/workflows/staging-static-check.yml"
 
 permissions:
