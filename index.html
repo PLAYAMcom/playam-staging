@@ -1517,7 +1517,7 @@ async function handleCoinPaymentReturn(){
   let payment=null;
   for(let attempt=0;attempt<8;attempt++){
    const {data,error}=await supabaseClient.from("playam_payment_transactions")
-    .select("status,amount_minor,purchased_coin_amount")
+    .select("status,amount_minor,purchased_coin_amount,metadata")
     .eq("provider","paystack").eq("provider_transaction_id",reference).maybeSingle();
    if(error)throw error;
    payment=data;
@@ -1533,9 +1533,11 @@ async function handleCoinPaymentReturn(){
     .select("balance").maybeSingle();
    if(error)throw error;
    if(wallet)document.getElementById("walletPurchasedBalance").textContent=Number(wallet.balance||0).toLocaleString();
+   if(payment.metadata?.package_code)sessionStorage.removeItem("playam-coin-checkout:"+payment.metadata.package_code);
    coinPaymentMessage("Payment verified successfully. "+Number(payment.purchased_coin_amount).toLocaleString()+" PLAYAM Coins have been credited to your purchased-coin wallet.");
    clearCoinPaymentReference();
   }else if(payment.status==="failed"||payment.status==="cancelled"||payment.status==="refunded"){
+   if(payment.metadata?.package_code)sessionStorage.removeItem("playam-coin-checkout:"+payment.metadata.package_code);
    coinPaymentMessage("This payment is "+payment.status+". No purchased coins were credited. You can try again with a new checkout request.");
    clearCoinPaymentReference();
   }else{
