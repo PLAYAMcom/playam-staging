@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const allowedOrigins = new Set(["https://playamcom.github.io"]);
+const allowedOrigins = new Set(["https://playamcom.github.io", "https://playam-mobile-staging.vercel.app"]);
 
 function headers(origin: string | null) {
   const allowed = origin && allowedOrigins.has(origin) ? origin : "";
@@ -30,7 +30,7 @@ Deno.serve(async (req: Request) => {
     if (origin && !allowedOrigins.has(origin)) return new Response("Origin not allowed", { status: 403 });
     return new Response("ok", { headers: headers(origin) });
   }
-  if (origin && !allowedOrigins.has(origin)) return reply({ error: "Origin not allowed" }, 403, origin);
+  if (!origin || !allowedOrigins.has(origin)) return reply({ error: "Origin not allowed" }, 403, origin);
   if (req.method !== "POST") return reply({ error: "Method not allowed" }, 405, origin);
 
   // Deliberately disabled until the owner separately authorizes real Paystack checkout activation.
@@ -63,7 +63,7 @@ Deno.serve(async (req: Request) => {
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const paystackKey = Deno.env.get("PAYSTACK_SECRET_KEY");
-  const callbackUrl = Deno.env.get("PLAYAM_COIN_CHECKOUT_CALLBACK_URL");
+  const callbackUrl = origin === "https://playam-mobile-staging.vercel.app"\n    ? "https://playam-mobile-staging.vercel.app/"\n    : Deno.env.get("PLAYAM_COIN_CHECKOUT_CALLBACK_URL");
   if (!url || !anonKey || !serviceKey || !paystackKey || !callbackUrl) {
     return reply({ error: "Coin checkout is not configured for this environment" }, 503, origin);
   }
@@ -76,7 +76,7 @@ Deno.serve(async (req: Request) => {
   try { callback = new URL(callbackUrl); } catch {
     return reply({ error: "Coin checkout callback URL is invalid" }, 503, origin);
   }
-  if (callback.protocol !== "https:" || callback.origin !== "https://playamcom.github.io") {
+  if (callback.protocol !== "https:" || callback.origin !== origin) {
     return reply({ error: "Coin checkout callback URL is not approved" }, 503, origin);
   }
 
