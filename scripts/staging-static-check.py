@@ -75,6 +75,17 @@ for marker in ("FORGOT PASSWORD?", "resetPasswordForEmail", "PASSWORD_RECOVERY",
     if marker not in source:
         raise SystemExit("FAIL: player account recovery is missing required flow: " + marker)
 
+# Creator payout destination setup is a required Staging wallet feature.
+for marker in (
+    "payoutDestinationPanel",
+    "paystack-payout-destination",
+    "playam_get_my_payout_destinations_v1",
+    "VERIFY ACCOUNT NAME",
+    "24-hour security waiting period",
+):
+    if marker not in source:
+        raise SystemExit("FAIL: creator payout bank setup is missing required flow: " + marker)
+
 if re.search(r"service_role|sb_secret_[A-Za-z0-9_-]+", source, re.I):
     raise SystemExit("FAIL: server-only Supabase credential marker found in browser app")
 
