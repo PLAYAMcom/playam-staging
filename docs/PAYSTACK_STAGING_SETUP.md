@@ -21,18 +21,18 @@ Set these in the Staging Supabase project's Edge Function secrets:
 |---|---|
 | `PAYSTACK_SECRET_KEY` | Paystack test secret key (`sk_test_...`) |
 | `PAYSTACK_ENVIRONMENT` | `test` |
-| `PLAYAM_COIN_CHECKOUT_CALLBACK_URL` | `https://playamcom.github.io/game.html` |
+| `PLAYAM_COIN_CHECKOUT_CALLBACK_URL` | `https://playamcom.github.io/game.html` (used by the GitHub Pages app) |
 | `PLAYAM_COIN_CHECKOUT_ENABLED` | `false` until an explicitly authorised test window |
 
 The standard Supabase Edge Function environment must also provide `SUPABASE_URL`, `SUPABASE_ANON_KEY` (or `SUPABASE_PUBLISHABLE_KEY`), and `SUPABASE_SERVICE_ROLE_KEY`. These are supplied by the Supabase runtime; never copy the service-role key into browser code.
 
-The webhook uses the same Staging `PAYSTACK_SECRET_KEY`. Configure the Paystack dashboard webhook URL to the Staging `paystack-webhook` Edge Function URL. Keep the webhook secret and dashboard access private.
+The checkout function allows only these exact browser origins: `https://playamcom.github.io` and `https://playam-mobile-staging.vercel.app`. The Vercel mobile app is returned to `https://playam-mobile-staging.vercel.app/`; the GitHub Pages app uses the callback URL above. Preview deployment URLs and arbitrary origins are not allowed. The Vercel callback is selected server-side from the validated request origin; the browser cannot choose a callback URL.\n\nThe webhook uses the same Staging `PAYSTACK_SECRET_KEY`. Configure the Paystack dashboard webhook URL to the Staging `paystack-webhook` Edge Function URL. Keep the webhook secret and dashboard access private.
 
 ## Before enabling a test purchase
 
 1. Confirm the Supabase project is `pwnjrdedeoxbmtfywhkk` (PLAYAM-Staging), not Production.
 2. Confirm the key is a Paystack test key without sharing its value.
-3. Confirm the callback URL is exactly `https://playamcom.github.io/game.html`.
+3. Confirm the GitHub Pages callback is `https://playamcom.github.io/game.html`; the stable Vercel mobile origin must return to its own root URL.
 4. Confirm the Paystack dashboard webhook points to the Staging webhook endpoint.
 5. Confirm the four active package rows are Starter ₦1,000/10 coins, Standard ₦2,500/25 coins, Popular ₦5,000/50 coins, Premium ₦10,000/100 coins.
 6. Obtain explicit owner approval for a controlled test-mode checkout window before changing `PLAYAM_COIN_CHECKOUT_ENABLED` to `true`.
