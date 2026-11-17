@@ -504,6 +504,11 @@ input,select,textarea{font-size:16px;max-width:100%}
 .playam-ad-slot .playam-ad-label{display:block;margin-bottom:5px;color:#bca2df;font-size:9px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}
 .playam-ad-slot .playam-ad-copy{font-size:12px;line-height:1.4}
 .playam-ad-slot.hidden{display:none!important}
+
+.playam-ad-card{display:flex;align-items:center;gap:10px;min-height:48px;color:inherit;text-decoration:none}
+.playam-ad-card img{width:60px;height:60px;flex:0 0 60px;object-fit:cover;border-radius:9px}
+.playam-ad-card strong{display:block;color:#fff;font-size:12px;font-weight:800}
+.playam-ad-description{display:block;margin-top:3px;color:#c9c0d8;font-size:11px;line-height:1.35}
 </style>
 </head>
 <body>
@@ -1007,6 +1012,59 @@ input,select,textarea{font-size:16px;max-width:100%}
 const SUPABASE_URL="https://pwnjrdedeoxbmtfywhkk.supabase.co";
 const SUPABASE_KEY="sb_publishable_6zZlj2moK_zv9lAA_0xdzA_nBDueD50";
 const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+async function loadPlayamGameAd(){
+ const slot=document.querySelector('[data-playam-ad-slot="games-below"]');
+ if(!slot)return;
+ slot.classList.add("hidden");
+ const copy=slot.querySelector(".playam-ad-copy");
+ if(!copy)return;
+ copy.replaceChildren();
+ try{
+  const {data:{session}}=await supabaseClient.auth.getSession();
+  if(!session?.access_token)return;
+  const {data,error}=await supabaseClient.functions.invoke("playam-ad-delivery",{method:"GET"});
+  if(error||!data?.ad)return;
+  const ad=data.ad;
+  const {error:impressionError}=await supabaseClient.functions.invoke("playam-ad-delivery",{
+   body:{campaign_id:ad.id,event_type:"impression"}
+  });
+  if(impressionError)return;
+  const link=document.createElement("a");
+  link.className="playam-ad-card";
+  link.href=ad.click_url;
+  link.target="_blank";
+  link.rel="sponsored noopener noreferrer";
+  link.addEventListener("click",()=>{
+   void supabaseClient.functions.invoke("playam-ad-delivery",{
+    body:{campaign_id:ad.id,event_type:"click"}
+   });
+  });
+  if(ad.image_url){
+   const image=document.createElement("img");
+   image.src=ad.image_url;
+   image.alt="";
+   image.loading="lazy";
+   image.referrerPolicy="no-referrer";
+   link.appendChild(image);
+  }
+  const textWrap=document.createElement("span");
+  const headline=document.createElement("strong");
+  headline.textContent=ad.headline;
+  textWrap.appendChild(headline);
+  if(ad.body){
+   const description=document.createElement("span");
+   description.className="playam-ad-description";
+   description.textContent=ad.body;
+   textWrap.appendChild(description);
+  }
+  link.appendChild(textWrap);
+  copy.appendChild(link);
+  slot.classList.remove("hidden");
+ }catch(error){
+  console.warn("PLAYAM sponsored placement unavailable.",error);
+ }
+}
+
 
 let currentRoomCode="",currentRoomId="",currentPlayerId="",currentNickname="";
 let availablePlayamMarkets=[];
@@ -1029,7 +1087,7 @@ function setNav(id){
 }
 function showScreen(id,nav=""){if(id!=="messagesScreen"&&dmRealtimeChannel){supabaseClient.removeChannel(dmRealtimeChannel);dmRealtimeChannel=null}hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome");loadHomeNotificationBadge()}
-function showGames(){stopLobbyRefresh();stopGameRefresh();showScreen("gamesScreen","navGames");renderPlayamCatalogue()}
+function showGames(){stopLobbyRefresh();stopGameRefresh();showScreen("gamesScreen","navGames");renderPlayamCatalogue();void loadPlayamGameAd()}
 let dmUser=null,dmActiveConversation=null,dmActivePartner=null,dmRealtimeChannel=null,dmRealtimeRetryTimer=null,dmRealtimeRetryCount=0,dmLoading=false,dmPendingSends={},dmThreadOldest=null,dmThreadHasMore=false,dmThreadLoadingMore=false,dmDrafts={};
 function showMessages(){stopLobbyRefresh();stopGameRefresh();showScreen("messagesScreen","navMessages");loadDmInbox()}
 async function dmGetUser(){const {data:{user},error}=await supabaseClient.auth.getUser();if(error)throw error;if(!user)throw new Error("Please sign in to use Messages.");dmUser=user;return user}
