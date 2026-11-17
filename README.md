@@ -11,6 +11,10 @@ This repository is the isolated PLAYAM Staging environment. It is not the Produc
 - Do not enable real purchases, creator payouts, or withdrawals in Staging.
 - Review every database migration before applying it. The files in `supabase/migrations/` are exported from the already-applied Staging migration history; do not blindly re-run them against this project.
 
+## Paystack Staging coin-checkout setup
+
+See [the Paystack Staging setup runbook](docs/PAYSTACK_STAGING_SETUP.md) for required Edge Function configuration, callback/webhook setup, and the controlled test-mode release gate. Checkout remains disabled until explicitly authorised.
+
 ## Published site structure
 
 - `site/index.html`: Staging landing page with links to the game and admin dashboard.
