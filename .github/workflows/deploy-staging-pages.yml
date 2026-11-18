@@ -7,6 +7,9 @@ on:
       - "index.html"
       - "admin-playam-staging.html"
       - "site/**"
+      - "manifest.webmanifest"
+      - "sw.js"
+      - "assets/**"
       - ".github/workflows/deploy-staging-pages.yml"
   workflow_dispatch:
 
