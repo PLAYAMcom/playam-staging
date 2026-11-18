@@ -41,6 +41,9 @@ jobs:
           cp index.html _site/index.html
           cp admin-playam-staging.html _site/admin-playam-staging.html
           cp -R site _site/site
+          cp manifest.webmanifest _site/manifest.webmanifest
+          cp sw.js _site/sw.js
+          cp -R assets _site/assets
           touch _site/.nojekyll
 
       - name: Upload Staging website
