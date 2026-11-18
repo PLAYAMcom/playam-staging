@@ -6,6 +6,9 @@ on:
     paths:
       - "index.html"
       - "site/**"
+      - "manifest.webmanifest"
+      - "sw.js"
+      - "assets/**"
       - "scripts/staging-static-check.py"
       - "supabase/functions/paystack-coin-checkout/**"
       - "supabase/functions/paystack-webhook/**"
