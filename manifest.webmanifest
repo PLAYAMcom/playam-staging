@@ -1,0 +1,24 @@
+{
+  "id": "./",
+  "name": "PLAYAM",
+  "short_name": "PLAYAM",
+  "description": "PLAYAM games, videos and community.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#090914",
+  "theme_color": "#090914",
+  "categories": [
+    "games",
+    "social"
+  ],
+  "icons": [
+    {
+      "src": "./assets/playam-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
