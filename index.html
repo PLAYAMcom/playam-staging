@@ -549,6 +549,26 @@ input,select,textarea{font-size:16px;max-width:100%}
 .profile-video-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;padding:2px}.profile-video-tile{position:relative;display:block;width:100%;aspect-ratio:3/4;min-height:0;padding:0;border:0;border-radius:0;background:#211e31;overflow:hidden}.profile-video-tile img{width:100%;height:100%;object-fit:cover;display:block}.profile-video-tile .profile-tile-placeholder{height:100%;display:grid;place-items:center;background:linear-gradient(145deg,#33204c,#171729);font-size:28px}.profile-video-tile .profile-tile-views{position:absolute;left:7px;bottom:7px;font-size:10px;font-weight:800;text-shadow:0 1px 5px #000}.profile-grid-empty{grid-column:1/-1;padding:38px 18px;text-align:center;color:#9691a9;font-size:12px;line-height:1.6}
 @media(max-width:760px){.playam-profile-screen{border-radius:14px!important}.profile-topline{padding:13px 14px}.profile-identity{justify-content:center;text-align:center;flex-direction:column;gap:10px;padding:20px 14px 8px}.profile-avatar-ring{width:96px;height:96px;flex-basis:96px}.profile-name{font-size:20px}.profile-stats{margin:10px 12px 0;padding:12px 0}.profile-stats strong{font-size:18px}.profile-bio{margin:12px 18px 14px}.profile-main-actions{margin:0 12px}.profile-quick-actions{margin:9px 12px 15px;gap:6px}.profile-quick-actions button{flex:1;padding:7px 4px;font-size:9px}.profile-video-grid{gap:2px}.profile-grid-empty{padding:34px 15px}}
 
+
+/* Native-feeling installable PLAYAM app polish */
+:root{color-scheme:dark}
+html{min-height:100%;min-height:100dvh;overscroll-behavior-y:contain}
+body{min-height:100vh;min-height:100dvh;-webkit-tap-highlight-color:transparent}
+button,a,[role="button"]{touch-action:manipulation}
+button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--pink,#ed4cbd);outline-offset:3px}
+@media(display-mode:standalone){
+ html,body{min-height:100dvh}
+ body{padding-top:env(safe-area-inset-top)}
+ #bottomNav{padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+ .main{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+}
+@media(max-width:760px){
+ body{overscroll-behavior-x:none}
+ #bottomNav{padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right))}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
 </style>
 </head>
 <body>
