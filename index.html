@@ -2103,12 +2103,18 @@ async function loadProfileStats(userId){
   const [following,followers,posts]=await Promise.all([
    supabaseClient.from("flow_follows").select("followed_auth_user_id",{count:"exact",head:true}).eq("follower_auth_user_id",userId),
    supabaseClient.from("flow_follows").select("follower_auth_user_id",{count:"exact",head:true}).eq("followed_auth_user_id",userId),
-   supabaseClient.from("flow_posts").select("id",{count:"exact",head:true}).eq("creator_auth_user_id",userId).eq("visibility","public").eq("status","published").eq("moderation_status","approved")
+   supabaseClient.from("flow_posts").select("id").eq("creator_auth_user_id",userId).eq("visibility","public").eq("status","published").eq("moderation_status","approved")
   ]);
   if(following.error)throw following.error;if(followers.error)throw followers.error;if(posts.error)throw posts.error;
+  const postIds=(posts.data||[]).map(post=>post.id);
+  let likesCount=0;
+  if(postIds.length){
+   const likes=await supabaseClient.from("flow_post_likes").select("post_id",{count:"exact",head:true}).in("post_id",postIds);
+   if(likes.error)throw likes.error;likesCount=likes.count||0;
+  }
   set("profileFollowingCount",formatProfileCount(following.count));
   set("profileFollowerCount",formatProfileCount(followers.count));
-  set("profileLikeCount",formatProfileCount(posts.count));
+  set("profileLikeCount",formatProfileCount(likesCount));
  }catch(_){set("profileFollowingCount","—");set("profileFollowerCount","—");set("profileLikeCount","—")}
 }
 async function loadProfileVideoGrid(userId){
