@@ -526,6 +526,25 @@ input,select,textarea{font-size:16px;max-width:100%}
 @media(max-width:600px){#vipScreen{padding:16px}.vip-tier-grid{grid-template-columns:1fr}.vip-reward-row{flex-direction:column}}
  
 .vip-catalog-card{padding:14px;border:1px solid #514064;border-radius:14px;background:#211d30;margin:9px 0}.vip-catalog-card h4{margin:0 0 5px}.vip-catalog-card p{font-size:12px;color:#bdb2ce;margin:5px 0 10px}.vip-catalog-meta{font-size:11px;color:#a99abf}.vip-catalog-card button{margin-top:10px;min-height:38px}.vip-owned-label{color:#9fe0b2;font-size:12px;font-weight:700}
+
+/* TikTok-inspired PLAYAM creator profile */
+.playam-profile-screen{max-width:850px!important;padding:0!important;overflow:hidden;background:#10101c!important;border-color:#302a43!important}
+.profile-topline{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid #292638}
+.profile-brand{font-size:17px;font-weight:950;letter-spacing:2px;background:linear-gradient(90deg,#b17aff,#ff55c8);color:transparent;background-clip:text}
+.profile-more{padding:8px 13px;min-height:38px}
+.profile-identity{display:flex;align-items:center;gap:18px;padding:22px 22px 10px}
+.profile-avatar-ring{width:104px;height:104px;flex:0 0 104px;border-radius:50%;padding:3px;background:linear-gradient(135deg,#ed4cbd,#7655ff)}
+#profileScreen #profileAvatar{width:100%;height:100%;border:3px solid #10101c;border-radius:50%;font-size:34px;background:#29213f;box-shadow:none;overflow:hidden}
+#profileScreen #profileAvatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.profile-identity-copy{min-width:0}.profile-name{font-size:22px;font-weight:850;overflow-wrap:anywhere}.profile-handle{font-size:13px;color:#b6abc9;margin-top:4px}.profile-badge{display:inline-block;margin-top:9px;padding:5px 8px;border-radius:20px;background:#29213f;color:#e8c8ff;font-size:9px;font-weight:800;letter-spacing:.7px}
+.profile-stats{display:flex;justify-content:center;gap:0;margin:12px 18px 0;padding:14px 0;border-top:1px solid #292638;border-bottom:1px solid #292638}.profile-stats>div{flex:1;text-align:center;display:flex;flex-direction:column;gap:4px;border-right:1px solid #292638}.profile-stats>div:last-child{border:0}.profile-stats strong{font-size:20px;font-weight:850}.profile-stats span{font-size:11px;color:#aaaac5}
+.profile-bio{margin:14px 22px 16px;text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.5;color:#e7e2ef}
+.profile-main-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 18px}.profile-main-actions button{min-height:43px;padding:10px;border-radius:9px;font-size:12px}.profile-main-actions .primary{background:#ed4cbd}.profile-quick-actions{display:flex;justify-content:center;gap:8px;margin:10px 18px 18px}.profile-quick-actions button{min-height:36px;padding:7px 11px;font-size:10px;border-radius:8px}
+.profile-editor{margin:0 18px 18px;padding:16px;background:#191727;border:1px solid #39334b;border-radius:13px}.profile-editor h3{margin:0 0 12px}.profile-editor label{font-size:12px;color:#d6cce5}.profile-editor input,.profile-editor textarea{background:#100f1a;border-color:#40384f}.profile-editor .primary{width:100%;margin-top:10px}
+.profile-status{padding:0 18px 12px;min-height:18px}.profile-content-tabs{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #292638;border-bottom:1px solid #292638}.profile-tab{text-align:center;padding:13px 8px;font-size:12px;font-weight:800;border-bottom:2px solid #ed4cbd;color:#fff}.profile-tab span{font-size:17px;margin-right:7px}.profile-tab.muted-tab{border-color:transparent;color:#77748b}
+.profile-video-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;padding:2px}.profile-video-tile{position:relative;display:block;width:100%;aspect-ratio:3/4;min-height:0;padding:0;border:0;border-radius:0;background:#211e31;overflow:hidden}.profile-video-tile img{width:100%;height:100%;object-fit:cover;display:block}.profile-video-tile .profile-tile-placeholder{height:100%;display:grid;place-items:center;background:linear-gradient(145deg,#33204c,#171729);font-size:28px}.profile-video-tile .profile-tile-views{position:absolute;left:7px;bottom:7px;font-size:10px;font-weight:800;text-shadow:0 1px 5px #000}.profile-grid-empty{grid-column:1/-1;padding:38px 18px;text-align:center;color:#9691a9;font-size:12px;line-height:1.6}
+@media(max-width:760px){.playam-profile-screen{border-radius:14px!important}.profile-topline{padding:13px 14px}.profile-identity{justify-content:center;text-align:center;flex-direction:column;gap:10px;padding:20px 14px 8px}.profile-avatar-ring{width:96px;height:96px;flex-basis:96px}.profile-name{font-size:20px}.profile-stats{margin:10px 12px 0;padding:12px 0}.profile-stats strong{font-size:18px}.profile-bio{margin:12px 18px 14px}.profile-main-actions{margin:0 12px}.profile-quick-actions{margin:9px 12px 15px;gap:6px}.profile-quick-actions button{flex:1;padding:7px 4px;font-size:9px}.profile-video-grid{gap:2px}.profile-grid-empty{padding:34px 15px}}
+
 </style>
 </head>
 <body>
@@ -777,24 +796,39 @@ input,select,textarea{font-size:16px;max-width:100%}
    <button class="back" onclick="showProfile()">← BACK TO PROFILE</button>
   </section>
 
-  <section id="profileScreen" class="screen-card hidden">
-   <h2>👤 My PLAYAM Profile</h2>
-   <p class="muted">Your identity across PLAYAM games and the community.</p>
-   <div class="small-card" style="margin-top:15px">
-    <div class="feed-author-wrap"><div class="avatar" id="profileAvatar">P</div><div><div class="feed-author" id="profilePreviewName">PLAYAM Player</div><div class="feed-handle" id="profilePreviewHandle">@player</div></div></div>
+  <section id="profileScreen" class="screen-card hidden playam-profile-screen">
+   <div class="profile-topline"><span class="profile-brand">PLAYAM</span><button class="profile-more secondary" type="button" onclick="showSettings()" aria-label="Profile settings">⚙</button></div>
+   <div class="profile-identity">
+    <div class="profile-avatar-ring"><div class="avatar" id="profileAvatar">P</div></div>
+    <div class="profile-identity-copy"><div class="profile-name" id="profilePreviewName">PLAYAM Player</div><div class="profile-handle" id="profilePreviewHandle">@player</div><span class="profile-badge">🎮 PLAYAM PLAYER</span></div>
    </div>
-   <label>Display name</label><input id="profileDisplayName" maxlength="40" placeholder="Your display name">
-   <label>Username</label><input id="profileUsername" maxlength="30" placeholder="lowercase_username">
-   <label>Bio</label><textarea id="profileBio" maxlength="300" placeholder="Tell the PLAYAM community about yourself..."></textarea>
-   <button class="primary" onclick="saveProfile()">SAVE PROFILE</button>
-   <div class="grid-two" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0">
-    <button class="secondary" onclick="showWallet()">👛 WALLET</button>
-    <button class="secondary" onclick="showCreatorEarnings()">💰 PLAYAM EARN</button>
-    <button class="secondary" onclick="showNotifications()">🔔 NOTIFICATIONS</button>
-    <button class="secondary" onclick="showSettings()">⚙️ SETTINGS</button>
+   <div class="profile-stats" aria-label="Profile statistics">
+    <div><strong id="profileFollowingCount">—</strong><span>Following</span></div>
+    <div><strong id="profileFollowerCount">—</strong><span>Followers</span></div>
+    <div><strong id="profileLikeCount">—</strong><span>Likes</span></div>
    </div>
-   <div id="profileStatus" class="small" role="status" aria-live="polite"></div>
-   <section class="small-card" id="creatorEarningsPanel" style="margin-top:18px">
+   <p class="profile-bio" id="profilePreviewBio">Player • Creator • Part of PLAYAM</p>
+   <div class="profile-main-actions">
+    <button class="primary" type="button" onclick="toggleProfileEditor()">Edit profile</button>
+    <button class="secondary" type="button" onclick="showCreatorEarnings()">Creator tools</button>
+   </div>
+   <div class="profile-quick-actions">
+    <button class="secondary" type="button" onclick="showWallet()">👛 Wallet</button>
+    <button class="secondary" type="button" onclick="showNotifications()">🔔 Notifications</button>
+    <button class="secondary" type="button" onclick="showSettings()">⚙ Settings</button>
+   </div>
+   <div id="profileEditor" class="profile-editor hidden">
+    <h3>Edit profile</h3>
+    <label for="profileDisplayName">Display name</label><input id="profileDisplayName" maxlength="40" placeholder="Your display name">
+    <label for="profileUsername">Username</label><input id="profileUsername" maxlength="30" placeholder="lowercase_username">
+    <label for="profileBio">Bio</label><textarea id="profileBio" maxlength="300" placeholder="Tell the PLAYAM community about yourself..."></textarea>
+    <button class="primary" type="button" onclick="saveProfile()">SAVE PROFILE</button>
+    <p class="small muted">Your username is your public PLAYAM identity.</p>
+   </div>
+   <div id="profileStatus" class="small profile-status" role="status" aria-live="polite"></div>
+   <div class="profile-content-tabs"><div class="profile-tab active"><span>▦</span> Videos</div><div class="profile-tab muted-tab"><span>♡</span> Liked</div></div>
+   <div id="profileVideoGrid" class="profile-video-grid"><div class="profile-grid-empty">Your published videos will appear here.</div></div>
+   <section class="small-card" id="creatorEarningsPanel" style="margin-top:22px">
     <h3>💰 Creator Earnings</h3>
     <p class="muted">Your video performance and creator cash balance.</p>
     <div class="grid-two" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -2039,26 +2073,73 @@ function renderProfileAvatar(avatarUrl,displayName){
   el.textContent="";el.append(img);
  }catch(_){}
 }
+function formatProfileCount(value){const n=Number(value||0);return n>=1000000?(n/1000000).toFixed(n>=10000000?0:1)+"M":n>=10000?(n/1000).toFixed(1)+"K":n.toLocaleString("en-NG")}
+function toggleProfileEditor(){const editor=document.getElementById("profileEditor");if(editor)editor.classList.toggle("hidden")}
 async function loadProfile(){
  const status=document.getElementById("profileStatus");status.textContent="Loading profile...";
  try{
   const {data:{user},error:userError}=await supabaseClient.auth.getUser();
-  if(userError)throw userError;
-  if(!user){status.textContent="Please log in.";return}
+  if(userError)throw userError;if(!user){status.textContent="Please log in.";return}
   const {data,error}=await supabaseClient.from("playam_profiles").select("user_id,display_name,username,bio,avatar_url").eq("user_id",user.id).maybeSingle();
   if(error)throw error;
-  const fallback=(user.email||"player").split("@")[0];
-  const display=data?.display_name||fallback;
-  const username=data?.username||("player_"+user.id.slice(0,8));
+  const fallback=(user.email||"player").split("@")[0],display=data?.display_name||fallback,username=data?.username||("player_"+user.id.slice(0,8));
   document.getElementById("profileDisplayName").value=display;
   document.getElementById("profileUsername").value=username.toLowerCase().replace(/[^a-z0-9_]/g,"_").slice(0,30);
   document.getElementById("profileBio").value=data?.bio||"";
   document.getElementById("profilePreviewName").textContent=display;
   document.getElementById("profilePreviewHandle").textContent="@"+username;
+  document.getElementById("profilePreviewBio").textContent=data?.bio||"Player • Creator • Part of PLAYAM";
   renderProfileAvatar(data?.avatar_url,display);
+  const editor=document.getElementById("profileEditor");if(editor)editor.classList.add("hidden");
   status.textContent="";
+  await loadProfileStats(user.id);
+  await loadProfileVideoGrid(user.id);
   loadCreatorEarningsDashboard();
  }catch(error){status.textContent=error?.message||"Unable to load your profile."}
+}
+async function loadProfileStats(userId){
+ const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value};
+ try{
+  const [following,followers,posts]=await Promise.all([
+   supabaseClient.from("flow_follows").select("followed_auth_user_id",{count:"exact",head:true}).eq("follower_auth_user_id",userId),
+   supabaseClient.from("flow_follows").select("follower_auth_user_id",{count:"exact",head:true}).eq("followed_auth_user_id",userId),
+   supabaseClient.from("flow_posts").select("id",{count:"exact",head:true}).eq("creator_auth_user_id",userId).eq("visibility","public").eq("status","published").eq("moderation_status","approved")
+  ]);
+  if(following.error)throw following.error;if(followers.error)throw followers.error;if(posts.error)throw posts.error;
+  set("profileFollowingCount",formatProfileCount(following.count));
+  set("profileFollowerCount",formatProfileCount(followers.count));
+  set("profileLikeCount",formatProfileCount(posts.count));
+ }catch(_){set("profileFollowingCount","—");set("profileFollowerCount","—");set("profileLikeCount","—")}
+}
+async function loadProfileVideoGrid(userId){
+ const grid=document.getElementById("profileVideoGrid");if(!grid)return;
+ grid.replaceChildren();const empty=document.createElement("div");empty.className="profile-grid-empty";empty.textContent="Loading your published videos…";grid.append(empty);
+ try{
+  const {data:posts,error}=await supabaseClient.from("flow_posts").select("id,caption,published_at,created_at").eq("creator_auth_user_id",userId).eq("visibility","public").eq("status","published").eq("moderation_status","approved").order("published_at",{ascending:false}).limit(12);
+  if(error)throw error;grid.replaceChildren();
+  if(!posts?.length){empty.textContent="▦\nYour approved public videos will appear here when you publish them.";grid.append(empty);return}
+  const ids=posts.map(p=>p.id);
+  const {data:assets,error:assetError}=await supabaseClient.from("flow_post_assets").select("post_id").in("post_id",ids).eq("processing_status","ready");
+  if(assetError)throw assetError;const ready=new Set((assets||[]).map(a=>a.post_id));
+  const available=posts.filter(p=>ready.has(p.id));
+  if(!available.length){empty.textContent="Your videos are processing or awaiting playback readiness.";grid.append(empty);return}
+  for(const post of available){
+   const tile=document.createElement("button");tile.type="button";tile.className="profile-video-tile";tile.dataset.postId=post.id;tile.setAttribute("aria-label","Open video: "+(post.caption||"PLAYAM video"));
+   const placeholder=document.createElement("div");placeholder.className="profile-tile-placeholder";placeholder.textContent="▶";tile.append(placeholder);
+   const views=document.createElement("span");views.className="profile-tile-views";views.textContent="▶ PLAYAM";tile.append(views);
+   tile.addEventListener("click",()=>openProfilePost(post.id));grid.append(tile);
+   supabaseClient.functions.invoke("flow-cloudflare-playback",{body:{postId:post.id}}).then(({data})=>{
+    if(!data?.thumbnailUrl)return;const img=document.createElement("img");img.src=data.thumbnailUrl;img.alt=post.caption||"PLAYAM video thumbnail";img.loading="lazy";img.referrerPolicy="no-referrer";img.addEventListener("error",()=>img.remove(),{once:true});placeholder.replaceChildren(img);
+   }).catch(()=>{});
+  }
+ }catch(error){grid.replaceChildren();empty.textContent="Your video grid is temporarily unavailable.";grid.append(empty)}
+}
+async function openProfilePost(postId){
+ showVideoHub();
+ await new Promise(resolve=>setTimeout(resolve,80));
+ await openVideoFeed();
+ const target=document.querySelector('.video-post[data-post-id="'+CSS.escape(postId)+'"]');
+ if(target)target.scrollIntoView({behavior:"smooth",block:"start"});
 }
 async function saveProfile(){
  const status=document.getElementById("profileStatus");
@@ -2076,6 +2157,8 @@ async function saveProfile(){
   if(error)throw error;
   document.getElementById("profilePreviewName").textContent=display_name;
   document.getElementById("profilePreviewHandle").textContent="@"+username;
+  document.getElementById("profilePreviewBio").textContent=bio||"Player • Creator • Part of PLAYAM";
+  const editor=document.getElementById("profileEditor");if(editor)editor.classList.add("hidden");
   status.textContent="✓ Profile saved.";
  }catch(error){status.textContent="Unable to save: "+(error?.message||"Please try again.")}
 }
@@ -2215,7 +2298,7 @@ async function openVideoFeed(loadMore=false){
    const asset=assetByPost.get(post.id);if(!asset)continue;
    const {data:playback,error:playbackError}=await supabaseClient.functions.invoke("flow-cloudflare-playback",{body:{postId:post.id}});
    if(playbackError||!playback?.hlsUrl)continue;
-   const article=document.createElement("article");article.className="video-post";
+   const article=document.createElement("article");article.className="video-post";article.dataset.postId=post.id;
    const video=document.createElement("video");video.controls=true;video.playsInline=true;video.preload="metadata";video.loop=true;video.setAttribute("aria-label","PLAYAM creator video");
    if(window.Hls&&window.Hls.isSupported()){const player=new Hls({enableWorker:true,lowLatencyMode:true});player.loadSource(playback.hlsUrl);player.attachMedia(video);video._playamHls=player;}
    else if(video.canPlayType("application/vnd.apple.mpegurl")){video.src=playback.hlsUrl;}
