@@ -397,7 +397,7 @@ input,select,textarea{font-size:16px;max-width:100%}
 #profileScreen textarea{min-height:94px}
 #profileScreen>button.primary{width:100%;min-height:47px;border-radius:13px;margin-top:13px;background:linear-gradient(100deg,#bd20df,#6c2aff)}
 #profileScreen .grid-two button{min-height:48px;border-radius:12px;background:#282039;border:1px solid #4e3967}
-#profileScreen #creatorEarningsPanel{background:linear-gradient(145deg,#251c39,#181627);border:1px solid #51396b;border-radius:17px;padding:16px}
+#settingsScreen #creatorEarningsPanel{background:linear-gradient(145deg,#251c39,#181627);border:1px solid #51396b;border-radius:17px;padding:16px}
 #profileScreen #creatorEarningsPanel h3{margin-top:0}
 #profileScreen #creatorEarningsPanel .small-card{background:#1b192c;border:1px solid #403354;border-radius:13px;padding:12px}
 #profileScreen #creatorEarningsPanel .small-card strong{display:block;font-size:19px;margin-top:6px;color:#e4b2ff}
@@ -787,26 +787,8 @@ input,select,textarea{font-size:16px;max-width:100%}
    <label>Username</label><input id="profileUsername" maxlength="30" placeholder="lowercase_username">
    <label>Bio</label><textarea id="profileBio" maxlength="300" placeholder="Tell the PLAYAM community about yourself..."></textarea>
    <button class="primary" onclick="saveProfile()">SAVE PROFILE</button>
-   <div class="grid-two" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0">
-    <button class="secondary" onclick="showWallet()">👛 WALLET</button>
-    <button class="secondary" onclick="showCreatorEarnings()">💰 PLAYAM EARN</button>
-    <button class="secondary" onclick="showNotifications()">🔔 NOTIFICATIONS</button>
-    <button class="secondary" onclick="showSettings()">⚙️ SETTINGS</button>
-   </div>
    <div id="profileStatus" class="small" role="status" aria-live="polite"></div>
-   <section class="small-card" id="creatorEarningsPanel" style="margin-top:18px">
-    <h3>💰 Creator Earnings</h3>
-    <p class="muted">Your video performance and creator cash balance.</p>
-    <div class="grid-two" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-     <div class="small-card"><div class="muted small">Qualified video views · 30 days</div><strong id="creatorQualifiedViews">—</strong></div>
-     <div class="small-card"><div class="muted small">Likes</div><strong id="creatorVideoLikes">—</strong><div class="muted small">Likes help engagement; they are not paid views.</div></div>
-     <div class="small-card"><div class="muted small">Pending earnings</div><strong id="creatorPendingBalance">₦0.00</strong></div>
-     <div class="small-card"><div class="muted small">Available earnings</div><strong id="creatorAvailableBalance">₦0.00</strong></div>
-    </div>
-    <p class="small muted" id="creatorRewardNotice">Creator reward details load when available.</p>
-    <h4>Recent video rewards</h4>
-    <div id="creatorRewardHistory" class="small muted">No rewards loaded yet.</div>
-   </section>
+   
   </section>
 
   <section id="financeAdminScreen" class="screen-card hidden">
@@ -876,7 +858,30 @@ input,select,textarea{font-size:16px;max-width:100%}
 
   <section id="settingsScreen" class="screen-card hidden">
    <h2>⚙️ Settings</h2>
-   <p class="muted">Manage your PLAYAM account and market preferences.</p>
+   <p class="muted">Manage your PLAYAM account, creator tools, rewards and preferences.</p>
+   <div class="panel" style="margin:16px 0;padding:16px;text-align:left">
+    <h3>🎬 Creator tools & rewards</h3>
+    <p class="muted">Track video performance, creator rewards and your earnings history.</p>
+    <div class="grid-two" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px">
+     <button class="secondary" type="button" onclick="document.getElementById('creatorEarningsPanel').scrollIntoView({behavior:'smooth',block:'start'})">💰 CREATOR REWARDS</button>
+     <button class="secondary" type="button" onclick="showWallet()">👛 WALLET & COINS</button>
+     <button class="secondary" type="button" onclick="showVip()">👑 VIP MEMBERSHIP</button>
+     <button class="secondary" type="button" onclick="showNotifications()">🔔 NOTIFICATIONS</button>
+    </div>
+   </div>
+   <section class="small-card" id="creatorEarningsPanel" style="margin:16px 0">
+    <h3>💰 Creator rewards & earnings</h3>
+    <p class="muted">Your video performance, reward eligibility and creator cash balance.</p>
+    <div class="grid-two" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+     <div class="small-card"><div class="muted small">Qualified video views · 30 days</div><strong id="creatorQualifiedViews">—</strong></div>
+     <div class="small-card"><div class="muted small">Likes</div><strong id="creatorVideoLikes">—</strong><div class="muted small">Likes help engagement; they are not paid views.</div></div>
+     <div class="small-card"><div class="muted small">Pending earnings</div><strong id="creatorPendingBalance">₦0.00</strong></div>
+     <div class="small-card"><div class="muted small">Available earnings</div><strong id="creatorAvailableBalance">₦0.00</strong></div>
+    </div>
+    <p class="small muted" id="creatorRewardNotice">Creator reward details load when available.</p>
+    <h4>Recent video rewards</h4>
+    <div id="creatorRewardHistory" class="small muted">No rewards loaded yet.</div>
+   </section>
    <div class="panel" style="margin:16px 0;padding:16px;text-align:left">
     <h3>🔐 Session security</h3>
     <p class="muted">This device is currently signed in. You can securely sign out other devices and browsers. PLAYAM does not yet display a detailed list of every signed-in device.</p>
@@ -1544,7 +1549,7 @@ async function loadPlayamVip(){
   status.textContent="VIP account information loaded. Item catalogue is visible; secure claiming is not yet enabled.";
  }catch(e){member.textContent="VIP status unavailable.";grid.replaceChildren(vipNode("p","muted","Unable to load VIP tiers."));history.textContent="Reward history unavailable.";items.textContent="VIP collection unavailable.";catalog.textContent="VIP reward catalogue unavailable.";status.textContent=e.message||"Could not load VIP information."}
 }
-function showCreatorEarnings(){showProfile();setTimeout(()=>document.getElementById("creatorEarningsPanel")?.scrollIntoView({behavior:"smooth",block:"start"}),80)}
+function showCreatorEarnings(){showSettings();setTimeout(()=>document.getElementById("creatorEarningsPanel")?.scrollIntoView({behavior:"smooth",block:"start"}),80)}
 function showNotifications(){stopLobbyRefresh();stopGameRefresh();showScreen("notificationsScreen","navProfile");loadPlayamNotifications()}
 async function loadPlayamWallets(){
  loadPlayamCoinPackages();
@@ -2246,7 +2251,7 @@ async function openVideoFeed(loadMore=false){
 }
 
 function showFindPlayer(){stopLobbyRefresh();stopGameRefresh();showScreen("findPlayerScreen")}
-function showSettings(){showScreen("settingsScreen");loadPlayamMarketSettings()}
+function showSettings(){showScreen("settingsScreen");loadPlayamMarketSettings();loadCreatorEarningsDashboard()}
 function updatePlayamMarketDetails(){
  const country=document.getElementById("playamMarketCountry")?.value;
  const market=availablePlayamMarkets.find(m=>m.country_code===country);
