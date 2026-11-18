@@ -1151,22 +1151,21 @@ async function loadPlayamGameAd(placementKey="games-below",slotSelector='[data-p
  try{
   const {data:{session}}=await supabaseClient.auth.getSession();
   if(!session?.access_token)return;
-  const {data,error}=await supabaseClient.functions.invoke("playam-ad-delivery",{method:"GET",queryParams:{placement_key:placementKey}});
-  if(error||!data?.ad)return;
+  const endpoint=SUPABASE_URL+"/functions/v1/playam-ad-delivery";
+  const headers={"Authorization":"Bearer "+session.access_token,"apikey":SUPABASE_KEY,"Content-Type":"application/json"};
+  const response=await fetch(endpoint+"?placement_key="+encodeURIComponent(placementKey),{method:"GET",headers});
+  if(!response.ok)return;
+  const data=await response.json();if(!data?.ad)return;
   const ad=data.ad;
-  const {error:impressionError}=await supabaseClient.functions.invoke("playam-ad-delivery",{
-   body:{campaign_id:ad.id,event_type:"impression",placement_key:placementKey}
-  });
-  if(impressionError)return;
+  const impressionResponse=await fetch(endpoint,{method:"POST",headers,body:JSON.stringify({campaign_id:ad.id,event_type:"impression",placement_key:placementKey})});
+  if(!impressionResponse.ok)return;
   const link=document.createElement("a");
   link.className="playam-ad-card";
   link.href=ad.click_url;
   link.target="_blank";
   link.rel="sponsored noopener noreferrer";
   link.addEventListener("click",()=>{
-   void supabaseClient.functions.invoke("playam-ad-delivery",{
-    body:{campaign_id:ad.id,event_type:"click",placement_key:placementKey}
-   });
+   void fetch(endpoint,{method:"POST",headers,body:JSON.stringify({campaign_id:ad.id,event_type:"click",placement_key:placementKey})});
   });
   if(ad.image_url){
    const image=document.createElement("img");
