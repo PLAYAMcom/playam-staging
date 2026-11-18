@@ -516,6 +516,14 @@ input,select,textarea{font-size:16px;max-width:100%}
 .playam-ad-card img{width:60px;height:60px;flex:0 0 60px;object-fit:cover;border-radius:9px}
 .playam-ad-card strong{display:block;color:#fff;font-size:12px;font-weight:800}
 .playam-ad-description{display:block;margin-top:3px;color:#c9c0d8;font-size:11px;line-height:1.35}
+
+#vipScreen{max-width:980px;margin:0 auto;background:radial-gradient(ellipse at 90% 0%,#7b35a733,transparent 38%),linear-gradient(145deg,#1c192d,#12111f);border:1px solid #49365e;border-radius:20px;padding:24px}
+.vip-hero{padding:24px;border-radius:17px;background:linear-gradient(120deg,#392052,#1d1934 65%,#392044);border:1px solid #745091;margin:14px 0 18px}
+.vip-tier-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}.vip-tier-card,.vip-status-panel{padding:16px;border:1px solid #514064;border-radius:15px;background:linear-gradient(145deg,#28203a,#191725)}
+.vip-tier-card p{color:#c3b6d2;font-size:12px;line-height:1.5}.vip-tier-price{font-size:15px;font-weight:800;color:#e4b2ff;margin:12px 0}
+.vip-tier-card button{width:100%}.vip-reward-row{display:flex;justify-content:space-between;gap:10px;padding:12px;background:#211f35;border:1px solid #393550;border-radius:12px;margin:8px 0}
+.vip-duration-toggle{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.vip-duration-toggle button{background:#282039;color:#ddd;border:1px solid #57436d}.vip-duration-toggle button.active{background:#7540a4;border-color:#c18aff;color:#fff}
+@media(max-width:600px){#vipScreen{padding:16px}.vip-tier-grid{grid-template-columns:1fr}.vip-reward-row{flex-direction:column}}
 </style>
 </head>
 <body>
@@ -552,6 +560,7 @@ input,select,textarea{font-size:16px;max-width:100%}
   <button class="navbtn" id="navMessagesDesktop" onclick="showMessages()">💬 Messages</button>
   <button class="navbtn" id="navLiveDesktop" onclick="showLiveHub()">🔴 LIVE</button>
   <button class="navbtn" id="navProfile" onclick="showProfile()">👤 Profile</button>
+   <button class="navbtn" id="navVip" onclick="showVip()">💎 VIP Membership</button>
   <button class="navbtn hidden" id="navAdminFinance" onclick="showFinanceAdmin()">💼 Finance Admin</button>
   <button class="navbtn" onclick="showSoloSetup()">🎯 Play Solo</button>
   <button class="navbtn" onclick="showFindPlayer()">👥 Find Player</button>
@@ -618,6 +627,7 @@ input,select,textarea{font-size:16px;max-width:100%}
    <div class="home-shortcuts">
     <button type="button" onclick="showMessages()"><span>💬</span><strong>Private Messaging</strong><small>Chat with your people</small></button>
     <button type="button" onclick="showCreatorEarnings()"><span>🏆</span><strong>PLAYAM Earn</strong><small>Explore creator tools</small></button>
+     <button type="button" onclick="showVip()"><span>💎</span><strong>VIP Membership</strong><small>Explore Silver to Diamond</small></button>
     <button type="button" onclick="openPeopleDiscovery()"><span>✨</span><strong>Discover People</strong><small>Find PLAYAM players and creators</small></button>
    </div>
    <div class="home-live-preview">
@@ -744,6 +754,17 @@ input,select,textarea{font-size:16px;max-width:100%}
     <p class="small muted">A new or changed bank account has a 24-hour security waiting period. Saving a bank account does not request or initiate a withdrawal. Creator payouts remain disabled in Staging.</p>
    </section>
    <button class="back" onclick="showProfile()">← BACK TO PROFILE</button>
+  </section>
+
+  <section id="vipScreen" class="screen-card hidden">
+   <div class="vip-hero"><div class="home-eyebrow">PLAYAM VIP • MEMBERSHIP</div><h2>Unlock your PLAYAM status</h2><p class="muted">Explore Silver, Gold, Platinum and Diamond. VIP cosmetics you claim are yours to keep; membership-only access and status benefits end when membership expires.</p></div>
+   <div class="vip-status-panel"><strong>Your membership</strong><p id="vipMembershipStatus" class="muted" role="status">Checking your VIP status…</p></div>
+   <h3>Choose your VIP tier</h3><p class="small muted">Only 30-day and 90-day memberships are planned. Prices and coin allowances appear when officially published.</p>
+   <div class="vip-duration-toggle"><button type="button" class="active" data-vip-duration="30" onclick="selectVipDuration(30)">30 DAYS</button><button type="button" data-vip-duration="90" onclick="selectVipDuration(90)">90 DAYS</button></div>
+   <div id="vipTierGrid" class="vip-tier-grid" aria-live="polite"><p class="muted">Loading VIP tiers…</p></div>
+   <section class="vip-status-panel"><h3>🎁 Your monthly VIP rewards</h3><p class="small muted">Promotional coins are credited automatically. Exclusive items must be claimed manually and remain permanently owned after claiming.</p><div id="vipRewardHistory">No reward history loaded.</div></section>
+   <section class="vip-status-panel"><h3>✨ VIP items</h3><div id="vipItemCollection">No items loaded.</div></section>
+   <p id="vipScreenStatus" class="small muted" role="status" aria-live="polite">Loading your VIP information…</p><button class="back" type="button" onclick="showHome()">← BACK HOME</button>
   </section>
 
   <section id="notificationsScreen" class="screen-card hidden">
@@ -1094,7 +1115,7 @@ let selectedVotePlayerId="",lobbyRefreshTimer=null,lobbyLoading=false;
 let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,roundAdvanceRequestedFor="",roundAdvanceTimeoutRequestedFor="";
 let soloQuestions=[],soloAnswers=[],soloQuestionIndex=0,soloDifficulty="starter",soloLoading=false;
 
-const screenIds=["homeScreen","gamesScreen","messagesScreen","liveScreen","videoScreen","walletScreen","notificationsScreen","profileScreen","financeAdminScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
+const screenIds=["homeScreen","gamesScreen","messagesScreen","liveScreen","videoScreen","walletScreen","vipScreen","notificationsScreen","profileScreen","financeAdminScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
 
 function showMessage(t){document.getElementById("message").innerText=t||""}
 function hideScreens(){screenIds.forEach(id=>document.getElementById(id).classList.add("hidden"))}
@@ -1485,8 +1506,31 @@ async function recordFinanceEntry(){
  document.getElementById("financeAmount").value="";document.getElementById("financeDescription").value="";document.getElementById("financeExternalRef").value="";document.getElementById("financeIdempotency").value="";
  await loadFinanceSummary();
 }
+function showVip(){stopLobbyRefresh();stopGameRefresh();showScreen("vipScreen","navVip");loadPlayamVip()}
 function showProfile(){stopLobbyRefresh();stopGameRefresh();showScreen("profileScreen","navProfile");loadProfile()}
 function showWallet(){stopLobbyRefresh();stopGameRefresh();showScreen("walletScreen","navProfile");loadPlayamWallets()}
+let selectedVipDuration=30;
+function selectVipDuration(days){selectedVipDuration=days;document.querySelectorAll("[data-vip-duration]").forEach(b=>b.classList.toggle("active",Number(b.dataset.vipDuration)===days))}
+function vipNode(tag,cls,value){const e=document.createElement(tag);if(cls)e.className=cls;e.textContent=value??"";return e}
+async function loadPlayamVip(){
+ const status=document.getElementById("vipScreenStatus"),grid=document.getElementById("vipTierGrid"),member=document.getElementById("vipMembershipStatus"),history=document.getElementById("vipRewardHistory"),items=document.getElementById("vipItemCollection");
+ try{
+  const {data:{user},error:ue}=await supabaseClient.auth.getUser();if(ue)throw ue;if(!user)throw Error("Please sign in to view VIP membership.");
+  const [t,m,r,o]=await Promise.all([
+   supabaseClient.from("playam_vip_tiers").select("id,tier_code,display_name,description,price_30_days_minor,price_90_days_minor,monthly_coin_allowance").eq("is_published",true).order("sort_order"),
+   supabaseClient.from("playam_vip_memberships").select("id,status,duration_days,ends_at,created_at,playam_vip_tiers(display_name)").eq("auth_user_id",user.id).order("created_at",{ascending:false}).limit(10),
+   supabaseClient.from("playam_vip_reward_cycles").select("cycle_number,coin_allowance,status,credited_at").eq("auth_user_id",user.id).order("cycle_number",{ascending:false}).limit(12),
+   supabaseClient.from("playam_vip_item_ownership").select("id,acquired_at,playam_vip_reward_catalog(item_name)").eq("auth_user_id",user.id).order("acquired_at",{ascending:false}).limit(50)
+  ]);for(const x of [t,m,r,o])if(x.error)throw x.error;
+  grid.replaceChildren();if(!t.data?.length)grid.append(vipNode("p","muted","VIP tiers are being prepared. Membership sales are not open yet."));
+  (t.data||[]).forEach(x=>{const card=vipNode("article","vip-tier-card","");card.append(vipNode("h3","",x.display_name||x.tier_code),vipNode("p","",x.description||"PLAYAM VIP membership"));const price=selectedVipDuration===30?x.price_30_days_minor:x.price_90_days_minor;card.append(vipNode("div","vip-tier-price",price==null?"Pricing coming soon":"₦"+(Number(price)/100).toLocaleString("en-NG")+" · "+selectedVipDuration+" days"),vipNode("small","muted",x.monthly_coin_allowance==null?"Monthly coin reward to be announced":Number(x.monthly_coin_allowance).toLocaleString()+" promotional coins per cycle"));const b=vipNode("button","secondary","NOT YET AVAILABLE");b.disabled=true;card.append(b);grid.append(card)});
+  document.querySelectorAll("[data-vip-duration]").forEach(b=>b.classList.toggle("active",Number(b.dataset.vipDuration)===selectedVipDuration));
+  const active=(m.data||[]).find(x=>x.status==="active"&&x.ends_at&&new Date(x.ends_at)>new Date());member.textContent=active?((active.playam_vip_tiers?.display_name||"VIP")+" · "+active.duration_days+" days · expires "+new Date(active.ends_at).toLocaleDateString()):"You do not currently have an active VIP membership.";
+  history.replaceChildren();if(!r.data?.length)history.append(vipNode("p","small muted","No VIP reward cycles yet."));(r.data||[]).forEach(x=>{const row=vipNode("div","vip-reward-row","");row.append(vipNode("span","", "Cycle "+x.cycle_number+" · "+Number(x.coin_allowance||0).toLocaleString()+" promotional coins"),vipNode("small","",x.credited_at?"Credited "+new Date(x.credited_at).toLocaleDateString():x.status));history.append(row)});
+  items.replaceChildren();if(!o.data?.length)items.append(vipNode("p","small muted","You have not claimed any VIP items yet."));(o.data||[]).forEach(x=>items.append(vipNode("div","vip-reward-row",(x.playam_vip_reward_catalog?.item_name||"VIP item")+" · Permanently owned")));
+  status.textContent="VIP account information loaded. Purchases and item claiming are not enabled in this staging interface yet.";
+ }catch(e){member.textContent="VIP status unavailable.";grid.replaceChildren(vipNode("p","muted","Unable to load VIP tiers."));history.textContent="Reward history unavailable.";items.textContent="VIP collection unavailable.";status.textContent=e.message||"Could not load VIP information."}
+}
 function showCreatorEarnings(){showProfile();setTimeout(()=>document.getElementById("creatorEarningsPanel")?.scrollIntoView({behavior:"smooth",block:"start"}),80)}
 function showNotifications(){stopLobbyRefresh();stopGameRefresh();showScreen("notificationsScreen","navProfile");loadPlayamNotifications()}
 async function loadPlayamWallets(){
