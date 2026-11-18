@@ -5,6 +5,10 @@
      crossorigin="anonymous"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090914">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../assets/playam-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/playam-icon.svg">
 <title>PLAYAM 🎮</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
@@ -858,6 +862,12 @@ input,select,textarea{font-size:16px;max-width:100%}
 
   <section id="settingsScreen" class="screen-card hidden">
    <h2>⚙️ Settings</h2>
+   <section class="panel" style="margin:16px 0;padding:16px;text-align:left">
+    <h3 style="margin-top:0">Install PLAYAM</h3>
+    <p class="muted">Add PLAYAM to your home screen for quick access, just like an app.</p>
+    <button id="playamInstallButton" class="primary" type="button" hidden style="width:100%">Install PLAYAM</button>
+    <p id="playamInstallHelp" class="small muted" role="status" aria-live="polite">Open this page in your browser to see installation options.</p>
+   </section>
    <p class="muted">Manage your PLAYAM account, creator tools, rewards and preferences.</p>
    <div class="panel" style="margin:16px 0;padding:16px;text-align:left">
     <h3>🎬 Creator tools & rewards</h3>
@@ -2761,6 +2771,42 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
  if(event==="SIGNED_OUT"){resetDmSession();resetGameState();resetSoloGame();document.getElementById("navAdminFinance")?.classList.add("hidden");document.getElementById("app").classList.add("hidden");document.getElementById("authScreen").classList.remove("hidden")}
  if(event==="SIGNED_IN"&&session){document.getElementById("authScreen").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showHome();setTimeout(()=>refreshFinanceAdminVisibility(),0)}
 });
+let playamInstallPrompt = null;
+const playamInstallButton = document.getElementById("playamInstallButton");
+const playamInstallHelp = document.getElementById("playamInstallHelp");
+function playamIsIOS(){
+ return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+ const playamWorkerPath = "../sw.js";
+ const playamWorkerScope = "../";
+ window.addEventListener("load", () => {
+  navigator.serviceWorker.register(playamWorkerPath,{scope:playamWorkerScope}).catch(error => console.warn("PLAYAM offline shell unavailable:",error));
+ });
+}
+window.addEventListener("beforeinstallprompt", event => {
+ event.preventDefault();
+ playamInstallPrompt = event;
+ if(playamInstallButton) playamInstallButton.hidden = false;
+ if(playamInstallHelp) playamInstallHelp.textContent = "Install PLAYAM on your device from here.";
+});
+window.addEventListener("appinstalled", () => {
+ playamInstallPrompt = null;
+ if(playamInstallButton) playamInstallButton.hidden = true;
+ if(playamInstallHelp) playamInstallHelp.textContent = "PLAYAM has been installed on this device.";
+});
+if(playamIsIOS() && !window.navigator.standalone && playamInstallHelp){
+ playamInstallHelp.textContent = "On iPhone or iPad: tap Share in Safari, then choose Add to Home Screen.";
+}
+if(playamInstallButton){
+ playamInstallButton.addEventListener("click", async () => {
+  if(!playamInstallPrompt) return;
+  playamInstallPrompt.prompt();
+  await playamInstallPrompt.userChoice;
+  playamInstallPrompt = null;
+  playamInstallButton.hidden = true;
+ });
+}
 checkLogin();
 </script>
 </body>
