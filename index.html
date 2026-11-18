@@ -681,10 +681,11 @@ input,select,textarea{font-size:16px;max-width:100%}
   </section>
 
   <section id="walletScreen" class="screen-card hidden">
-   <h2>👛 PLAYAM Wallet</h2><p class="muted">Three separate balances. These are not interchangeable.</p>
+   <h2>👛 PLAYAM Wallet</h2><p class="muted">Purchased, gameplay-earned and promotional coins are tracked separately. Creator cash earnings are separate from all coin balances.</p>
    <div class="wallet-ledgers">
     <article class="wallet-ledger"><div>🪙 Gameplay-earned coins</div><strong id="walletFreeBalance">—</strong><small class="muted">Earned through eligible gameplay. Can be gifted; not cash-withdrawable.</small></article>
     <article class="wallet-ledger"><div>💎 Purchased PLAYAM Coins</div><strong id="walletPurchasedBalance">—</strong><small class="muted">Can be used for eligible PLAYAM games, items, VIP and LIVE gifts. Not cash-withdrawable.</small></article>
+    <article class="wallet-ledger"><div>🎉 Promotional PLAYAM Coins</div><strong id="walletPromoBalance">—</strong><small class="muted">Rewards and campaigns. Cannot be gifted. Expiry dates are shown below.</small><small id="walletPromoExpiry" class="muted">No promotional rewards loaded.</small></article>
     <article class="wallet-ledger"><div>💵 Creator cash earnings</div><strong id="walletCreatorBalance">—</strong><small class="muted">Separate cash ledger, subject to eligibility and approved withdrawal.</small></article>
    </div>
    <section id="coinShopPanel" class="small-card" aria-labelledby="coinShopHeading">
@@ -1494,17 +1495,23 @@ async function loadPlayamWallets(){
  loadPaystackPayoutBanks();
  loadPayoutDestinations();
  const status=document.getElementById("walletStatus");
- for(const id of ["walletFreeBalance","walletPurchasedBalance","walletCreatorBalance"])document.getElementById(id).textContent="—";
+ for(const id of ["walletFreeBalance","walletPurchasedBalance","walletPromoBalance","walletCreatorBalance"])document.getElementById(id).textContent="—";
  try{
   const {data:{user},error:ue}=await supabaseClient.auth.getUser();if(ue)throw ue;if(!user)throw new Error("Please sign in to view your wallets.");
-  const [free,purchased,creator]=await Promise.all([
+  const [free,purchased,promo,creator]=await Promise.all([
    supabaseClient.from("playam_wallets").select("balance").eq("auth_user_id",user.id).maybeSingle(),
    supabaseClient.from("playam_purchased_coin_wallets").select("balance").eq("auth_user_id",user.id).maybeSingle(),
+   supabaseClient.from("playam_promotional_coin_grants").select("amount_remaining,expires_at").eq("auth_user_id",user.id).gt("amount_remaining",0).gt("expires_at",new Date().toISOString()).order("expires_at",{ascending:true}),
    supabaseClient.from("playam_creator_earnings_wallets").select("available_balance_minor,pending_balance_minor,withdrawn_balance_minor,reserved_withdrawal_balance_minor,currency").eq("auth_user_id",user.id).maybeSingle()
   ]);
-  if(free.error)throw free.error;if(purchased.error)throw purchased.error;if(creator.error)throw creator.error;
+  if(free.error)throw free.error;if(purchased.error)throw purchased.error;if(promo.error)throw promo.error;if(creator.error)throw creator.error;
   document.getElementById("walletFreeBalance").textContent=Number(free.data?.balance||0).toLocaleString();
   document.getElementById("walletPurchasedBalance").textContent=Number(purchased.data?.balance||0).toLocaleString();
+  const promoLots=promo.data||[];
+  const promoTotal=promoLots.reduce((sum,lot)=>sum+Number(lot.amount_remaining||0),0);
+  document.getElementById("walletPromoBalance").textContent=promoTotal.toLocaleString();
+  const promoExpiry=document.getElementById("walletPromoExpiry");
+  promoExpiry.textContent=promoLots.length?"Next expiry: "+new Date(promoLots[0].expires_at).toLocaleDateString()+" · "+Number(promoLots[0].amount_remaining).toLocaleString()+" coins":"No active promotional coins.";
   const cw=creator.data;
   document.getElementById("walletCreatorBalance").textContent=cw?(cw.currency||"NGN")+" "+(Number(cw.available_balance_minor||0)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):"No cash balance";
   status.textContent=cw?"Pending: "+(cw.currency||"NGN")+" "+(Number(cw.pending_balance_minor||0)/100).toFixed(2)+" · Reserved: "+(Number(cw.reserved_withdrawal_balance_minor||0)/100).toFixed(2)+" · Withdrawn: "+(Number(cw.withdrawn_balance_minor||0)/100).toFixed(2):"Balances loaded from their separate ledgers. No wallet has been merged.";
