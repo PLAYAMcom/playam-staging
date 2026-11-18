@@ -147,6 +147,13 @@ label{display:block;margin-top:13px;font-weight:bold}
 .wallet-ledger{background:#211f35;border:1px solid #393550;border-radius:14px;padding:14px;min-width:0}
 .wallet-ledger strong{display:block;font-size:20px;margin:8px 0;overflow-wrap:anywhere}
 @media(max-width:760px){.wallet-ledgers{grid-template-columns:1fr}}
+.coin-gift-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:end}
+.coin-gift-form .wide{grid-column:1/-1}
+.coin-gift-history{display:grid;gap:8px;margin-top:12px}
+.coin-gift-row{display:flex;justify-content:space-between;gap:12px;align-items:center;background:#211f35;border:1px solid #393550;border-radius:12px;padding:12px}
+.coin-gift-row strong{white-space:nowrap}
+@media(max-width:600px){.coin-gift-form{grid-template-columns:1fr}.coin-gift-form .wide{grid-column:auto}}
+
 
 /* Mobile usability hardening */
 html{overflow-x:hidden;scroll-padding-bottom:calc(110px + env(safe-area-inset-bottom))}
@@ -676,18 +683,31 @@ input,select,textarea{font-size:16px;max-width:100%}
   <section id="walletScreen" class="screen-card hidden">
    <h2>👛 PLAYAM Wallet</h2><p class="muted">Three separate balances. These are not interchangeable.</p>
    <div class="wallet-ledgers">
-    <article class="wallet-ledger"><div>🪙 Free gameplay coins</div><strong id="walletFreeBalance">—</strong><small class="muted">For eligible free gameplay only. Not cash-withdrawable.</small></article>
-    <article class="wallet-ledger"><div>💎 Purchased PLAYAM Coins</div><strong id="walletPurchasedBalance">—</strong><small class="muted">For LIVE virtual gifts only at launch.</small></article>
+    <article class="wallet-ledger"><div>🪙 Gameplay-earned coins</div><strong id="walletFreeBalance">—</strong><small class="muted">Earned through eligible gameplay. Can be gifted; not cash-withdrawable.</small></article>
+    <article class="wallet-ledger"><div>💎 Purchased PLAYAM Coins</div><strong id="walletPurchasedBalance">—</strong><small class="muted">Can be used for eligible PLAYAM games, items, VIP and LIVE gifts. Not cash-withdrawable.</small></article>
     <article class="wallet-ledger"><div>💵 Creator cash earnings</div><strong id="walletCreatorBalance">—</strong><small class="muted">Separate cash ledger, subject to eligibility and approved withdrawal.</small></article>
    </div>
    <section id="coinShopPanel" class="small-card" aria-labelledby="coinShopHeading">
     <h3 id="coinShopHeading">💎 Buy PLAYAM Coins</h3>
-    <p class="muted small">Launch pricing: ₦100 per coin. Purchased PLAYAM Coins can be used for LIVE virtual gifts only; they are not cash-withdrawable.</p>
+    <p class="muted small">Reference value: ₦100 per PLAYAM Coin. Use coins across eligible PLAYAM features as they become available. Coins are virtual currency and cannot be withdrawn as cash.</p>
     <div id="coinPackageList" class="coin-package-grid" aria-live="polite"></div>
     <p id="coinPackageStatus" class="small muted" role="status">Loading available packages…</p>
     <p id="coinPaymentStatus" class="small muted" role="status" aria-live="polite" hidden></p>
    </section>
    <p id="walletStatus" class="small muted" role="status" aria-live="polite">Loading your separate wallet ledgers…</p>
+   <section id="coinGiftPanel" class="small-card" aria-labelledby="coinGiftHeading">
+    <h3 id="coinGiftHeading">🎁 Gift PLAYAM Coins</h3>
+    <p class="muted small">Send purchased or gameplay-earned coins to another PLAYAM user. Promotional coins cannot be gifted. Gifts are direct virtual-coin transfers, not cash payments.</p>
+    <div class="coin-gift-form">
+     <div class="wide"><label for="coinGiftRecipient">Recipient PLAYAM username</label><input id="coinGiftRecipient" type="text" autocomplete="off" maxlength="40" placeholder="Enter username"></div>
+     <div><label for="coinGiftAmount">Number of coins</label><input id="coinGiftAmount" type="number" min="1" step="1" inputmode="numeric" placeholder="e.g. 20"></div>
+     <div><label for="coinGiftSource">Coin type to send</label><select id="coinGiftSource"><option value="purchased">Purchased coins</option><option value="gameplay_earned">Gameplay-earned coins</option></select></div>
+     <div class="wide"><button id="coinGiftSendButton" class="primary" type="button" style="width:100%" onclick="sendPlayamCoinGift()">SEND COIN GIFT</button></div>
+    </div>
+    <p id="coinGiftStatus" class="small muted" role="status" aria-live="polite">Choose a recipient and coin type to send a gift.</p>
+    <h4>Recent coin gifts</h4>
+    <div id="coinGiftHistory" class="coin-gift-history" aria-live="polite"><p class="small muted">Your recent gifts will appear here.</p></div>
+   </section>
    <section id="payoutDestinationPanel" class="small-card payout-destination-panel" aria-labelledby="payoutDestinationHeading">
     <h3 id="payoutDestinationHeading">🏦 Creator payout bank account</h3>
     <p class="muted small">Verify a Nigerian bank account for future creator payouts. Your full account number is sent securely to Paystack for verification and is not stored by PLAYAM.</p>
@@ -1488,7 +1508,69 @@ async function loadPlayamWallets(){
   const cw=creator.data;
   document.getElementById("walletCreatorBalance").textContent=cw?(cw.currency||"NGN")+" "+(Number(cw.available_balance_minor||0)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):"No cash balance";
   status.textContent=cw?"Pending: "+(cw.currency||"NGN")+" "+(Number(cw.pending_balance_minor||0)/100).toFixed(2)+" · Reserved: "+(Number(cw.reserved_withdrawal_balance_minor||0)/100).toFixed(2)+" · Withdrawn: "+(Number(cw.withdrawn_balance_minor||0)/100).toFixed(2):"Balances loaded from their separate ledgers. No wallet has been merged.";
+  await loadPlayamCoinGiftHistory(user.id);
  }catch(e){status.textContent=e.message||"Could not load wallet balances."}
+}
+
+async function loadPlayamCoinGiftHistory(currentUserId){
+ const history=document.getElementById("coinGiftHistory");
+ if(!history)return;
+ history.replaceChildren();
+ try{
+  const {data,error}=await supabaseClient.rpc("playam_list_my_coin_gifts_v1",{p_limit:20});
+  if(error)throw error;
+  const rows=Array.isArray(data)?data:[];
+  if(!rows.length){const empty=document.createElement("p");empty.className="small muted";empty.textContent="No coin gifts yet.";history.append(empty);return}
+  const otherIds=[...new Set(rows.map(row=>row.sender_id===currentUserId?row.recipient_id:row.sender_id))];
+  const {data:profiles,error:profileError}=await supabaseClient.from("playam_profiles").select("user_id,username").in("user_id",otherIds);
+  if(profileError)throw profileError;
+  const names=new Map((profiles||[]).map(profile=>[profile.user_id,profile.username]));
+  rows.forEach(row=>{
+   const sent=row.sender_id===currentUserId;
+   const otherId=sent?row.recipient_id:row.sender_id;
+   const line=document.createElement("div");line.className="coin-gift-row";
+   const detail=document.createElement("div");
+   const title=document.createElement("strong");
+   title.textContent=(sent?"Sent to ":"Received from ")+"@"+(names.get(otherId)||"PLAYAM user");
+   const meta=document.createElement("div");meta.className="small muted";
+   meta.textContent=new Date(row.created_at).toLocaleString()+" · "+(row.coin_source==="purchased"?"Purchased":"Gameplay-earned")+" coins";
+   detail.append(title,meta);
+   const amount=document.createElement("strong");amount.textContent=(sent?"−":"+")+Number(row.amount).toLocaleString()+" coins";
+   line.append(detail,amount);history.append(line);
+  });
+ }catch(error){
+  const message=document.createElement("p");message.className="small muted";message.textContent=error.message||"Could not load coin gift history.";history.append(message);
+ }
+}
+
+let coinGiftInProgress=false;
+async function sendPlayamCoinGift(){
+ if(coinGiftInProgress)return;
+ const recipient=document.getElementById("coinGiftRecipient").value.trim().replace(/^@/,"");
+ const amount=Number(document.getElementById("coinGiftAmount").value);
+ const source=document.getElementById("coinGiftSource").value;
+ const status=document.getElementById("coinGiftStatus");
+ const button=document.getElementById("coinGiftSendButton");
+ if(!recipient){status.textContent="Enter the recipient's PLAYAM username.";return}
+ if(!Number.isSafeInteger(amount)||amount<=0){status.textContent="Enter a whole number of coins greater than zero.";return}
+ if(!["purchased","gameplay_earned"].includes(source)){status.textContent="Choose an eligible coin balance.";return}
+ coinGiftInProgress=true;button.disabled=true;status.textContent="Sending your coin gift securely…";
+ try{
+  const {data,error}=await supabaseClient.rpc("playam_send_coin_gift_v1",{
+   p_recipient_username:recipient,
+   p_amount:amount,
+   p_coin_source:source,
+   p_idempotency_key:crypto.randomUUID()
+  });
+  if(error)throw error;
+  status.textContent="Gift sent successfully: "+Number(data?.amount||amount).toLocaleString()+" "+(source==="purchased"?"purchased":"gameplay-earned")+" coins.";
+  document.getElementById("coinGiftAmount").value="";
+  await loadPlayamWallets();
+ }catch(error){
+  status.textContent=error.message||"Your coin gift could not be sent. No coins should have been deducted.";
+ }finally{
+  coinGiftInProgress=false;button.disabled=false;
+ }
 }
 
 let coinCheckoutInProgress=false;
