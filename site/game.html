@@ -878,6 +878,12 @@ input,select,textarea{font-size:16px;max-width:100%}
    <h2>⚙️ Settings</h2>
    <p class="muted">Manage your PLAYAM account and market preferences.</p>
    <div class="panel" style="margin:16px 0;padding:16px;text-align:left">
+    <h3>🔐 Session security</h3>
+    <p class="muted">This device is currently signed in. You can securely sign out other devices and browsers. PLAYAM does not yet display a detailed list of every signed-in device.</p>
+    <p id="sessionSecurityStatus" class="muted" role="status" aria-live="polite">Session controls are ready.</p>
+    <button id="signOutOtherSessionsButton" class="secondary" style="width:100%" onclick="signOutOtherSessions()">SIGN OUT OTHER DEVICES</button>
+   </div>
+   <div class="panel" style="margin:16px 0;padding:16px;text-align:left">
     <h3>🌍 Country and region</h3>
     <p class="muted">Choose the market you use PLAYAM from. Only markets approved for the current rollout are selectable.</p>
     <label for="playamMarketCountry">Your country</label>
@@ -2393,9 +2399,29 @@ function resetDmSession(){
  const head=document.getElementById("dmThreadHead");if(head)head.replaceChildren();
 }
 async function signOut(){
- stopLobbyRefresh();stopGameRefresh();resetDmSession();await supabaseClient.auth.signOut();
+ stopLobbyRefresh();stopGameRefresh();resetDmSession();
+ const {error}=await supabaseClient.auth.signOut({scope:"local"});
+ if(error){showMessage("Could not securely log out: "+error.message);return}
  resetGameState();resetSoloGame();document.getElementById("app").classList.add("hidden");
- document.getElementById("authScreen").classList.remove("hidden");showMessage("You have logged out.");
+ document.getElementById("authScreen").classList.remove("hidden");showMessage("You have logged out of this device.");
+}
+async function signOutOtherSessions(){
+ const button=document.getElementById("signOutOtherSessionsButton");
+ const status=document.getElementById("sessionSecurityStatus");
+ if(button)button.disabled=true;
+ if(status)status.textContent="Securing your account…";
+ try{
+  const {data:{session},error:sessionError}=await supabaseClient.auth.getSession();
+  if(sessionError)throw sessionError;
+  if(!session?.access_token)throw new Error("Please sign in again.");
+  const {error}=await supabaseClient.auth.signOut({scope:"others"});
+  if(error)throw error;
+  if(status)status.textContent="Other sessions have been signed out. This device remains signed in.";
+ }catch(error){
+  if(status)status.textContent="Could not sign out other devices: "+(error?.message||"Please try again.");
+ }finally{
+  if(button)button.disabled=false;
+ }
 }
 
 /* SOLO */
