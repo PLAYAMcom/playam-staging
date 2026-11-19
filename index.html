@@ -438,6 +438,7 @@ input,select,textarea{font-size:16px;max-width:100%}
 }
 #videoScreen .video-post-meta{background:linear-gradient(180deg,#11101c,#171326)}
 #videoScreen .video-actions button{min-height:42px}
+#videoScreen .video-actions{align-items:center}#videoScreen .video-actions button{min-height:42px;touch-action:manipulation}#videoScreen .video-post{contain:layout paint}#videoScreen .video-post video:focus-visible{outline:3px solid #c17cff;outline-offset:-3px}
 #videoScreen .video-mute-toggle{border-color:#8b52b5;background:#342044}
 @media(max-width:760px){
  #videoScreen{padding:0 0 calc(24px + env(safe-area-inset-bottom))}
@@ -1331,7 +1332,8 @@ function setNav(id){
  document.getElementById("navMessagesDesktop")?.classList.toggle("active",id==="navMessages");
  document.getElementById("navLiveDesktop")?.classList.toggle("active",id==="navLive");
 }
-function showScreen(id,nav=""){if(id!=="messagesScreen"&&dmRealtimeChannel){supabaseClient.removeChannel(dmRealtimeChannel);dmRealtimeChannel=null}hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
+function pausePlayamVideos(){document.querySelectorAll("#videoFeed video").forEach(video=>video.pause())}
+function showScreen(id,nav=""){if(id!=="videoScreen")pausePlayamVideos();if(id!=="messagesScreen"&&dmRealtimeChannel){supabaseClient.removeChannel(dmRealtimeChannel);dmRealtimeChannel=null}hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome");loadHomeNotificationBadge()}
 function showDiscover(){stopLobbyRefresh();stopGameRefresh();showScreen("discoverScreen");document.getElementById("discoverSearchInput")?.focus()}
 async function loadPlayamVideoThumbnail(postId,container,altText="PLAYAM video thumbnail"){
@@ -2631,8 +2633,12 @@ async function openVideoFeed(loadMore=false,selectedPostId=null){
    const like=document.createElement("button");like.className="secondary";like.textContent=liked.has(post.id)?"♥ Liked":"♡ Like";like.addEventListener("click",()=>togglePlayamLike(post.id,like));
    const follow=document.createElement("button");follow.className="secondary";follow.textContent=followed.has(post.creator_auth_user_id)?"✓ Following":"＋ Follow";follow.disabled=post.creator_auth_user_id===user.id;follow.addEventListener("click",()=>togglePlayamFollow(post.creator_auth_user_id,follow));
    const share=document.createElement("button");share.className="secondary";share.textContent="↗ Share";share.addEventListener("click",async()=>{const url=location.origin+location.pathname+"?post="+encodeURIComponent(post.id);try{if(navigator.share)await navigator.share({title:"PLAYAM video",text:caption.textContent,url});else{await navigator.clipboard.writeText(url);showMessage("Video link copied.")}}catch(e){if(e.name!=="AbortError")showMessage("Could not share this video.")}});
-   const mute=document.createElement("button");mute.className="secondary video-mute-toggle";mute.type="button";mute.textContent="🔇 Sound off";mute.setAttribute("aria-label","Turn video sound on");mute.addEventListener("click",()=>{video.muted=!video.muted;mute.textContent=video.muted?"🔇 Sound off":"🔊 Sound on";mute.setAttribute("aria-label",video.muted?"Turn video sound on":"Mute video");if(!video.paused)video.play().catch(()=>{});});
-   actions.append(like,follow,share,mute);
+   const playbackButton=document.createElement("button");playbackButton.className="secondary video-play-toggle";playbackButton.type="button";playbackButton.textContent="Ⅱ Pause";playbackButton.setAttribute("aria-label","Pause video");playbackButton.addEventListener("click",()=>{if(video.paused){video.play().then(()=>{playbackButton.textContent="Ⅱ Pause";playbackButton.setAttribute("aria-label","Pause video")}).catch(()=>{playbackButton.textContent="▶ Play";playbackButton.setAttribute("aria-label","Play video")})}else{video.pause();playbackButton.textContent="▶ Play";playbackButton.setAttribute("aria-label","Play video")}});
+   video.addEventListener("play",()=>{playbackButton.textContent="Ⅱ Pause";playbackButton.setAttribute("aria-label","Pause video")});
+   video.addEventListener("pause",()=>{playbackButton.textContent="▶ Play";playbackButton.setAttribute("aria-label","Play video")});
+   const mute=document.createElement("button");mute.className="secondary video-mute-toggle";mute.type="button";mute.textContent="🔇 Sound off";mute.setAttribute("aria-label","Turn video sound on");mute.addEventListener("click",()=>{video.muted=!video.muted;mute.textContent=video.muted?"🔇 Sound off":"🔊 Sound on";mute.setAttribute("aria-label",video.muted?"Turn video sound on":"Mute video");});
+   const fullscreen=document.createElement("button");fullscreen.className="secondary video-fullscreen-toggle";fullscreen.type="button";fullscreen.textContent="⛶ Full screen";fullscreen.setAttribute("aria-label","View video full screen");fullscreen.addEventListener("click",()=>{if(video.requestFullscreen){video.requestFullscreen().catch(()=>showMessage("Full screen is not available on this device."))}else if(video.webkitEnterFullscreen){video.webkitEnterFullscreen()}else{showMessage("Full screen is not supported by this browser.")}});
+   actions.append(like,follow,share,playbackButton,mute,fullscreen);
    const comments=document.createElement("div");comments.className="video-comments";
    const list=document.createElement("div");list.className="small";list.textContent="Loading comments...";
    const input=document.createElement("input");input.type="text";input.maxLength=2000;input.placeholder="Write a comment…";
@@ -2650,7 +2656,7 @@ async function openVideoFeed(loadMore=false,selectedPostId=null){
    if(window.playamVideoObserver)window.playamVideoObserver.disconnect();
    window.playamVideoObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{
     const v=entry.target;
-    if(entry.isIntersecting&&entry.intersectionRatio>=0.65){
+    if(entry.isIntersecting&&entry.intersectionRatio>=0.65&&!document.hidden&&!document.getElementById("videoScreen")?.classList.contains("hidden")){
      feed.querySelectorAll("video").forEach(other=>{if(other!==v)other.pause()});
      v.play().catch(()=>{});
     }else{v.pause()}
@@ -2668,6 +2674,7 @@ async function openVideoFeed(loadMore=false,selectedPostId=null){
  }
 }
 
+document.addEventListener("visibilitychange",()=>{if(document.hidden)pausePlayamVideos()});
 function showFindPlayer(){stopLobbyRefresh();stopGameRefresh();showScreen("findPlayerScreen")}
 function showSettings(){showScreen("settingsScreen");loadPlayamMarketSettings();loadCreatorEarningsDashboard()}
 function updatePlayamMarketDetails(){
