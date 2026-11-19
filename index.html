@@ -426,6 +426,29 @@ input,select,textarea{font-size:16px;max-width:100%}
 #videoScreen>.hero button{min-height:44px;border-radius:12px}
 #videoScreen #videoFeedStatus,#videoScreen #playamUploadStatus{border:1px solid #45345a;background:#211b31;border-radius:13px;padding:13px;line-height:1.5}
 #videoScreen #videoFeed{gap:15px}
+/* PLAYAM vertical short-video feed: mobile-first, muted autoplay, one active player */
+#videoScreen #videoFeed{
+ display:flex;flex-direction:column;gap:18px;
+ scroll-snap-type:y proximity;
+}
+#videoScreen .video-post{scroll-snap-align:start;position:relative}
+#videoScreen .video-post video{
+ display:block;width:100%;height:min(76svh,780px);max-height:780px;
+ aspect-ratio:9/16;object-fit:contain;background:#050509;
+}
+#videoScreen .video-post-meta{background:linear-gradient(180deg,#11101c,#171326)}
+#videoScreen .video-actions button{min-height:42px}
+#videoScreen .video-mute-toggle{border-color:#8b52b5;background:#342044}
+@media(max-width:760px){
+ #videoScreen{padding:0 0 calc(24px + env(safe-area-inset-bottom))}
+ #videoScreen>.hero{margin:0 12px 14px}
+ #videoScreen #videoFeed{gap:12px;scroll-snap-type:y mandatory}
+ #videoScreen .video-post{border-radius:0;border-left:0;border-right:0;scroll-snap-stop:always}
+ #videoScreen .video-post video{height:72svh;max-height:760px;object-fit:cover}
+ #videoScreen .video-post-meta{padding:12px 14px 16px}
+}
+@media(prefers-reduced-motion:reduce){#videoScreen #videoFeed{scroll-behavior:auto}}
+
 #videoScreen #videoFeedMore{min-height:46px;border-radius:13px;width:100%}
 @media(max-width:760px){
  #profileScreen,#walletScreen{padding:17px;border-radius:17px}
@@ -2348,7 +2371,7 @@ async function openVideoFeed(loadMore=false){
    const {data:playback,error:playbackError}=await supabaseClient.functions.invoke("flow-cloudflare-playback",{body:{postId:post.id}});
    if(playbackError||!playback?.hlsUrl)continue;
    const article=document.createElement("article");article.className="video-post";article.dataset.postId=post.id;
-   const video=document.createElement("video");video.controls=true;video.playsInline=true;video.preload="metadata";video.loop=true;video.setAttribute("aria-label","PLAYAM creator video");
+   const video=document.createElement("video");video.controls=true;video.playsInline=true;video.preload="metadata";video.loop=true;video.muted=true;video.autoplay=true;video.setAttribute("aria-label","PLAYAM creator video, muted autoplay");video.setAttribute("webkit-playsinline","");
    if(window.Hls&&window.Hls.isSupported()){const player=new Hls({enableWorker:true,lowLatencyMode:true});player.loadSource(playback.hlsUrl);player.attachMedia(video);video._playamHls=player;}
    else if(video.canPlayType("application/vnd.apple.mpegurl")){video.src=playback.hlsUrl;}
    else if(playback.dashUrl&&window.dashjs){video.src=playback.dashUrl;}
@@ -2361,7 +2384,8 @@ async function openVideoFeed(loadMore=false){
    const like=document.createElement("button");like.className="secondary";like.textContent=liked.has(post.id)?"♥ Liked":"♡ Like";like.addEventListener("click",()=>togglePlayamLike(post.id,like));
    const follow=document.createElement("button");follow.className="secondary";follow.textContent=followed.has(post.creator_auth_user_id)?"✓ Following":"＋ Follow";follow.disabled=post.creator_auth_user_id===user.id;follow.addEventListener("click",()=>togglePlayamFollow(post.creator_auth_user_id,follow));
    const share=document.createElement("button");share.className="secondary";share.textContent="↗ Share";share.addEventListener("click",async()=>{const url=location.origin+location.pathname+"?post="+encodeURIComponent(post.id);try{if(navigator.share)await navigator.share({title:"PLAYAM video",text:caption.textContent,url});else{await navigator.clipboard.writeText(url);showMessage("Video link copied.")}}catch(e){if(e.name!=="AbortError")showMessage("Could not share this video.")}});
-   actions.append(like,follow,share);
+   const mute=document.createElement("button");mute.className="secondary video-mute-toggle";mute.type="button";mute.textContent="🔇 Sound off";mute.setAttribute("aria-label","Turn video sound on");mute.addEventListener("click",()=>{video.muted=!video.muted;mute.textContent=video.muted?"🔇 Sound off":"🔊 Sound on";mute.setAttribute("aria-label",video.muted?"Turn video sound on":"Mute video");if(!video.paused)video.play().catch(()=>{});});
+   actions.append(like,follow,share,mute);
    const comments=document.createElement("div");comments.className="video-comments";
    const list=document.createElement("div");list.className="small";list.textContent="Loading comments...";
    const input=document.createElement("input");input.type="text";input.maxLength=2000;input.placeholder="Write a comment…";
@@ -2373,6 +2397,17 @@ async function openVideoFeed(loadMore=false){
   status.textContent=rendered?"Showing approved PLAYAM videos. Like, follow, comment or share.":"Approved posts were found, but none has a ready accessible playback asset yet.";
   more.classList.toggle("hidden",videoFeedEnded);
   feed.querySelectorAll("video").forEach(v=>{v.addEventListener("play",()=>feed.querySelectorAll("video").forEach(other=>{if(other!==v)other.pause()}));});
+  if("IntersectionObserver" in window){
+   if(window.playamVideoObserver)window.playamVideoObserver.disconnect();
+   window.playamVideoObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{
+    const v=entry.target;
+    if(entry.isIntersecting&&entry.intersectionRatio>=0.65){
+     feed.querySelectorAll("video").forEach(other=>{if(other!==v)other.pause()});
+     v.play().catch(()=>{});
+    }else{v.pause()}
+   }),{threshold:[0,0.25,0.65,0.9]});
+   feed.querySelectorAll("video").forEach(v=>window.playamVideoObserver.observe(v));
+  }
  }catch(error){status.textContent=error.message||"Could not load videos. Please try again."}
  finally{videoFeedLoading=false}
 }
