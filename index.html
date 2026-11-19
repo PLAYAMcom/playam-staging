@@ -2491,19 +2491,24 @@ async function beginPlayamVideoUpload(input){
  }catch(error){setStatus(error?.message||"Upload could not be started.");input.value=""}
 }
 async function togglePlayamLike(postId,button){
- const {data:{user},error:authError}=await supabaseClient.auth.getUser();
- if(authError||!user){showMessage("Please sign in to like videos.");return}
- const {data:existing,error:readError}=await supabaseClient.from("flow_post_likes").select("post_id").eq("post_id",postId).eq("user_auth_user_id",user.id).maybeSingle();
- if(readError){showMessage("Unable to check your like: "+readError.message);return}
- if(existing){
-  const {error}=await supabaseClient.from("flow_post_likes").delete().eq("post_id",postId).eq("user_auth_user_id",user.id);
-  if(error){showMessage("Unable to remove like: "+error.message);return}
-  button.textContent="♡ Like";button.dataset.liked="false";
- }else{
-  const {error}=await supabaseClient.from("flow_post_likes").insert({post_id:postId,user_auth_user_id:user.id});
-  if(error){showMessage("Unable to like video: "+error.message);return}
-  button.textContent="♥ Liked";button.dataset.liked="true";
- }
+ if(button.disabled)return;
+ button.disabled=true;
+ try{
+  const {data:{user},error:authError}=await supabaseClient.auth.getUser();
+  if(authError||!user){showMessage("Please sign in to like videos.");return}
+  const {data:existing,error:readError}=await supabaseClient.from("flow_post_likes").select("post_id").eq("post_id",postId).eq("user_auth_user_id",user.id).maybeSingle();
+  if(readError)throw readError;
+  if(existing){
+   const {error}=await supabaseClient.from("flow_post_likes").delete().eq("post_id",postId).eq("user_auth_user_id",user.id);
+   if(error)throw error;
+   button.textContent="♡ Like";button.dataset.liked="false";
+  }else{
+   const {error}=await supabaseClient.from("flow_post_likes").insert({post_id:postId,user_auth_user_id:user.id});
+   if(error)throw error;
+   button.textContent="♥ Liked";button.dataset.liked="true";
+  }
+ }catch(error){showMessage("Unable to update like: "+(error?.message||"Please try again."))}
+ finally{button.disabled=false}
 }
 async function loadPlayamComments(postId,container){
  container.textContent="Loading comments...";
@@ -2513,30 +2518,40 @@ async function loadPlayamComments(postId,container){
  if(!data?.length){container.textContent="No comments yet. Start the conversation.";return}
  data.forEach(row=>{const item=document.createElement("p");item.className="small-card";item.style.margin="6px 0";item.textContent=row.body;container.append(item)});
 }
-async function submitPlayamComment(postId,input,container){
+async function submitPlayamComment(postId,input,container,button){
+ if(button?.disabled)return;
  const body=input.value.trim();
  if(!body||body.length>2000){showMessage("Write a comment between 1 and 2,000 characters.");return}
- const {data:{user},error:authError}=await supabaseClient.auth.getUser();
- if(authError||!user){showMessage("Please sign in to comment.");return}
- const {error}=await supabaseClient.from("flow_post_comments").insert({post_id:postId,author_auth_user_id:user.id,body});
- if(error){showMessage("Unable to submit comment: "+error.message);return}
- input.value="";showMessage("Comment submitted for moderation. It will appear after approval.");await loadPlayamComments(postId,container);
+ if(button)button.disabled=true;
+ try{
+  const {data:{user},error:authError}=await supabaseClient.auth.getUser();
+  if(authError||!user)throw new Error("Please sign in to comment.");
+  const {error}=await supabaseClient.from("flow_post_comments").insert({post_id:postId,author_auth_user_id:user.id,body});
+  if(error)throw error;
+  input.value="";showMessage("Comment submitted for moderation. It will appear after approval.");await loadPlayamComments(postId,container);
+ }catch(error){showMessage("Unable to submit comment: "+(error?.message||"Please try again."))}
+ finally{if(button)button.disabled=false}
 }
 async function togglePlayamFollow(creatorId,button){
- const {data:{user},error:authError}=await supabaseClient.auth.getUser();
- if(authError||!user){showMessage("Please sign in to follow creators.");return}
- if(user.id===creatorId){showMessage("You cannot follow your own account.");return}
- const {data:existing,error:readError}=await supabaseClient.from("flow_follows").select("followed_auth_user_id").eq("follower_auth_user_id",user.id).eq("followed_auth_user_id",creatorId).maybeSingle();
- if(readError){showMessage("Unable to check follow status: "+readError.message);return}
- if(existing){
-  const {error}=await supabaseClient.from("flow_follows").delete().eq("follower_auth_user_id",user.id).eq("followed_auth_user_id",creatorId);
-  if(error){showMessage("Unable to unfollow creator: "+error.message);return}
-  button.textContent="＋ Follow";
- }else{
-  const {error}=await supabaseClient.from("flow_follows").insert({follower_auth_user_id:user.id,followed_auth_user_id:creatorId});
-  if(error){showMessage("Unable to follow creator: "+error.message);return}
-  button.textContent="✓ Following";
- }
+ if(button.disabled)return;
+ button.disabled=true;
+ try{
+  const {data:{user},error:authError}=await supabaseClient.auth.getUser();
+  if(authError||!user)throw new Error("Please sign in to follow creators.");
+  if(user.id===creatorId)throw new Error("You cannot follow your own account.");
+  const {data:existing,error:readError}=await supabaseClient.from("flow_follows").select("followed_auth_user_id").eq("follower_auth_user_id",user.id).eq("followed_auth_user_id",creatorId).maybeSingle();
+  if(readError)throw readError;
+  if(existing){
+   const {error}=await supabaseClient.from("flow_follows").delete().eq("follower_auth_user_id",user.id).eq("followed_auth_user_id",creatorId);
+   if(error)throw error;
+   button.textContent="＋ Follow";
+  }else{
+   const {error}=await supabaseClient.from("flow_follows").insert({follower_auth_user_id:user.id,followed_auth_user_id:creatorId});
+   if(error)throw error;
+   button.textContent="✓ Following";
+  }
+ }catch(error){showMessage("Unable to update follow: "+(error?.message||"Please try again."))}
+ finally{button.disabled=false}
 }
 let videoFeedMode="for-you";
 let videoFeedRequestId=0;
@@ -2642,7 +2657,7 @@ async function openVideoFeed(loadMore=false,selectedPostId=null){
    const comments=document.createElement("div");comments.className="video-comments";
    const list=document.createElement("div");list.className="small";list.textContent="Loading comments...";
    const input=document.createElement("input");input.type="text";input.maxLength=2000;input.placeholder="Write a comment…";
-   const send=document.createElement("button");send.className="secondary";send.textContent="Comment";send.addEventListener("click",()=>submitPlayamComment(post.id,input,list));
+   const send=document.createElement("button");send.className="secondary";send.textContent="Comment";send.addEventListener("click",()=>submitPlayamComment(post.id,input,list,send));input.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();submitPlayamComment(post.id,input,list,send)}});
    comments.append(list,input,send);meta.append(caption,date,actions,comments);article.append(video,meta);feed.appendChild(article);rendered++;
    void loadPlayamComments(post.id,list);
   }
