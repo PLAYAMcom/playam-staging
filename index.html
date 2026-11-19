@@ -1365,7 +1365,7 @@ async function openPublicCreatorProfile(creatorId){
    const copy=document.createElement("div");copy.className="public-creator-video-copy";
    const title=document.createElement("strong");title.textContent=post.caption||"PLAYAM video";
    const date=document.createElement("small");date.textContent=post.published_at?new Date(post.published_at).toLocaleDateString():"Published video";
-   copy.append(title,date);card.append(icon,copy);grid.append(card);
+   const watch=document.createElement("button");watch.type="button";watch.className="secondary";watch.textContent="Watch video";watch.addEventListener("click",()=>openSpecificPlayamVideo(post.id));copy.append(title,date);card.append(icon,copy,watch);grid.append(card);
   });
   status.textContent="Showing only public, published and approved videos.";
  }catch(error){grid.replaceChildren();status.textContent=error.message||"Unable to load creator profile."}
@@ -1410,7 +1410,7 @@ async function searchPlayamDiscover(term){
     const copy=document.createElement("div");copy.className="discover-result-copy";
     const caption=document.createElement("strong");caption.textContent=post.caption||"PLAYAM video";
     const creator=profileMap.get(post.creator_auth_user_id);const byline=document.createElement("small");byline.textContent="By "+(creator?.display_name||creator?.username||"PLAYAM creator");
-    copy.append(caption,byline);const watch=document.createElement("button");watch.type="button";watch.className="secondary";watch.textContent="Watch";watch.addEventListener("click",()=>{showVideoHub();openVideoFeed()});
+    copy.append(caption,byline);const watch=document.createElement("button");watch.type="button";watch.className="secondary";watch.textContent="Watch";watch.addEventListener("click",()=>openSpecificPlayamVideo(post.id));
     card.append(icon,copy,watch);videos.append(card);
    });
   }
@@ -2524,27 +2524,47 @@ async function togglePlayamFollow(creatorId,button){
  }
 }
 let videoFeedMode="for-you";
-function setVideoFeedMode(mode){
- if(!["for-you","following"].includes(mode))return;
- videoFeedMode=mode;
+let videoFeedRequestId=0;
+function updateVideoFeedTabs(mode){
  document.getElementById("videoForYouTab").classList.toggle("active",mode==="for-you");
  document.getElementById("videoFollowingTab").classList.toggle("active",mode==="following");
  document.getElementById("videoForYouTab").setAttribute("aria-pressed",String(mode==="for-you"));
  document.getElementById("videoFollowingTab").setAttribute("aria-pressed",String(mode==="following"));
- openVideoFeed(false);
 }
-async function openVideoFeed(loadMore=false){
+function setVideoFeedMode(mode){
+ if(!["for-you","following"].includes(mode))return;
+ if(videoFeedMode===mode&&videoFeedLoading)return;
+ videoFeedMode=mode;
+ updateVideoFeedTabs(mode);
+ void openVideoFeed(false);
+}
+function openSpecificPlayamVideo(postId){
+ if(!postId)return;
+ videoFeedMode="for-you";
+ updateVideoFeedTabs(videoFeedMode);
+ showVideoHub();
+ void openVideoFeed(false,postId);
+}
+async function openVideoFeed(loadMore=false,selectedPostId=null){
  const status=document.getElementById("videoFeedStatus"),feed=document.getElementById("videoFeed"),more=document.getElementById("videoFeedMore");
- if(videoFeedLoading)return;videoFeedLoading=true;
- if(!loadMore){videoFeedOffset=0;videoFeedEnded=false;feed.innerHTML="";feed.classList.remove("hidden");more.classList.add("hidden")}
+ if(loadMore&&videoFeedLoading)return;
+ const requestId=loadMore?videoFeedRequestId:++videoFeedRequestId;
+ const requestedMode=videoFeedMode;
+ const requestOffset=loadMore?videoFeedOffset:0;
+ videoFeedLoading=true;
+ if(!loadMore){videoFeedOffset=0;videoFeedEnded=false;feed.replaceChildren();feed.classList.remove("hidden");more.classList.add("hidden")}
  status.textContent="Loading approved PLAYAM videos…";
  try{
   const {data:{session},error:authError}=await supabaseClient.auth.getSession();
+  if(requestId!==videoFeedRequestId)return;
   if(authError)throw authError;if(!session)throw new Error("Please sign in to view PLAYAM Videos.");
   const pageSize=8;
   let postQuery=supabaseClient.from("flow_posts").select("id,creator_auth_user_id,caption,published_at,created_at").eq("visibility","public").eq("status","published").eq("moderation_status","approved");
-  if(videoFeedMode==="following"){
+  if(selectedPostId){
+   postQuery=postQuery.eq("id",selectedPostId);
+  }else if(requestedMode==="following"){
    const {data:followRows,error:followError}=await supabaseClient.from("flow_follows").select("followed_auth_user_id").eq("follower_auth_user_id",session.user.id);
+   if(requestId!==videoFeedRequestId)return;
    if(followError)throw followError;
    const followedIds=(followRows||[]).map(row=>row.followed_auth_user_id);
    if(!followedIds.length){
@@ -2553,24 +2573,36 @@ async function openVideoFeed(loadMore=false){
    }
    postQuery=postQuery.in("creator_auth_user_id",followedIds);
   }
-  const {data:posts,error}=await postQuery.order("published_at",{ascending:false}).range(videoFeedOffset,videoFeedOffset+pageSize-1);
+  const from=selectedPostId?0:requestOffset;
+  const to=selectedPostId?0:requestOffset+pageSize-1;
+  const {data:posts,error}=await postQuery.order("published_at",{ascending:false}).range(from,to);
+  if(requestId!==videoFeedRequestId)return;
   if(error)throw error;
-  if(!posts||posts.length===0){status.textContent=videoFeedOffset===0?"No approved videos yet. Be the first creator to publish a video when uploads are enabled.":"You’ve reached the end of the feed.";videoFeedEnded=true;more.classList.add("hidden");return}
+  if(!posts||posts.length===0){
+   status.textContent=selectedPostId?"This video is unavailable or is not approved for public viewing.":(requestOffset===0?"No approved videos yet. Be the first creator to publish a video when uploads are enabled.":"You’ve reached the end of the feed.");
+   videoFeedEnded=true;more.classList.add("hidden");return;
+  }
   const ids=posts.map(p=>p.id);
   const {data:assets,error:assetError}=await supabaseClient.from("flow_post_assets").select("post_id,playback_bucket,playback_object_key,storage_bucket,storage_object_key,processing_status,mime_type").in("post_id",ids).eq("processing_status","ready");
+  if(requestId!==videoFeedRequestId)return;
   if(assetError)throw assetError;
   const assetByPost=new Map((assets||[]).map(a=>[a.post_id,a]));
-  const {data:{user}}=await supabaseClient.auth.getUser();
+  const {data:{user},error:userError}=await supabaseClient.auth.getUser();
+  if(requestId!==videoFeedRequestId)return;
+  if(userError)throw userError;if(!user)throw new Error("Please sign in to view PLAYAM Videos.");
   const [{data:likedRows,error:likeError},{data:followRows,error:followError}] = await Promise.all([
    supabaseClient.from("flow_post_likes").select("post_id").eq("user_auth_user_id",user.id).in("post_id",ids),
    supabaseClient.from("flow_follows").select("followed_auth_user_id").eq("follower_auth_user_id",user.id)
   ]);
+  if(requestId!==videoFeedRequestId)return;
   if(likeError)throw likeError;if(followError)throw followError;
   const liked=new Set((likedRows||[]).map(x=>x.post_id)),followed=new Set((followRows||[]).map(x=>x.followed_auth_user_id));
   let rendered=0;
   for(const post of posts){
+   if(requestId!==videoFeedRequestId)return;
    const asset=assetByPost.get(post.id);if(!asset)continue;
    const {data:playback,error:playbackError}=await supabaseClient.functions.invoke("flow-cloudflare-playback",{body:{postId:post.id}});
+   if(requestId!==videoFeedRequestId)return;
    if(playbackError||!playback?.hlsUrl)continue;
    const article=document.createElement("article");article.className="video-post";article.dataset.postId=post.id;
    const video=document.createElement("video");video.controls=true;video.playsInline=true;video.preload="metadata";video.loop=true;video.muted=true;video.autoplay=true;video.setAttribute("aria-label","PLAYAM creator video, muted autoplay");video.setAttribute("webkit-playsinline","");
@@ -2593,10 +2625,12 @@ async function openVideoFeed(loadMore=false){
    const input=document.createElement("input");input.type="text";input.maxLength=2000;input.placeholder="Write a comment…";
    const send=document.createElement("button");send.className="secondary";send.textContent="Comment";send.addEventListener("click",()=>submitPlayamComment(post.id,input,list));
    comments.append(list,input,send);meta.append(caption,date,actions,comments);article.append(video,meta);feed.appendChild(article);rendered++;
-   loadPlayamComments(post.id,list);
+   void loadPlayamComments(post.id,list);
   }
-  videoFeedOffset+=posts.length;videoFeedEnded=posts.length<pageSize;
-  status.textContent=rendered?(videoFeedMode==="following"?"Showing approved videos from creators you follow.":"Showing approved PLAYAM videos. Like, follow, comment or share."):"Approved posts were found, but none has a ready accessible playback asset yet.";
+  if(requestId!==videoFeedRequestId)return;
+  videoFeedOffset=selectedPostId?1:requestOffset+posts.length;
+  videoFeedEnded=!!selectedPostId||posts.length<pageSize;
+  status.textContent=rendered?(selectedPostId?"Playing the selected approved PLAYAM video.":(requestedMode==="following"?"Showing approved videos from creators you follow.":"Showing approved PLAYAM videos. Like, follow, comment or share.")):"Approved posts were found, but none has a ready accessible playback asset yet.";
   more.classList.toggle("hidden",videoFeedEnded);
   feed.querySelectorAll("video").forEach(v=>{v.addEventListener("play",()=>feed.querySelectorAll("video").forEach(other=>{if(other!==v)other.pause()}));});
   if("IntersectionObserver" in window){
@@ -2610,8 +2644,15 @@ async function openVideoFeed(loadMore=false){
    }),{threshold:[0,0.25,0.65,0.9]});
    feed.querySelectorAll("video").forEach(v=>window.playamVideoObserver.observe(v));
   }
- }catch(error){status.textContent=error.message||"Could not load videos. Please try again."}
- finally{videoFeedLoading=false}
+  if(selectedPostId){
+   const selected=[...feed.querySelectorAll(".video-post")].find(node=>node.dataset.postId===selectedPostId);
+   selected?.scrollIntoView({behavior:"smooth",block:"start"});
+  }
+ }catch(error){
+  if(requestId===videoFeedRequestId)status.textContent=error.message||"Could not load videos. Please try again.";
+ }finally{
+  if(requestId===videoFeedRequestId)videoFeedLoading=false;
+ }
 }
 
 function showFindPlayer(){stopLobbyRefresh();stopGameRefresh();showScreen("findPlayerScreen")}
