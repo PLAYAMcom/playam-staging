@@ -468,6 +468,10 @@ input,select,textarea{font-size:16px;max-width:100%}
 
 
 .home-search-button{width:38px;height:38px;border-radius:50%;border:1px solid #ffffff25;background:#ffffff10;color:#fff;font-size:25px;line-height:1}
+#publicCreatorAvatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.public-creator-video{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #403354;border-radius:13px;background:#1b192c}
+.public-creator-video-icon{width:54px;height:66px;display:grid;place-items:center;border-radius:9px;background:linear-gradient(145deg,#3e285b,#171324);font-size:22px;flex:0 0 54px}
+.public-creator-video-copy{min-width:0;flex:1}.public-creator-video-copy strong{display:block;overflow-wrap:anywhere}.public-creator-video-copy small{display:block;color:#b9abc9;margin-top:4px}
 .discover-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .discover-heading h2{font-size:27px;margin:5px 0}
 .discover-heading p{margin:0}
@@ -915,6 +919,20 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
    <button class="back" onclick="showProfile()">← BACK TO PROFILE</button>
   </section>
 
+  <section id="publicCreatorScreen" class="screen-card hidden playam-profile-screen">
+   <div class="profile-topline"><span class="profile-brand">PLAYAM CREATOR</span><button class="secondary" type="button" onclick="showDiscover()">← Discover</button></div>
+   <div class="profile-identity">
+    <div class="profile-avatar-ring"><div class="avatar" id="publicCreatorAvatar">P</div></div>
+    <div class="profile-identity-copy"><div class="profile-name" id="publicCreatorName">Creator</div><div class="profile-handle" id="publicCreatorHandle">@creator</div>
+     <div class="profile-stats" aria-label="Creator statistics"><div><strong id="publicCreatorFollowers">—</strong><span>Followers</span></div><div><strong id="publicCreatorFollowing">—</strong><span>Following</span></div><div><strong id="publicCreatorVideos">—</strong><span>Videos</span></div></div>
+    </div>
+   </div>
+   <p class="profile-bio" id="publicCreatorBio">PLAYAM creator</p>
+   <div class="profile-main-actions"><button class="primary" id="publicCreatorFollow" type="button">＋ Follow</button><button class="secondary" type="button" onclick="showMessages()">Message</button></div>
+   <div class="discover-section"><h3>Published videos</h3><div id="publicCreatorVideoGrid" class="discover-results" aria-live="polite"><p class="muted">Loading creator videos…</p></div></div>
+   <p id="publicCreatorStatus" class="small muted" role="status" aria-live="polite"></p>
+  </section>
+
   <section id="profileScreen" class="screen-card hidden playam-profile-screen">
    <div class="profile-topline"><span class="profile-brand">PLAYAM</span><button class="profile-more secondary" type="button" onclick="showSettings()" aria-label="Profile settings">⚙</button></div>
    <div class="profile-identity">
@@ -1296,7 +1314,7 @@ let selectedVotePlayerId="",lobbyRefreshTimer=null,lobbyLoading=false;
 let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,roundAdvanceRequestedFor="",roundAdvanceTimeoutRequestedFor="";
 let soloQuestions=[],soloAnswers=[],soloQuestionIndex=0,soloDifficulty="starter",soloLoading=false;
 
-const screenIds=["homeScreen","discoverScreen","gamesScreen","messagesScreen","liveScreen","videoScreen","walletScreen","vipScreen","notificationsScreen","profileScreen","financeAdminScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
+const screenIds=["homeScreen","discoverScreen","publicCreatorScreen","gamesScreen","messagesScreen","liveScreen","videoScreen","walletScreen","vipScreen","notificationsScreen","profileScreen","financeAdminScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
 
 function showMessage(t){document.getElementById("message").innerText=t||""}
 function hideScreens(){screenIds.forEach(id=>document.getElementById(id).classList.add("hidden"))}
@@ -1311,6 +1329,43 @@ function setNav(id){
 function showScreen(id,nav=""){if(id!=="messagesScreen"&&dmRealtimeChannel){supabaseClient.removeChannel(dmRealtimeChannel);dmRealtimeChannel=null}hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome");loadHomeNotificationBadge()}
 function showDiscover(){stopLobbyRefresh();stopGameRefresh();showScreen("discoverScreen");document.getElementById("discoverSearchInput")?.focus()}
+async function openPublicCreatorProfile(creatorId){
+ const status=document.getElementById("publicCreatorStatus"),grid=document.getElementById("publicCreatorVideoGrid"),follow=document.getElementById("publicCreatorFollow");
+ if(!creatorId){status.textContent="Creator profile is unavailable.";return}
+ showScreen("publicCreatorScreen");status.textContent="Loading public creator profile…";grid.replaceChildren(dmEl("p","muted","Loading published videos…"));
+ try{
+  const {data:{user},error:authError}=await supabaseClient.auth.getUser();if(authError)throw authError;if(!user)throw new Error("Please sign in to view creator profiles.");
+  const {data:profile,error:profileError}=await supabaseClient.from("playam_profiles").select("user_id,display_name,username,bio,avatar_url").eq("user_id",creatorId).maybeSingle();
+  if(profileError)throw profileError;if(!profile)throw new Error("This creator profile is not available.");
+  document.getElementById("publicCreatorName").textContent=profile.display_name||profile.username||"PLAYAM Creator";
+  document.getElementById("publicCreatorHandle").textContent="@"+(profile.username||"player");
+  document.getElementById("publicCreatorBio").textContent=profile.bio||"PLAYAM creator";
+  const avatar=document.getElementById("publicCreatorAvatar");avatar.replaceChildren();avatar.textContent=(profile.display_name||profile.username||"P").slice(0,1).toUpperCase();
+  if(profile.avatar_url){try{const u=new URL(profile.avatar_url);if(u.protocol==="https:"){const img=document.createElement("img");img.src=u.href;img.alt="";img.loading="lazy";img.referrerPolicy="no-referrer";img.addEventListener("error",()=>img.remove(),{once:true});avatar.textContent="";avatar.append(img)}}catch(_){}}
+  const [{count:followers,error:followersError},{count:following,error:followingError},{data:posts,error:postsError},{data:existing,error:followError}]=await Promise.all([
+   supabaseClient.from("flow_follows").select("follower_auth_user_id",{count:"exact",head:true}).eq("followed_auth_user_id",creatorId),
+   supabaseClient.from("flow_follows").select("followed_auth_user_id",{count:"exact",head:true}).eq("follower_auth_user_id",creatorId),
+   supabaseClient.from("flow_posts").select("id,caption,published_at").eq("creator_auth_user_id",creatorId).eq("visibility","public").eq("status","published").eq("moderation_status","approved").order("published_at",{ascending:false}).limit(30),
+   supabaseClient.from("flow_follows").select("followed_auth_user_id").eq("follower_auth_user_id",user.id).eq("followed_auth_user_id",creatorId).maybeSingle()
+  ]);
+  if(followersError)throw followersError;if(followingError)throw followingError;if(postsError)throw postsError;if(followError)throw followError;
+  document.getElementById("publicCreatorFollowers").textContent=formatProfileCount(followers||0);
+  document.getElementById("publicCreatorFollowing").textContent=formatProfileCount(following||0);
+  document.getElementById("publicCreatorVideos").textContent=formatProfileCount(posts?.length||0);
+  follow.textContent=existing?"✓ Following":"＋ Follow";follow.disabled=user.id===creatorId;follow.onclick=()=>togglePlayamFollow(creatorId,follow);
+  grid.replaceChildren();
+  if(!posts?.length)grid.append(dmEl("p","muted","This creator has no public approved videos yet."));
+  else posts.forEach(post=>{
+   const card=document.createElement("article");card.className="public-creator-video";
+   const icon=document.createElement("div");icon.className="public-creator-video-icon";icon.textContent="▶";
+   const copy=document.createElement("div");copy.className="public-creator-video-copy";
+   const title=document.createElement("strong");title.textContent=post.caption||"PLAYAM video";
+   const date=document.createElement("small");date.textContent=post.published_at?new Date(post.published_at).toLocaleDateString():"Published video";
+   copy.append(title,date);card.append(icon,copy);grid.append(card);
+  });
+  status.textContent="Showing only public, published and approved videos.";
+ }catch(error){grid.replaceChildren();status.textContent=error.message||"Unable to load creator profile."}
+}
 async function searchPlayamDiscover(term){
  const status=document.getElementById("discoverStatus"),creators=document.getElementById("discoverCreatorResults"),videos=document.getElementById("discoverVideoResults");
  const q=(term||"").trim();if(q.length<2){status.textContent="Enter at least two characters to search.";return}
@@ -1336,7 +1391,8 @@ async function searchPlayamDiscover(term){
     const name=document.createElement("strong");name.textContent=person.display_name||person.username||"PLAYAM Creator";
     const handle=document.createElement("small");handle.textContent="@"+(person.username||"player");copy.append(name,handle);
     const follow=document.createElement("button");follow.type="button";follow.className="secondary";follow.textContent=followed.has(person.user_id)?"✓ Following":"＋ Follow";follow.addEventListener("click",()=>togglePlayamFollow(person.user_id,follow));
-    card.append(avatar,copy,follow);creators.append(card);
+    const view=document.createElement("button");view.type="button";view.className="secondary";view.textContent="Profile";view.addEventListener("click",()=>openPublicCreatorProfile(person.user_id));
+    card.append(avatar,copy,view,follow);creators.append(card);
    });
   }
   if(!posts?.length)videos.textContent="No matching approved videos found.";
