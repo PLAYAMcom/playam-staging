@@ -110,7 +110,7 @@ label{display:block;margin-top:13px;font-weight:bold}
 .catalogue-card.planned .catalogue-status{color:#c6b4dc}
 .catalogue-card button{width:100%;padding:10px;font-size:11px}
 @media(max-width:760px){
- #bottomNav{position:fixed;z-index:1000;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;padding:8px 7px calc(8px + env(safe-area-inset-bottom));background:rgba(13,12,27,.97);border-top:1px solid #393454;backdrop-filter:blur(18px)}
+ #bottomNav{position:fixed;z-index:1000;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px;padding:8px 7px calc(8px + env(safe-area-inset-bottom));background:rgba(13,12,27,.97);border-top:1px solid #393454;backdrop-filter:blur(18px)}
  .bottom-nav-btn{min-width:0;background:transparent;color:#aaaac5;border:1px solid transparent;border-radius:13px;padding:8px 2px 7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:10px;font-weight:700}
  .bottom-nav-btn .nav-icon{font-size:19px;line-height:1.1}
  .bottom-nav-btn.active{color:white;background:#29213f;border-color:#7048a6}
@@ -467,6 +467,37 @@ input,select,textarea{font-size:16px;max-width:100%}
 }
 
 
+/* PLAYAM create button and TikTok-inspired creator action sheet */
+.bottom-nav-create .nav-icon{
+ width:31px;height:31px;min-width:31px!important;min-height:31px!important;
+ border-radius:10px;background:linear-gradient(135deg,#f23cc7,#7b43ff);
+ color:#fff;font-size:27px!important;font-weight:500;line-height:1;
+ box-shadow:0 4px 16px #a42cff55;
+}
+.bottom-nav-create{color:#fff}
+.create-action-backdrop{
+ position:fixed;inset:0;z-index:1200;display:flex;align-items:flex-end;
+ justify-content:center;background:#080611a8;backdrop-filter:blur(5px);
+}
+.create-action-sheet{
+ width:min(100%,560px);padding:12px 18px calc(20px + env(safe-area-inset-bottom));
+ background:linear-gradient(160deg,#282039,#151323);border:1px solid #59416f;
+ border-bottom:0;border-radius:24px 24px 0 0;box-shadow:0 -18px 60px #0008;
+}
+.create-sheet-grip{width:42px;height:4px;border-radius:8px;background:#766887;margin:0 auto 18px}
+.create-sheet-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.create-sheet-heading h2{margin:0 0 4px;font-size:20px}
+.create-sheet-heading p{margin:0;color:#bdb0ce;font-size:13px}
+.create-sheet-close{width:36px;height:36px;border-radius:50%;background:#ffffff12;color:white;border:1px solid #ffffff20;font-size:23px}
+.create-action-option{width:100%;display:flex;align-items:center;gap:13px;text-align:left;padding:14px 10px;margin:5px 0;border-radius:14px;border:1px solid #ffffff12;background:#ffffff08;color:#fff}
+.create-action-option:active{background:#ffffff16}
+.create-option-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:#ffffff12;font-size:21px;flex:0 0 42px}
+.create-action-option strong,.create-action-option small{display:block}
+.create-action-option strong{font-size:14px}
+.create-action-option small{font-size:11px;color:#bdb0ce;margin-top:3px}
+.create-option-arrow{margin-left:auto;font-size:25px;color:#c8a5ef}
+@media(min-width:761px){.create-action-backdrop{align-items:center;padding:20px}.create-action-sheet{border:1px solid #59416f;border-radius:22px;padding-bottom:18px}}
+
 /* Accessible five-tab navigation polish */
 @media(max-width:760px){
  #bottomNav{min-height:66px;box-sizing:border-box;gap:4px;padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right));}
@@ -644,9 +675,19 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
   <button class="bottom-nav-btn active" data-bottom-nav="navHome" onclick="showHome()"><span class="nav-icon">⌂</span><span>Home</span></button>
   <button class="bottom-nav-btn" data-bottom-nav="navGames" onclick="showGames()"><span class="nav-icon">🎮</span><span>Games</span></button>
   <button class="bottom-nav-btn" data-bottom-nav="navVideos" onclick="showVideoHub()"><span class="nav-icon">▶</span><span>Videos</span></button>
-  <button class="bottom-nav-btn" data-bottom-nav="navMessages" onclick="showMessages()"><span class="nav-icon">💬</span><span>Messages</span></button>
+  <button class="bottom-nav-btn bottom-nav-create" id="bottomCreateButton" type="button" aria-label="Create" aria-haspopup="dialog" aria-expanded="false" onclick="toggleCreateMenu()"><span class="nav-icon">＋</span><span>Create</span></button>
+  <button class="bottom-nav-btn" data-bottom-nav="navMessages" onclick="showMessages()"><span class="nav-icon">✉</span><span>Inbox</span></button>
   <button class="bottom-nav-btn" data-bottom-nav="navProfile" onclick="showProfile()"><span class="nav-icon">●</span><span>Profile</span></button>
  </nav>
+ <div id="createActionMenu" class="create-action-backdrop hidden" role="presentation" onclick="if(event.target===this)toggleCreateMenu(false)">
+  <section class="create-action-sheet" role="dialog" aria-modal="true" aria-labelledby="createActionTitle">
+   <div class="create-sheet-grip" aria-hidden="true"></div>
+   <div class="create-sheet-heading"><div><h2 id="createActionTitle">Create on PLAYAM</h2><p>Share something or start playing.</p></div><button type="button" class="create-sheet-close" aria-label="Close create menu" onclick="toggleCreateMenu(false)">×</button></div>
+   <button class="create-action-option" type="button" onclick="startVideoCreation()"><span class="create-option-icon">🎬</span><span><strong>Upload a video</strong><small>Share a video with the PLAYAM community</small></span><span class="create-option-arrow">›</span></button>
+   <button class="create-action-option" type="button" onclick="startRoomCreation()"><span class="create-option-icon">🎮</span><span><strong>Create a game room</strong><small>Invite friends to play together</small></span><span class="create-option-arrow">›</span></button>
+   <button class="create-action-option" type="button" onclick="startLivePreview()"><span class="create-option-icon">🔴</span><span><strong>Start a LIVE</strong><small>Preview only — streaming is not enabled yet</small></span><span class="create-option-arrow">›</span></button>
+  </section>
+ </div>
 
  <main class="main">
   <div class="topbar">
@@ -2481,6 +2522,15 @@ async function savePlayamMarketPreference(){
  }catch(error){status.textContent="Unable to save: "+(error?.message||"Please try again.")}
  finally{button.disabled=false}
 }
+function toggleCreateMenu(force){
+ const menu=document.getElementById("createActionMenu"),button=document.getElementById("bottomCreateButton");
+ const open=typeof force==="boolean"?force:menu.classList.contains("hidden");
+ menu.classList.toggle("hidden",!open);button?.setAttribute("aria-expanded",String(open));
+ if(open)menu.querySelector(".create-sheet-close")?.focus();else button?.focus();
+}
+function startVideoCreation(){toggleCreateMenu(false);showVideoHub();document.getElementById("playamVideoFile")?.click()}
+function startRoomCreation(){toggleCreateMenu(false);showCreateRoom()}
+function startLivePreview(){toggleCreateMenu(false);showLiveHub()}
 function showCreateRoom(){showScreen("createScreen")}
 function showJoinRoom(){showScreen("joinScreen")}
 function showCreateRoomWithHard(){document.getElementById("game").value="friendship-court";document.getElementById("level").value="hard";showCreateRoom()}
