@@ -467,6 +467,25 @@ input,select,textarea{font-size:16px;max-width:100%}
 }
 
 
+.home-search-button{width:38px;height:38px;border-radius:50%;border:1px solid #ffffff25;background:#ffffff10;color:#fff;font-size:25px;line-height:1}
+.discover-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.discover-heading h2{font-size:27px;margin:5px 0}
+.discover-heading p{margin:0}
+.discover-search-form{display:flex;gap:9px;margin:18px 0}
+.discover-search-form input{flex:1;min-width:0;border:1px solid #514064;background:#111020;color:white;border-radius:13px;padding:13px}
+.discover-search-form button{min-width:88px}
+.discover-section{margin:22px 0}
+.discover-section h3{margin-bottom:10px}
+.discover-results{display:grid;gap:9px}
+.discover-result{display:flex;align-items:center;gap:11px;padding:12px;border:1px solid #403354;border-radius:14px;background:#1b192c;min-width:0}
+.discover-result-avatar{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,#a52be5,#5933a6);font-weight:800;overflow:hidden}
+.discover-result-avatar img{width:100%;height:100%;object-fit:cover}
+.discover-result-copy{min-width:0;flex:1}
+.discover-result-copy strong,.discover-result-copy small{display:block;overflow-wrap:anywhere}
+.discover-result-copy small{color:#b9abc9;margin-top:3px}
+.discover-result button{flex:0 0 auto}
+@media(max-width:480px){.discover-search-form{flex-direction:column}.discover-search-form button{width:100%;min-height:44px}.discover-result{padding:10px}.discover-result button{font-size:11px;padding:9px}}
+
 /* PLAYAM create button and TikTok-inspired creator action sheet */
 .bottom-nav-create .nav-icon{
  width:31px;height:31px;min-width:31px!important;min-height:31px!important;
@@ -701,6 +720,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
   <section id="homeScreen" class="playam-home">
    <div class="home-welcome">
     <div class="home-brand-lockup"><span class="home-brand-mark">▶</span><span>PLAYAM</span></div>
+    <button class="home-search-button" type="button" onclick="showDiscover()" aria-label="Search PLAYAM" title="Search PLAYAM">⌕</button>
     <button class="home-notifications" type="button" onclick="showNotifications()" aria-label="Open notifications" title="Notifications">♧<span class="home-notification-dot hidden" id="homeNotificationDot"></span><span class="home-notification-count hidden" id="homeNotificationCount" aria-hidden="true"></span></button>
    </div>
    <div class="home-hero">
@@ -744,6 +764,17 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
     <button type="button" onclick="showLiveHub()">EXPLORE ›</button>
    </div>
    <p class="home-footnote">LIVE streaming, virtual gifts and creator payouts are not enabled in this Staging preview.</p>
+  </section>
+
+  <section id="discoverScreen" class="screen-card hidden">
+   <div class="discover-heading"><div><span class="home-eyebrow">EXPLORE PLAYAM</span><h2>Discover</h2><p class="muted">Find creators and approved videos from the community.</p></div><button class="secondary" type="button" onclick="showHome()">Close</button></div>
+   <form id="discoverSearchForm" class="discover-search-form">
+    <input id="discoverSearchInput" type="search" maxlength="60" placeholder="Search creators or videos…" aria-label="Search creators or videos" autocomplete="off">
+    <button class="primary" type="submit">Search</button>
+   </form>
+   <div class="discover-section"><h3>Creators</h3><div id="discoverCreatorResults" class="discover-results" aria-live="polite"><p class="muted">Search for a creator by name or username.</p></div></div>
+   <div class="discover-section"><h3>Videos</h3><div id="discoverVideoResults" class="discover-results" aria-live="polite"><p class="muted">Search approved public video captions.</p></div></div>
+   <p id="discoverStatus" class="small muted" role="status" aria-live="polite"></p>
   </section>
 
   <section id="gamesScreen" class="hidden">
@@ -1265,7 +1296,7 @@ let selectedVotePlayerId="",lobbyRefreshTimer=null,lobbyLoading=false;
 let gameRefreshTimer=null,gameTimerInterval=null,currentRoundEndsAt=null,answerSubmitted=false,roundAdvanceRequestedFor="",roundAdvanceTimeoutRequestedFor="";
 let soloQuestions=[],soloAnswers=[],soloQuestionIndex=0,soloDifficulty="starter",soloLoading=false;
 
-const screenIds=["homeScreen","gamesScreen","messagesScreen","liveScreen","videoScreen","walletScreen","vipScreen","notificationsScreen","profileScreen","financeAdminScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
+const screenIds=["homeScreen","discoverScreen","gamesScreen","messagesScreen","liveScreen","videoScreen","walletScreen","vipScreen","notificationsScreen","profileScreen","financeAdminScreen","findPlayerScreen","settingsScreen","soloSetupScreen","soloGameScreen","soloResultsScreen","createScreen","joinScreen","lobbyScreen","gameScreen","resultsScreen"];
 
 function showMessage(t){document.getElementById("message").innerText=t||""}
 function hideScreens(){screenIds.forEach(id=>document.getElementById(id).classList.add("hidden"))}
@@ -1279,6 +1310,55 @@ function setNav(id){
 }
 function showScreen(id,nav=""){if(id!=="messagesScreen"&&dmRealtimeChannel){supabaseClient.removeChannel(dmRealtimeChannel);dmRealtimeChannel=null}hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome");loadHomeNotificationBadge()}
+function showDiscover(){stopLobbyRefresh();stopGameRefresh();showScreen("discoverScreen");document.getElementById("discoverSearchInput")?.focus()}
+async function searchPlayamDiscover(term){
+ const status=document.getElementById("discoverStatus"),creators=document.getElementById("discoverCreatorResults"),videos=document.getElementById("discoverVideoResults");
+ const q=(term||"").trim();if(q.length<2){status.textContent="Enter at least two characters to search.";return}
+ creators.replaceChildren();videos.replaceChildren();status.textContent="Searching PLAYAM…";
+ try{
+  const {data:{user},error:authError}=await supabaseClient.auth.getUser();if(authError)throw authError;if(!user)throw new Error("Please sign in to discover PLAYAM creators.");
+  const safe=q.replace(/[%,]/g," ").trim();if(!safe){status.textContent="Enter a valid search term.";return}
+  const [{data:people,error:peopleError},{data:posts,error:postsError}]=await Promise.all([
+   supabaseClient.from("playam_profiles").select("user_id,display_name,username,avatar_url").or("username.ilike.%"+safe+"%,display_name.ilike.%"+safe+"%").neq("user_id",user.id).limit(12),
+   supabaseClient.from("flow_posts").select("id,creator_auth_user_id,caption,published_at").eq("visibility","public").eq("status","published").eq("moderation_status","approved").ilike("caption","%"+safe+"%").order("published_at",{ascending:false}).limit(12)
+  ]);
+  if(peopleError)throw peopleError;if(postsError)throw postsError;
+  if(!people?.length)creators.textContent="No matching creators found.";
+  else{
+   const ids=people.map(p=>p.user_id);
+   const {data:followRows,error:followError}=await supabaseClient.from("flow_follows").select("followed_auth_user_id").eq("follower_auth_user_id",user.id).in("followed_auth_user_id",ids);
+   if(followError)throw followError;const followed=new Set((followRows||[]).map(x=>x.followed_auth_user_id));
+   people.forEach(person=>{
+    const card=document.createElement("article");card.className="discover-result";
+    const avatar=document.createElement("div");avatar.className="discover-result-avatar";
+    if(person.avatar_url){const img=document.createElement("img");img.src=person.avatar_url;img.alt="";img.loading="lazy";avatar.append(img)}else avatar.textContent=(person.display_name||person.username||"P").slice(0,1).toUpperCase();
+    const copy=document.createElement("div");copy.className="discover-result-copy";
+    const name=document.createElement("strong");name.textContent=person.display_name||person.username||"PLAYAM Creator";
+    const handle=document.createElement("small");handle.textContent="@"+(person.username||"player");copy.append(name,handle);
+    const follow=document.createElement("button");follow.type="button";follow.className="secondary";follow.textContent=followed.has(person.user_id)?"✓ Following":"＋ Follow";follow.addEventListener("click",()=>togglePlayamFollow(person.user_id,follow));
+    card.append(avatar,copy,follow);creators.append(card);
+   });
+  }
+  if(!posts?.length)videos.textContent="No matching approved videos found.";
+  else{
+   const ids=[...new Set(posts.map(p=>p.creator_auth_user_id))];
+   const {data:profiles,error:profileError}=await supabaseClient.from("playam_profiles").select("user_id,display_name,username").in("user_id",ids);
+   if(profileError)throw profileError;const profileMap=new Map((profiles||[]).map(p=>[p.user_id,p]));
+   posts.forEach(post=>{
+    const card=document.createElement("article");card.className="discover-result";
+    const icon=document.createElement("div");icon.className="discover-result-avatar";icon.textContent="▶";
+    const copy=document.createElement("div");copy.className="discover-result-copy";
+    const caption=document.createElement("strong");caption.textContent=post.caption||"PLAYAM video";
+    const creator=profileMap.get(post.creator_auth_user_id);const byline=document.createElement("small");byline.textContent="By "+(creator?.display_name||creator?.username||"PLAYAM creator");
+    copy.append(caption,byline);const watch=document.createElement("button");watch.type="button";watch.className="secondary";watch.textContent="Watch";watch.addEventListener("click",()=>{showVideoHub();openVideoFeed()});
+    card.append(icon,copy,watch);videos.append(card);
+   });
+  }
+  status.textContent="Search complete. Only public, published and approved videos are included.";
+ }catch(error){status.textContent=error.message||"Search could not be completed."}
+}
+document.getElementById("discoverSearchForm")?.addEventListener("submit",event=>{event.preventDefault();searchPlayamDiscover(document.getElementById("discoverSearchInput").value)});
+
 function showGames(){stopLobbyRefresh();stopGameRefresh();showScreen("gamesScreen","navGames");renderPlayamCatalogue();void loadPlayamGameAd()}
 let dmUser=null,dmActiveConversation=null,dmActivePartner=null,dmRealtimeChannel=null,dmRealtimeRetryTimer=null,dmRealtimeRetryCount=0,dmLoading=false,dmPendingSends={},dmThreadOldest=null,dmThreadHasMore=false,dmThreadLoadingMore=false,dmDrafts={};
 function showMessages(){stopLobbyRefresh();stopGameRefresh();showScreen("messagesScreen","navMessages");loadDmInbox()}
