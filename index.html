@@ -828,6 +828,10 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
     <label for="playamVideoCaption">Video caption (optional)</label><textarea id="playamVideoCaption" maxlength="2200" placeholder="Write a caption for your video..."></textarea>
     <p class="small muted">MP4, MOV or WebM · maximum 100 MB · uploads remain private until processing and administrator approval.</p>
    </div>
+   <div class="video-feed-tabs" role="group" aria-label="Choose video feed">
+    <button type="button" id="videoForYouTab" class="video-feed-tab active" aria-pressed="true" onclick="setVideoFeedMode('for-you')">For You</button>
+    <button type="button" id="videoFollowingTab" class="video-feed-tab" aria-pressed="false" onclick="setVideoFeedMode('following')">Following</button>
+   </div>
    <div id="playamUploadStatus" class="small-card" role="status" aria-live="polite"></div>
    <div id="videoFeedStatus" class="small-card" role="status" aria-live="polite">Open the feed to load approved videos.</div>
    <div id="videoFeed" class="video-feed hidden"></div>
@@ -2519,6 +2523,16 @@ async function togglePlayamFollow(creatorId,button){
   button.textContent="✓ Following";
  }
 }
+let videoFeedMode="for-you";
+function setVideoFeedMode(mode){
+ if(!["for-you","following"].includes(mode))return;
+ videoFeedMode=mode;
+ document.getElementById("videoForYouTab").classList.toggle("active",mode==="for-you");
+ document.getElementById("videoFollowingTab").classList.toggle("active",mode==="following");
+ document.getElementById("videoForYouTab").setAttribute("aria-pressed",String(mode==="for-you"));
+ document.getElementById("videoFollowingTab").setAttribute("aria-pressed",String(mode==="following"));
+ openVideoFeed(false);
+}
 async function openVideoFeed(loadMore=false){
  const status=document.getElementById("videoFeedStatus"),feed=document.getElementById("videoFeed"),more=document.getElementById("videoFeedMore");
  if(videoFeedLoading)return;videoFeedLoading=true;
@@ -2528,7 +2542,18 @@ async function openVideoFeed(loadMore=false){
   const {data:{session},error:authError}=await supabaseClient.auth.getSession();
   if(authError)throw authError;if(!session)throw new Error("Please sign in to view PLAYAM Videos.");
   const pageSize=8;
-  const {data:posts,error}=await supabaseClient.from("flow_posts").select("id,creator_auth_user_id,caption,published_at,created_at").eq("visibility","public").eq("status","published").eq("moderation_status","approved").order("published_at",{ascending:false}).range(videoFeedOffset,videoFeedOffset+pageSize-1);
+  let postQuery=supabaseClient.from("flow_posts").select("id,creator_auth_user_id,caption,published_at,created_at").eq("visibility","public").eq("status","published").eq("moderation_status","approved");
+  if(videoFeedMode==="following"){
+   const {data:followRows,error:followError}=await supabaseClient.from("flow_follows").select("followed_auth_user_id").eq("follower_auth_user_id",session.user.id);
+   if(followError)throw followError;
+   const followedIds=(followRows||[]).map(row=>row.followed_auth_user_id);
+   if(!followedIds.length){
+    status.textContent="Your Following feed is empty. Discover creators and follow them to see their approved videos here.";
+    videoFeedEnded=true;more.classList.add("hidden");return;
+   }
+   postQuery=postQuery.in("creator_auth_user_id",followedIds);
+  }
+  const {data:posts,error}=await postQuery.order("published_at",{ascending:false}).range(videoFeedOffset,videoFeedOffset+pageSize-1);
   if(error)throw error;
   if(!posts||posts.length===0){status.textContent=videoFeedOffset===0?"No approved videos yet. Be the first creator to publish a video when uploads are enabled.":"You’ve reached the end of the feed.";videoFeedEnded=true;more.classList.add("hidden");return}
   const ids=posts.map(p=>p.id);
@@ -2571,7 +2596,7 @@ async function openVideoFeed(loadMore=false){
    loadPlayamComments(post.id,list);
   }
   videoFeedOffset+=posts.length;videoFeedEnded=posts.length<pageSize;
-  status.textContent=rendered?"Showing approved PLAYAM videos. Like, follow, comment or share.":"Approved posts were found, but none has a ready accessible playback asset yet.";
+  status.textContent=rendered?(videoFeedMode==="following"?"Showing approved videos from creators you follow.":"Showing approved PLAYAM videos. Like, follow, comment or share."):"Approved posts were found, but none has a ready accessible playback asset yet.";
   more.classList.toggle("hidden",videoFeedEnded);
   feed.querySelectorAll("video").forEach(v=>{v.addEventListener("play",()=>feed.querySelectorAll("video").forEach(other=>{if(other!==v)other.pause()}));});
   if("IntersectionObserver" in window){
