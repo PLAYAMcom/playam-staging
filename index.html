@@ -484,6 +484,7 @@ input,select,textarea{font-size:16px;max-width:100%}
 .discover-result{display:flex;align-items:center;gap:11px;padding:12px;border:1px solid #403354;border-radius:14px;background:#1b192c;min-width:0}
 .discover-result-avatar{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,#a52be5,#5933a6);font-weight:800;overflow:hidden}
 .discover-result-avatar img{width:100%;height:100%;object-fit:cover}
+.discover-video-thumbnail{width:58px;height:68px;flex-basis:58px;border-radius:9px}.discover-video-thumbnail img,.public-creator-video-icon img{width:100%;height:100%;object-fit:cover;border-radius:inherit}.public-creator-video-icon{overflow:hidden}
 .discover-result-copy{min-width:0;flex:1}
 .discover-result-copy strong,.discover-result-copy small{display:block;overflow-wrap:anywhere}
 .discover-result-copy small{color:#b9abc9;margin-top:3px}
@@ -1333,6 +1334,18 @@ function setNav(id){
 function showScreen(id,nav=""){if(id!=="messagesScreen"&&dmRealtimeChannel){supabaseClient.removeChannel(dmRealtimeChannel);dmRealtimeChannel=null}hideScreens();document.getElementById(id).classList.remove("hidden");setNav(nav);showMessage("")}
 function showHome(){stopLobbyRefresh();stopGameRefresh();showScreen("homeScreen","navHome");loadHomeNotificationBadge()}
 function showDiscover(){stopLobbyRefresh();stopGameRefresh();showScreen("discoverScreen");document.getElementById("discoverSearchInput")?.focus()}
+async function loadPlayamVideoThumbnail(postId,container,altText="PLAYAM video thumbnail"){
+ if(!postId||!container)return;
+ try{
+  const {data,error}=await supabaseClient.functions.invoke("flow-cloudflare-playback",{body:{postId}});
+  if(error||!data?.thumbnailUrl)return;
+  const url=new URL(data.thumbnailUrl);
+  if(url.protocol!=="https:")return;
+  const img=document.createElement("img");img.src=url.href;img.alt=altText;img.loading="lazy";img.referrerPolicy="no-referrer";
+  img.addEventListener("error",()=>img.remove(),{once:true});
+  container.replaceChildren(img);
+ }catch(_){}
+}
 async function openPublicCreatorProfile(creatorId){
  const status=document.getElementById("publicCreatorStatus"),grid=document.getElementById("publicCreatorVideoGrid"),follow=document.getElementById("publicCreatorFollow");
  if(!creatorId){status.textContent="Creator profile is unavailable.";return}
@@ -1361,7 +1374,7 @@ async function openPublicCreatorProfile(creatorId){
   if(!posts?.length)grid.append(dmEl("p","muted","This creator has no public approved videos yet."));
   else posts.forEach(post=>{
    const card=document.createElement("article");card.className="public-creator-video";
-   const icon=document.createElement("div");icon.className="public-creator-video-icon";icon.textContent="▶";
+   const icon=document.createElement("div");icon.className="public-creator-video-icon";icon.textContent="▶";void loadPlayamVideoThumbnail(post.id,icon,post.caption||"PLAYAM creator video thumbnail");
    const copy=document.createElement("div");copy.className="public-creator-video-copy";
    const title=document.createElement("strong");title.textContent=post.caption||"PLAYAM video";
    const date=document.createElement("small");date.textContent=post.published_at?new Date(post.published_at).toLocaleDateString():"Published video";
@@ -1406,7 +1419,7 @@ async function searchPlayamDiscover(term){
    if(profileError)throw profileError;const profileMap=new Map((profiles||[]).map(p=>[p.user_id,p]));
    posts.forEach(post=>{
     const card=document.createElement("article");card.className="discover-result";
-    const icon=document.createElement("div");icon.className="discover-result-avatar";icon.textContent="▶";
+    const icon=document.createElement("div");icon.className="discover-result-avatar discover-video-thumbnail";icon.textContent="▶";void loadPlayamVideoThumbnail(post.id,icon,post.caption||"PLAYAM video thumbnail");
     const copy=document.createElement("div");copy.className="discover-result-copy";
     const caption=document.createElement("strong");caption.textContent=post.caption||"PLAYAM video";
     const creator=profileMap.get(post.creator_auth_user_id);const byline=document.createElement("small");byline.textContent="By "+(creator?.display_name||creator?.username||"PLAYAM creator");
