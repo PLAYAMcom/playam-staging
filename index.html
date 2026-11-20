@@ -2516,7 +2516,7 @@ async function beginPlayamVideoUpload(input){
   const upload=new tus.Upload(file,{uploadUrl:prepared.tusUploadUrl,chunkSize:8*1024*1024,retryDelays:[0,1000,3000,5000,10000],metadata:{filename:file.name,filetype:file.type},
    onError(err){setStatus("Upload failed: "+(err?.message||"Please try again."));input.value=""},
    onProgress(sent,total){setStatus("Uploading video… "+Math.floor(sent/total*100)+"%")},
-   onSuccess(){setStatus("Upload complete. Your video is private while Cloudflare processes it. It will appear only after administrator moderation and approval.");input.value="";const c=document.getElementById("playamVideoCaption");if(c)c.value=""}
+   onSuccess(){setStatus("Upload complete. Your video is private while Cloudflare processes it. It will appear only after administrator moderation and approval.");input.value="";const c=document.getElementById("playamVideoCaption");if(c)c.value="";loadMyPlayamUploads()}
   });
   upload.start();
  }catch(error){setStatus(error?.message||"Upload could not be started.");input.value=""}
