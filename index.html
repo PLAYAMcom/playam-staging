@@ -2440,12 +2440,12 @@ async function saveProfile(){
  const status=document.getElementById("profileStatus");
  const saveButton=document.querySelector('#profileEditor button[onclick="saveProfile()"]');
  if(saveButton?.disabled)return;
- if(saveButton)saveButton.disabled=true;
  const display_name=document.getElementById("profileDisplayName").value.trim();
  const username=document.getElementById("profileUsername").value.trim().toLowerCase();
  const bio=document.getElementById("profileBio").value.trim();
  if(!/^[a-z0-9_]{3,30}$/.test(username)){status.textContent="Username must use 3–30 lowercase letters, numbers or underscores.";return}
  if(!display_name){status.textContent="Display name is required.";return}
+ if(saveButton)saveButton.disabled=true;
  status.textContent="Saving profile...";
  try{
   const {data:{user},error:userError}=await supabaseClient.auth.getUser();
@@ -2494,7 +2494,7 @@ async function loadCreatorEarningsDashboard(){
   if(history)history.textContent="Reward history unavailable.";
  }
 }
-function showVideoHub(){stopLobbyRefresh();stopGameRefresh();showScreen("videoScreen","navVideos")}
+function showVideoHub(){stopLobbyRefresh();stopGameRefresh();showScreen("videoScreen","navVideos");loadMyPlayamUploads()}
 let videoFeedOffset=0,videoFeedLoading=false,videoFeedEnded=false;
 async function beginPlayamVideoUpload(input){
  const file=input?.files?.[0];if(!file)return;
