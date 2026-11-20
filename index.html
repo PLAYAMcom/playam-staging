@@ -129,6 +129,7 @@ label{display:block;margin-top:13px;font-weight:bold}
 /* Private messaging */
 .dm-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:14px;min-height:420px}
 .dm-panel{background:#171629;border:1px solid #38344f;border-radius:15px;padding:13px;min-width:0}
+.notification-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.notification-actions button{min-height:40px;touch-action:manipulation}
 .dm-list{display:flex;flex-direction:column;gap:7px;max-height:440px;overflow:auto}
 .dm-person{display:flex;align-items:center;gap:10px;text-align:left;width:100%;background:#211f35;border:1px solid #393550;border-radius:12px;padding:11px;color:inherit}
 .dm-person.active{border-color:#a35be2;background:#302342}
@@ -920,6 +921,7 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
 
   <section id="notificationsScreen" class="screen-card hidden">
    <h2>🔔 Notifications</h2><p class="muted">Game invitations, friend activity, creator updates and account notices.</p>
+   <div class="notification-actions"><button id="markAllNotificationsRead" class="secondary" type="button" onclick="markAllPlayamNotificationsRead()">MARK ALL AS READ</button><button class="secondary" type="button" onclick="loadPlayamNotifications()">REFRESH</button></div>
    <div id="playamNotifications" class="dm-list"><div class="dm-empty">Loading notifications…</div></div>
    <p id="notificationsStatus" class="small muted" role="status" aria-live="polite"></p>
    <button class="back" onclick="showProfile()">← BACK TO PROFILE</button>
@@ -2307,20 +2309,43 @@ async function loadHomeNotificationBadge(){
   if(unread>0){dot.classList.remove("hidden");count.textContent=unread>99?"99+":String(unread);count.classList.remove("hidden")}
  }catch(error){console.warn("Home notification badge unavailable:",error?.message||error)}
 }
+async function markAllPlayamNotificationsRead(){
+ const button=document.getElementById("markAllNotificationsRead"),status=document.getElementById("notificationsStatus");
+ if(button?.disabled)return;
+ if(button)button.disabled=true;
+ if(status)status.textContent="Marking notifications as read…";
+ try{
+  const user=await dmGetUser();
+  const {error}=await supabaseClient.from("player_notifications").update({is_read:true}).eq("auth_user_id",user.id).eq("is_read",false);
+  if(error)throw error;
+  if(status)status.textContent="All notifications marked as read.";
+  await loadHomeNotificationBadge();
+  await loadPlayamNotifications();
+ }catch(error){if(status)status.textContent=error?.message||"Unable to mark notifications as read."}
+ finally{if(button)button.disabled=false}
+}
 async function loadPlayamNotifications(){
- const list=document.getElementById("playamNotifications"),status=document.getElementById("notificationsStatus");list.replaceChildren(dmEl("div","dm-empty","Loading notifications…"));
+ const list=document.getElementById("playamNotifications"),status=document.getElementById("notificationsStatus"),markAll=document.getElementById("markAllNotificationsRead");list.replaceChildren(dmEl("div","dm-empty","Loading notifications…"));
  try{
   const user=await dmGetUser();
   const {data,error}=await supabaseClient.from("player_notifications").select("id,notification_type,title,body,related_id,is_read,created_at").eq("auth_user_id",user.id).order("created_at",{ascending:false}).limit(60);
   if(error)throw error;list.replaceChildren();
-  if(!data?.length){list.append(dmEl("div","dm-empty","You are all caught up. No notifications yet."));return}
+  const unread=(data||[]).filter(n=>!n.is_read).length;
+  if(markAll)markAll.disabled=unread===0;
+  if(!data?.length){list.append(dmEl("div","dm-empty","You are all caught up. No notifications yet."));await loadHomeNotificationBadge();return}
   data.forEach(n=>{
    const item=dmEl("article","dm-panel");item.style.opacity=n.is_read?".72":"1";
    item.append(dmEl("strong","",n.title||"PLAYAM notification"),dmEl("p","muted",n.body||""),dmEl("small","muted",new Date(n.created_at).toLocaleString()));
-   if(!n.is_read){const b=dmEl("button","secondary","MARK AS READ");b.type="button";b.style.marginTop="8px";b.addEventListener("click",async()=>{b.disabled=true;const {error:e}=await supabaseClient.from("player_notifications").update({is_read:true}).eq("id",n.id).eq("auth_user_id",user.id);if(e){status.textContent=e.message;b.disabled=false}else{item.style.opacity=".72";b.remove()}});item.append(b)}
+   if(!n.is_read){const b=dmEl("button","secondary","MARK AS READ");b.type="button";b.style.marginTop="8px";b.addEventListener("click",async()=>{
+    if(b.disabled)return;b.disabled=true;
+    const {error:e}=await supabaseClient.from("player_notifications").update({is_read:true}).eq("id",n.id).eq("auth_user_id",user.id);
+    if(e){status.textContent=e.message;b.disabled=false;return}
+    item.style.opacity=".72";b.remove();if(markAll&&list.querySelectorAll("button").length<=1)markAll.disabled=true;await loadHomeNotificationBadge();
+   });item.append(b)}
    list.append(item);
   });
- }catch(e){list.replaceChildren(dmEl("div","dm-empty",e.message||"Unable to load notifications."))}
+  await loadHomeNotificationBadge();
+ }catch(e){list.replaceChildren(dmEl("div","dm-empty",e.message||"Unable to load notifications."));if(status)status.textContent="Notifications could not be refreshed."}
 }
 function renderProfileAvatar(avatarUrl,displayName){
  const el=document.getElementById("profileAvatar");if(!el)return;
