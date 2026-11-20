@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "index.html"
+      - "admin-playam-staging.html"
       - "site/**"
       - "manifest.webmanifest"
       - "sw.js"
@@ -13,15 +14,18 @@ on:
       - "supabase/functions/paystack-coin-checkout/**"
       - "supabase/functions/paystack-webhook/**"
       - ".github/workflows/staging-static-check.yml"
+      - ".github/workflows/deploy-staging-pages.yml"
   pull_request:
     branches: [main]
     paths:
       - "index.html"
+      - "admin-playam-staging.html"
       - "site/**"
       - "scripts/staging-static-check.py"
       - "supabase/functions/paystack-coin-checkout/**"
       - "supabase/functions/paystack-webhook/**"
       - ".github/workflows/staging-static-check.yml"
+      - ".github/workflows/deploy-staging-pages.yml"
 
 permissions:
   contents: read
