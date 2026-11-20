@@ -2421,21 +2421,19 @@ async function loadProfileVideoGrid(userId){
    const placeholder=document.createElement("div");placeholder.className="profile-tile-placeholder";placeholder.textContent="▶";tile.append(placeholder);
    const views=document.createElement("span");views.className="profile-tile-views";views.textContent="▶ PLAYAM";tile.append(views);
    tile.addEventListener("click",()=>openProfilePost(post.id));grid.append(tile);
-   supabaseClient.functions.invoke("flow-cloudflare-playback",{body:{postId:post.id}}).then(({data})=>{
-    if(!data?.thumbnailUrl)return;const img=document.createElement("img");img.src=data.thumbnailUrl;img.alt=post.caption||"PLAYAM video thumbnail";img.loading="lazy";img.referrerPolicy="no-referrer";img.addEventListener("error",()=>img.remove(),{once:true});placeholder.replaceChildren(img);
-   }).catch(()=>{});
+   void loadPlayamVideoThumbnail(post.id,placeholder,post.caption||"PLAYAM video thumbnail");
   }
  }catch(error){grid.replaceChildren();empty.textContent="Your video grid is temporarily unavailable.";grid.append(empty)}
 }
-async function openProfilePost(postId){
- showVideoHub();
- await new Promise(resolve=>setTimeout(resolve,80));
- await openVideoFeed();
- const target=document.querySelector('.video-post[data-post-id="'+CSS.escape(postId)+'"]');
- if(target)target.scrollIntoView({behavior:"smooth",block:"start"});
+function openProfilePost(postId){
+ if(!postId)return;
+ openSpecificPlayamVideo(postId);
 }
 async function saveProfile(){
  const status=document.getElementById("profileStatus");
+ const saveButton=document.querySelector('#profileEditor button[onclick="saveProfile()"]');
+ if(saveButton?.disabled)return;
+ if(saveButton)saveButton.disabled=true;
  const display_name=document.getElementById("profileDisplayName").value.trim();
  const username=document.getElementById("profileUsername").value.trim().toLowerCase();
  const bio=document.getElementById("profileBio").value.trim();
@@ -2454,6 +2452,7 @@ async function saveProfile(){
   const editor=document.getElementById("profileEditor");if(editor)editor.classList.add("hidden");
   status.textContent="✓ Profile saved.";
  }catch(error){status.textContent="Unable to save: "+(error?.message||"Please try again.")}
+ finally{if(saveButton)saveButton.disabled=false}
 }
 async function loadCreatorEarningsDashboard(){
  const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value};
