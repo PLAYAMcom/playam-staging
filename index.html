@@ -439,7 +439,9 @@ input,select,textarea{font-size:16px;max-width:100%}
 }
 #videoScreen .video-post-meta{background:linear-gradient(180deg,#11101c,#171326)}
 #videoScreen .video-actions button{min-height:42px}
-#videoScreen .video-actions{align-items:center}#videoScreen .video-actions button{min-height:42px;touch-action:manipulation}#videoScreen .video-post{contain:layout paint}#videoScreen .video-post video:focus-visible{outline:3px solid #c17cff;outline-offset:-3px}
+#videoScreen .video-actions{align-items:center}#videoScreen .video-actions button{min-height:42px;touch-action:manipulation}
+.creator-upload-manager{margin:14px 0}.creator-upload-manager-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}.creator-upload-manager-heading h3{margin:0 0 5px}.creator-upload-list{display:grid;gap:10px}.creator-upload-item{padding:12px;border:1px solid var(--border-color,rgba(255,255,255,.14));border-radius:12px;background:rgba(127,127,127,.06);display:grid;gap:8px}.creator-upload-item>small{display:block}.creator-upload-statuses{display:flex;gap:6px;flex-wrap:wrap}.creator-upload-status{font-size:12px;padding:5px 8px;border-radius:999px;background:rgba(127,127,127,.12);text-transform:capitalize}
+#videoScreen .video-post{contain:layout paint}#videoScreen .video-post video:focus-visible{outline:3px solid #c17cff;outline-offset:-3px}
 #videoScreen .video-mute-toggle{border-color:#8b52b5;background:#342044}
 @media(max-width:760px){
  #videoScreen{padding:0 0 calc(24px + env(safe-area-inset-bottom))}
@@ -836,6 +838,11 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
     <button type="button" id="videoFollowingTab" class="video-feed-tab" aria-pressed="false" onclick="setVideoFeedMode('following')">Following</button>
    </div>
    <div id="playamUploadStatus" class="small-card" role="status" aria-live="polite"></div>
+   <section class="small-card creator-upload-manager" aria-labelledby="myUploadsHeading">
+    <div class="creator-upload-manager-heading"><div><h3 id="myUploadsHeading">My uploads</h3><p class="muted small">Track processing and moderation status for your videos. Only approved public videos appear in the feed.</p></div><button id="refreshMyUploads" class="secondary" type="button" onclick="loadMyPlayamUploads()">REFRESH</button></div>
+    <p id="myUploadsStatus" class="small muted" role="status" aria-live="polite">Your uploads will appear here after you sign in.</p>
+    <div id="myPlayamUploads" class="creator-upload-list"></div>
+   </section>
    <div id="videoFeedStatus" class="small-card" role="status" aria-live="polite">Open the feed to load approved videos.</div>
    <div id="videoFeed" class="video-feed hidden"></div>
    <button id="videoFeedMore" class="secondary hidden" onclick="openVideoFeed(true)">LOAD MORE</button>
@@ -2513,6 +2520,42 @@ async function beginPlayamVideoUpload(input){
   });
   upload.start();
  }catch(error){setStatus(error?.message||"Upload could not be started.");input.value=""}
+}
+async function loadMyPlayamUploads(){
+ const list=document.getElementById("myPlayamUploads"),status=document.getElementById("myUploadsStatus"),refresh=document.getElementById("refreshMyUploads");
+ if(!list||!status)return;
+ if(refresh?.disabled)return;
+ if(refresh)refresh.disabled=true;
+ list.replaceChildren();status.textContent="Loading your uploads…";
+ try{
+  const {data:{user},error:authError}=await supabaseClient.auth.getUser();
+  if(authError)throw authError;
+  if(!user)throw new Error("Please sign in to view your uploads.");
+  const {data:posts,error}=await supabaseClient.from("flow_posts").select("id,caption,status,moderation_status,visibility,created_at").eq("creator_auth_user_id",user.id).order("created_at",{ascending:false}).limit(50);
+  if(error)throw error;
+  if(!posts?.length){status.textContent="You have no uploads yet. Choose Upload Video to create your first one.";return}
+  const ids=posts.map(post=>post.id);
+  const {data:assets,error:assetError}=await supabaseClient.from("flow_post_assets").select("post_id,processing_status").in("post_id",ids);
+  if(assetError)throw assetError;
+  const assetStatus=new Map((assets||[]).map(asset=>[asset.post_id,asset.processing_status||"unknown"]));
+  posts.forEach(post=>{
+   const card=document.createElement("article");card.className="creator-upload-item";
+   const title=document.createElement("strong");title.textContent=post.caption||"Untitled video";
+   const date=document.createElement("small");date.className="muted";date.textContent=post.created_at?new Date(post.created_at).toLocaleString():"Upload date unavailable";
+   const details=document.createElement("div");details.className="creator-upload-statuses";
+   const statusItems=[["Post",post.status],["Moderation",post.moderation_status],["Visibility",post.visibility],["Processing",assetStatus.get(post.id)||"asset unavailable"]];
+   statusItems.forEach(([label,value])=>{
+    const tag=document.createElement("span");tag.className="creator-upload-status";
+    const strong=document.createElement("strong");strong.textContent=label+": ";
+    tag.append(strong,document.createTextNode(String(value||"not reported").replace(/[_-]+/g," ")));details.append(tag);
+   });
+   const note=document.createElement("p");note.className="small muted";
+   note.textContent=post.status==="published"&&post.moderation_status==="approved"&&post.visibility==="public"?"This video is approved for public viewing.": "This video is not currently listed as approved and public. It will not appear in the public feed until all publication requirements are met.";
+   card.append(title,date,details,note);list.append(card);
+  });
+  status.textContent="Showing your 50 most recent uploads. Statuses are read-only here.";
+ }catch(error){status.textContent=error?.message||"Unable to load your uploads."}
+ finally{if(refresh)refresh.disabled=false}
 }
 async function togglePlayamLike(postId,button){
  if(button.disabled)return;
